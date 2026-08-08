@@ -108,13 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         setError(null);
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: fullName ? { full_name: fullName } : undefined,
-          },
-        });
+        const signUpPayload = fullName
+          ? {
+              email,
+              password,
+              options: { data: { full_name: fullName } },
+            }
+          : { email, password };
+
+        const { error: signUpError } = await supabase.auth.signUp(signUpPayload);
 
         if (signUpError) {
           setError(signUpError.message);
