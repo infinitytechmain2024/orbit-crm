@@ -26,15 +26,16 @@ function MailPage() {
   const [flash, setFlash] = useState<string | null>(null);
   const sel = emails.find((e) => e.id === selId);
 
-  const toTask = () => {
+  const toTask = async () => {
     if (!sel) return;
-    addTask({
+    const task = await addTask({
       title: sel.subject,
       note: `Из письма от ${sel.from}\n\n${sel.body}`,
       status: "todo",
       priority: "high",
       tags: ["почта"],
     });
+    if (!task) return;
     setFlash(`Задача «${sel.subject}» создана`);
     setTimeout(() => setFlash(null), 2600);
   };
@@ -87,7 +88,7 @@ function MailPage() {
                   </p>
                 </div>
                 <button
-                  onClick={toTask}
+                  onClick={() => void toTask()}
                   className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-acc-1 to-acc-2 px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
                 >
                   <ListPlus className="size-4" /> Превратить в задачу

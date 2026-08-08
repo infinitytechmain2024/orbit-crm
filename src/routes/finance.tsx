@@ -17,7 +17,6 @@ import {
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
-import { monthly } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/finance")({
@@ -38,11 +37,29 @@ export const Route = createFileRoute("/finance")({
 const COLORS = ["var(--acc-1)", "var(--acc-2)", "var(--acc-3)", "var(--acc-4)"];
 
 function FinancePage() {
-  const { txs } = useCrm();
+  const { txs, isLoading } = useCrm();
   const [view, setView] = useState<"area" | "bar">("area");
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+
+  const monthly = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat("ru-RU", { month: "short" });
+    const map = new Map<string, { m: string; income: number; expense: number }>();
+
+    txs.forEach((tx) => {
+      const date = new Date(`${tx.dateIso}T00:00:00`);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const current = map.get(key) ?? { m: formatter.format(date), income: 0, expense: 0 };
+      current[tx.type] += tx.amount;
+      map.set(key, current);
+    });
+
+    return [...map.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .slice(-6)
+      .map(([, value]) => value);
+  }, [txs]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -51,7 +68,13 @@ function FinancePage() {
   }, [txs]);
 
   return (
-    <AppShell title="Финансы" subtitle="Август 2026 · доходы, расходы и структура">
+    <AppShell title="Финансы" subtitle="Доходы, расходы и структура по данным Supabase">
+      {isLoading && (
+        <div className="panel mb-6 p-6 text-sm text-muted-foreground">
+          Загружаю финансовые операции из Supabase…
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Kpi label="Доход" value={income} tone="up" />
         <Kpi label="Расход" value={expense} tone="down" />
@@ -78,9 +101,10 @@ function FinancePage() {
             </div>
           </div>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              {view === "area" ? (
-                <AreaChart data={monthly}>
+            {monthly.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                {view === "area" ? (
+                  <AreaChart data={monthly}>
                   <defs>
                     <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--acc-1)" stopOpacity={0.5} />
@@ -104,9 +128,9 @@ function FinancePage() {
                   />
                   <Area dataKey="income" stroke="var(--acc-1)" fill="url(#gi)" strokeWidth={2} />
                   <Area dataKey="expense" stroke="var(--acc-4)" fill="url(#ge)" strokeWidth={2} />
-                </AreaChart>
-              ) : (
-                <BarChart data={monthly}>
+                  </AreaChart>
+                ) : (
+                  <BarChart data={monthly}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="m" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
@@ -120,31 +144,42 @@ function FinancePage() {
                   />
                   <Bar dataKey="income" fill="var(--acc-1)" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="expense" fill="var(--acc-4)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              )}
-            </ResponsiveContainer>
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <div className="grid h-full place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
+                Финансовых операций пока нет.
+              </div>
+            )}
           </div>
         </section>
 
         <section className="panel p-6">
           <h3 className="text-base font-semibold">Структура расходов</h3>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={byCategory} dataKey="value" nameKey="name" innerRadius={52} outerRadius={80} paddingAngle={4}>
-                  {byCategory.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {byCategory.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={byCategory} dataKey="value" nameKey="name" innerRadius={52} outerRadius={80} paddingAngle={4}>
+                    {byCategory.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 12,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="grid h-full place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
+                Расходов пока нет.
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             {byCategory.map((c, i) => (
@@ -185,6 +220,13 @@ function FinancePage() {
                 </td>
               </tr>
             ))}
+            {!txs.length && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Операций пока нет.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </section>
@@ -199,7 +241,7 @@ function Kpi({ label, value, tone }: { label: string; value: number; tone: "up" 
       <p className="mt-2 font-display text-2xl font-semibold">{value.toLocaleString("ru-RU")} €</p>
       <p className={cn("mt-1 flex items-center gap-1 text-xs", tone === "up" ? "text-acc-1" : "text-acc-4")}>
         {tone === "up" ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-        к прошлому месяцу
+        по сохранённым операциям
       </p>
     </div>
   );

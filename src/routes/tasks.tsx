@@ -128,7 +128,7 @@ function TasksPage() {
                         >
                           {t.priority}
                         </span>
-                        <span>{projects.find((p) => p.id === t.projectId)?.name}</span>
+                        <span>{projects.find((p) => p.id === t.projectId)?.name ?? "Без проекта"}</span>
                         {t.due && <span className="ml-auto">{t.due}</span>}
                       </div>
                     </article>
@@ -166,7 +166,7 @@ function TasksPage() {
                 >
                   <td className="px-4 py-3">{t.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {projects.find((p) => p.id === t.projectId)?.name}
+                    {projects.find((p) => p.id === t.projectId)?.name ?? "Без проекта"}
                   </td>
                   <td className="px-4 py-3">
                     <select
@@ -284,7 +284,48 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
 }
 
 function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { updateTask, removeTask, projects } = useCrm();
+  const { updateTask, removeTask, projects, isMutating } = useCrm();
+  const [draft, setDraft] = useState({
+    title: task.title,
+    note: task.note ?? "",
+    status: task.status,
+    priority: task.priority,
+    projectId: task.projectId,
+  });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setDraft({
+      title: task.title,
+      note: task.note ?? "",
+      status: task.status,
+      priority: task.priority,
+      projectId: task.projectId,
+    });
+  }, [task]);
+
+  const save = async () => {
+    if (busy || !draft.title.trim()) return;
+    setBusy(true);
+    const saved = await updateTask(task.id, {
+      title: draft.title,
+      note: draft.note.trim() ? draft.note : null,
+      status: draft.status,
+      priority: draft.priority,
+      projectId: draft.projectId,
+    });
+    setBusy(false);
+    if (saved) onClose();
+  };
+
+  const remove = async () => {
+    if (busy) return;
+    setBusy(true);
+    const deleted = await removeTask(task.id);
+    setBusy(false);
+    if (deleted) onClose();
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in"
@@ -296,8 +337,8 @@ function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
       >
         <div className="flex items-start gap-4">
           <input
-            value={task.title}
-            onChange={(e) => updateTask(task.id, { title: e.target.value })}
+            value={draft.title}
+            onChange={(e) => setDraft((current) => ({ ...current, title: e.target.value }))}
             className="flex-1 bg-transparent font-display text-lg font-semibold outline-none"
           />
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -306,8 +347,8 @@ function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
         </div>
 
         <textarea
-          value={task.note ?? ""}
-          onChange={(e) => updateTask(task.id, { note: e.target.value })}
+          value={draft.note}
+          onChange={(e) => setDraft((current) => ({ ...current, note: e.target.value }))}
           rows={4}
           placeholder="Заметки, контекст, ссылки…"
           className="mt-4 w-full resize-none rounded-xl border border-border bg-surface-2/60 p-3 text-sm outline-none focus:border-primary/60"
@@ -316,8 +357,11 @@ function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <Field label="Статус">
             <select
-              value={task.status}
-              onChange={(e) => updateTask(task.id, { status: e.target.value as TaskStatus })}
+              value={draft.status}
+              disabled={busy || isMutating}
+              onChange={(e) =>
+                setDraft((current) => ({ ...current, status: e.target.value as TaskStatus }))
+              }
               className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
             >
               {COLUMNS.map((c) => (
@@ -329,9 +373,13 @@ function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
           </Field>
           <Field label="Приоритет">
             <select
-              value={task.priority}
+              value={draft.priority}
+              disabled={busy || isMutating}
               onChange={(e) =>
-                updateTask(task.id, { priority: e.target.value as Task["priority"] })
+                setDraft((current) => ({
+                  ...current,
+                  priority: e.target.value as Task["priority"],
+                }))
               }
               className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
             >
@@ -342,10 +390,14 @@ function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
           </Field>
           <Field label="Проект">
             <select
-              value={task.projectId}
-              onChange={(e) => updateTask(task.id, { projectId: e.target.value })}
+              value={draft.projectId ?? ""}
+              disabled={busy || isMutating}
+              onChange={(e) =>
+                setDraft((current) => ({ ...current, projectId: e.target.value || null }))
+              }
               className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
             >
+              <option value="">Без проекта</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -357,19 +409,18 @@ function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
 
         <div className="mt-6 flex justify-between">
           <button
-            onClick={() => {
-              removeTask(task.id);
-              onClose();
-            }}
+            onClick={() => void remove()}
+            disabled={busy || isMutating}
             className="rounded-xl border border-border px-3 py-2 text-sm text-destructive transition hover:bg-destructive/10"
           >
-            Удалить
+            {busy ? "Удаляю…" : "Удалить"}
           </button>
           <button
-            onClick={onClose}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            onClick={() => void save()}
+            disabled={busy || isMutating || !draft.title.trim()}
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            Готово
+            {busy || isMutating ? "Сохраняю…" : "Готово"}
           </button>
         </div>
       </div>

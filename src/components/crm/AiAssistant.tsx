@@ -25,12 +25,14 @@ export function AiAssistant() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs, thinking, open]);
 
-  const reply = (q: string) => {
+  const reply = async (q: string) => {
     const lower = q.toLowerCase();
     if (lower.includes("задач") && (lower.includes("созда") || lower.includes("добав"))) {
       const title = q.replace(/созда(й|ть)\s*задач[уy]?:?/i, "").trim() || "Новая задача из ИИ-чата";
-      addTask({ title, status: "todo", priority: "high", tags: ["ии"] });
-      return `Готово — создал задачу «${title}» в колонке «К работе» с высоким приоритетом.`;
+      const task = await addTask({ title, status: "todo", priority: "high", tags: ["ии"] });
+      return task
+        ? `Готово — создал задачу «${title}» в колонке «К работе» с высоким приоритетом.`
+        : "Не смог сохранить задачу. Проверьте сообщение об ошибке внизу экрана.";
     }
     if (lower.includes("аналитик") || lower.includes("деньг") || lower.includes("финанс")) {
       const inc = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
@@ -46,17 +48,18 @@ export function AiAssistant() {
     return "Записал в единую память. Могу разложить это на задачи, связать с проектом или найти похожие письма — скажи, что сделать.";
   };
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     const q = text.trim();
     if (!q || thinking) return;
     setMsgs((m) => [...m, { id: Math.random().toString(36), role: "user", text: q }]);
     setInput("");
     setThinking(true);
-    const answer = reply(q);
-    setTimeout(() => {
-      setMsgs((m) => [...m, { id: Math.random().toString(36), role: "ai", text: answer }]);
-      setThinking(false);
-    }, 1100);
+    const [answer] = await Promise.all([
+      reply(q),
+      new Promise((resolve) => window.setTimeout(resolve, 1100)),
+    ]);
+    setMsgs((m) => [...m, { id: Math.random().toString(36), role: "ai", text: answer }]);
+    setThinking(false);
   };
 
   return (
@@ -120,7 +123,7 @@ export function AiAssistant() {
           {suggestions.map((s) => (
             <button
               key={s}
-              onClick={() => send(s)}
+              onClick={() => void send(s)}
               className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition hover:border-primary/50 hover:text-primary"
             >
               {s}
@@ -131,7 +134,7 @@ export function AiAssistant() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            send(input);
+            void send(input);
           }}
           className="flex items-center gap-2 border-t border-border p-3"
         >

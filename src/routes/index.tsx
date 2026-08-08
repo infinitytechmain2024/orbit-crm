@@ -46,6 +46,7 @@ function Dashboard() {
   const [draft, setDraft] = useState("");
   const [stage, setStage] = useState<"idle" | "loading" | "done">("idle");
   const [parsed, setParsed] = useState<{ title: string; priority: Priority }[]>([]);
+  const [adding, setAdding] = useState(false);
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -71,11 +72,29 @@ function Dashboard() {
     }, 1600);
   };
 
-  const accept = () => {
-    parsed.forEach((p) => addTask({ title: p.title, priority: p.priority, status: "todo", tags: ["ии"] }));
-    setParsed([]);
-    setDraft("");
-    setStage("idle");
+  const accept = async () => {
+    if (adding) return;
+    setAdding(true);
+    const results = await Promise.all(
+      parsed.map((p) =>
+        addTask({ title: p.title, priority: p.priority, status: "todo", tags: ["ии"] }),
+      ),
+    );
+    if (results.every(Boolean)) {
+      setParsed([]);
+      setDraft("");
+      setStage("idle");
+    }
+    setAdding(false);
+  };
+
+  const addInboxTask = async () => {
+    const title = draft.trim();
+    if (!title || adding) return;
+    setAdding(true);
+    const task = await addTask({ title });
+    if (task) setDraft("");
+    setAdding(false);
   };
 
   return (
@@ -105,10 +124,11 @@ function Dashboard() {
               {stage === "loading" ? "ИИ думает…" : "Разобрать через ИИ"}
             </button>
             <button
-              onClick={() => draft.trim() && (addTask({ title: draft.trim() }), setDraft(""))}
+              onClick={() => void addInboxTask()}
+              disabled={adding}
               className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
             >
-              <Plus className="size-4" /> Просто во входящие
+              <Plus className="size-4" /> {adding ? "Сохраняю…" : "Просто во входящие"}
             </button>
           </div>
 
@@ -136,10 +156,11 @@ function Dashboard() {
                 </div>
               ))}
               <button
-                onClick={accept}
+                onClick={() => void accept()}
+                disabled={adding}
                 className="w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground"
               >
-                Добавить в задачи
+                {adding ? "Сохраняю…" : "Добавить в задачи"}
               </button>
             </div>
           )}
