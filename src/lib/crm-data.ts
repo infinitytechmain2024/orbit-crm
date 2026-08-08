@@ -1,5 +1,7 @@
 export type TaskStatus = "inbox" | "todo" | "doing" | "done";
 export type Priority = "low" | "med" | "high";
+export type ProjectStatus = "planned" | "active" | "paused" | "completed" | "archived";
+export type ProjectPriority = "low" | "medium" | "high" | "critical";
 
 export type Task = {
   id: string;
@@ -18,11 +20,49 @@ export type TaskPatch = Partial<Omit<Task, "id">>;
 
 export type Project = {
   id: string;
+  organizationId: string;
   name: string;
+  description: string | null;
   color: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  startDate: string | null;
+  dueDate: string | null;
+  ownerId: string | null;
+  budgetPlanned: number | null;
+  currency: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
   x: number;
   y: number;
   links: string[];
+  memberIds: string[];
+};
+
+export type ProjectInput = {
+  name: string;
+  description?: string | null;
+  color?: string;
+  status?: ProjectStatus;
+  priority?: ProjectPriority;
+  startDate?: string | null;
+  dueDate?: string | null;
+  ownerId?: string | null;
+  budgetPlanned?: number | null;
+  currency?: string;
+  memberIds?: string[];
+};
+
+export type ProjectPatch = ProjectInput;
+
+export type OrganizationMember = {
+  userId: string;
+  role: "owner" | "admin" | "manager" | "member" | "accountant";
+  email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
 };
 
 export type Email = {
@@ -57,6 +97,40 @@ export const STATUS_LABEL: Record<TaskStatus, string> = {
   doing: "В работе",
   done: "Готово",
 };
+
+export const PROJECT_STATUS_OPTIONS: ProjectStatus[] = [
+  "planned",
+  "active",
+  "paused",
+  "completed",
+  "archived",
+];
+
+export const PROJECT_PRIORITY_OPTIONS: ProjectPriority[] = ["low", "medium", "high", "critical"];
+
+export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
+  planned: "Планируется",
+  active: "Активный",
+  paused: "На паузе",
+  completed: "Завершён",
+  archived: "Архив",
+};
+
+export const PROJECT_PRIORITY_LABEL: Record<ProjectPriority, string> = {
+  low: "Низкий",
+  medium: "Средний",
+  high: "Высокий",
+  critical: "Критичный",
+};
+
+export const PROJECT_COLORS = [
+  "var(--acc-1)",
+  "var(--acc-2)",
+  "var(--acc-3)",
+  "var(--acc-4)",
+  "#8b5cf6",
+  "#ec4899",
+] as const;
 
 export const initialEmails: Email[] = [
   {

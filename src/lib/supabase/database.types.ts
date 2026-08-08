@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   __InternalSupabase: {
@@ -197,36 +191,105 @@ export type Database = {
           },
         ];
       };
+      project_members: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          organization_id: string;
+          project_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          organization_id: string;
+          project_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          organization_id?: string;
+          project_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_members_organization_id_project_id_fkey";
+            columns: ["organization_id", "project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "project_members_organization_id_user_id_fkey";
+            columns: ["organization_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_members";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+        ];
+      };
       projects: {
         Row: {
+          archived_at: string | null;
+          budget_planned: number | null;
           color: string;
           created_at: string;
           created_by: string;
+          currency: string;
+          description: string | null;
+          due_date: string | null;
           id: string;
           name: string;
           organization_id: string;
+          owner_id: string | null;
+          priority: Database["public"]["Enums"]["project_priority"];
+          start_date: string | null;
+          status: Database["public"]["Enums"]["project_status"];
           updated_at: string;
           x_position: number;
           y_position: number;
         };
         Insert: {
+          archived_at?: string | null;
+          budget_planned?: number | null;
           color?: string;
           created_at?: string;
           created_by: string;
+          currency?: string;
+          description?: string | null;
+          due_date?: string | null;
           id?: string;
           name: string;
           organization_id: string;
+          owner_id?: string | null;
+          priority?: Database["public"]["Enums"]["project_priority"];
+          start_date?: string | null;
+          status?: Database["public"]["Enums"]["project_status"];
           updated_at?: string;
           x_position?: number;
           y_position?: number;
         };
         Update: {
+          archived_at?: string | null;
+          budget_planned?: number | null;
           color?: string;
           created_at?: string;
           created_by?: string;
+          currency?: string;
+          description?: string | null;
+          due_date?: string | null;
           id?: string;
           name?: string;
           organization_id?: string;
+          owner_id?: string | null;
+          priority?: Database["public"]["Enums"]["project_priority"];
+          start_date?: string | null;
+          status?: Database["public"]["Enums"]["project_status"];
           updated_at?: string;
           x_position?: number;
           y_position?: number;
@@ -306,11 +369,46 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      create_project: {
+        Args: {
+          p_budget_planned: number | null;
+          p_color: string | null;
+          p_currency: string | null;
+          p_description: string | null;
+          p_due_date: string | null;
+          p_member_ids: string[] | null;
+          p_name: string;
+          p_organization_id: string;
+          p_owner_id: string | null;
+          p_priority: Database["public"]["Enums"]["project_priority"] | null;
+          p_start_date: string | null;
+          p_status: Database["public"]["Enums"]["project_status"] | null;
+        };
+        Returns: Database["public"]["Tables"]["projects"]["Row"];
+      };
+      update_project: {
+        Args: {
+          p_budget_planned: number | null;
+          p_color: string | null;
+          p_currency: string | null;
+          p_description: string | null;
+          p_due_date: string | null;
+          p_member_ids: string[] | null;
+          p_name: string;
+          p_owner_id: string | null;
+          p_priority: Database["public"]["Enums"]["project_priority"] | null;
+          p_project_id: string;
+          p_start_date: string | null;
+          p_status: Database["public"]["Enums"]["project_status"] | null;
+        };
+        Returns: Database["public"]["Tables"]["projects"]["Row"];
+      };
     };
     Enums: {
       finance_transaction_type: "income" | "expense";
       organization_role: "owner" | "admin" | "manager" | "member" | "accountant";
+      project_priority: "low" | "medium" | "high" | "critical";
+      project_status: "planned" | "active" | "paused" | "completed" | "archived";
       task_priority: "low" | "med" | "high";
       task_status: "inbox" | "todo" | "doing" | "done";
     };
@@ -327,12 +425,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
@@ -342,10 +440,8 @@ export type Tables<
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R;
       }
       ? R
@@ -354,13 +450,12 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
@@ -379,13 +474,12 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
@@ -404,13 +498,12 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
@@ -421,13 +514,12 @@ export type Enums<
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
@@ -441,6 +533,8 @@ export const Constants = {
     Enums: {
       finance_transaction_type: ["income", "expense"],
       organization_role: ["owner", "admin", "manager", "member", "accountant"],
+      project_priority: ["low", "medium", "high", "critical"],
+      project_status: ["planned", "active", "paused", "completed", "archived"],
       task_priority: ["low", "med", "high"],
       task_status: ["inbox", "todo", "doing", "done"],
     },

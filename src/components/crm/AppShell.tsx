@@ -14,6 +14,7 @@ import {
   Calendar,
   Users,
   ClipboardList,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Дашборд", icon: LayoutDashboard },
   { to: "/tasks", label: "Задачи и проекты", icon: ListChecks },
+  { to: "/projects", label: "Проекты", icon: FolderKanban },
   { to: "/calendar", label: "Календарь", icon: Calendar },
   { to: "/clients", label: "Клиенты", icon: Users },
   { to: "/requests", label: "Заявки и записи", icon: ClipboardList },
@@ -56,28 +58,23 @@ export function AppShell({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-sidebar/80 backdrop-blur-xl transition-all duration-200 lg:flex",
-          collapsed ? "w-16" : "w-64"
+          collapsed ? "w-16" : "w-64",
         )}
       >
         <div
           className={cn(
             "flex items-center gap-3 border-b border-border py-5",
-            collapsed ? "justify-center px-2" : "px-6"
+            collapsed ? "justify-center px-2" : "px-6",
           )}
         >
           <div className="text-primary">
-            {collapsed ? (
-              <OrbitLogoIcon className="size-8" />
-            ) : (
-              <OrbitLogoFull className="h-8" />
-            )}
+            {collapsed ? <OrbitLogoIcon className="size-8" /> : <OrbitLogoFull className="h-8" />}
           </div>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
           {nav.map((item) => {
-            const active =
-              item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+            const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
             return (
               <Link
                 key={item.to}
@@ -87,15 +84,12 @@ export function AppShell({
                   collapsed && "justify-center px-2",
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_var(--sidebar-border)]"
-                    : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
                 )}
                 title={collapsed ? item.label : undefined}
               >
                 <item.icon
-                  className={cn(
-                    "size-4 shrink-0 transition-colors",
-                    active && "text-primary"
-                  )}
+                  className={cn("size-4 shrink-0 transition-colors", active && "text-primary")}
                 />
                 {!collapsed && (
                   <>
@@ -131,19 +125,14 @@ export function AppShell({
       </aside>
 
       <div
-        className={cn(
-          "relative transition-all duration-200",
-          collapsed ? "lg:pl-16" : "lg:pl-64"
-        )}
+        className={cn("relative transition-all duration-200", collapsed ? "lg:pl-16" : "lg:pl-64")}
       >
         <header className="sticky top-0 z-20 glass">
           <div className="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-8">
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-lg font-semibold sm:text-xl">{title}</h1>
               {subtitle && (
-                <p className="truncate text-xs text-muted-foreground sm:text-sm">
-                  {subtitle}
-                </p>
+                <p className="truncate text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
               )}
             </div>
             <div className="hidden items-center gap-2 rounded-xl border border-border bg-surface-2/70 px-3 py-2 text-xs text-muted-foreground md:flex">
@@ -162,11 +151,7 @@ export function AppShell({
               aria-label="Переключить тему"
               className="grid size-9 place-items-center rounded-xl border border-border bg-surface-2/70 transition hover:border-primary/50 hover:text-primary"
             >
-              {theme === "dark" ? (
-                <Sun className="size-4" />
-              ) : (
-                <Moon className="size-4" />
-              )}
+              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </button>
             <button
               onClick={() => void signOut()}
@@ -203,7 +188,10 @@ export function AppShell({
       {error && (
         <div className="fixed bottom-24 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl border border-destructive/35 bg-surface px-4 py-2 text-sm text-destructive shadow-xl animate-in slide-in-from-bottom-2">
           <span>{error}</span>
-          <button onClick={clearError} className="text-xs text-muted-foreground transition hover:text-foreground">
+          <button
+            onClick={clearError}
+            className="text-xs text-muted-foreground transition hover:text-foreground"
+          >
             Закрыть
           </button>
         </div>

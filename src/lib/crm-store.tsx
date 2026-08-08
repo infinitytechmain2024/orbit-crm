@@ -1,16 +1,30 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useAuth } from "@/lib/auth";
 import {
+  archiveProject as archiveRemoteProject,
+  createProject,
   createTask,
   deleteTask,
   loadCrmWorkspace,
+  updateProject as updateRemoteProject,
   updateTask as updateRemoteTask,
 } from "@/lib/crm-repository";
 import {
   initialEmails,
   type Email,
   type Organization,
+  type OrganizationMember,
   type Project,
+  type ProjectInput,
+  type ProjectPatch,
   type Task,
   type TaskInput,
   type TaskPatch,
@@ -20,6 +34,7 @@ import {
 
 type Store = {
   organization: Organization | null;
+  members: OrganizationMember[];
   tasks: Task[];
   emails: Email[];
   txs: Tx[];
@@ -28,6 +43,9 @@ type Store = {
   isMutating: boolean;
   error: string | null;
   flash: string | null;
+  addProject: (project: ProjectInput) => Promise<Project | null>;
+  updateProject: (id: string, patch: ProjectPatch) => Promise<Project | null>;
+  archiveProject: (id: string) => Promise<Project | null>;
   addTask: (t: TaskInput) => Promise<Task | null>;
   updateTask: (id: string, patch: TaskPatch) => Promise<Task | null>;
   moveTask: (id: string, status: TaskStatus) => Promise<Task | null>;
@@ -50,6 +68,7 @@ function messageFromError(error: unknown): string {
 export function CrmProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [emails, setEmails] = useState<Email[]>(initialEmails);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -66,12 +85,12 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     root.classList.toggle("light", theme === "light");
   }, [theme]);
 
-  const showFlash = (message: string) => {
+  const showFlash = useCallback((message: string) => {
     setFlash(message);
     window.setTimeout(() => setFlash(null), 2600);
-  };
+  }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -79,19 +98,21 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     try {
       const snapshot = await loadCrmWorkspace(user);
       setOrganization(snapshot.organization);
+      setMembers(snapshot.members);
       setProjects(snapshot.projects);
       setTasks(snapshot.tasks);
       setTxs(snapshot.txs);
     } catch (unknownError) {
       setError(messageFromError(unknownError));
       setOrganization(null);
+      setMembers([]);
       setProjects([]);
       setTasks([]);
       setTxs([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     let alive = true;
@@ -103,6 +124,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       .then((snapshot) => {
         if (!alive) return;
         setOrganization(snapshot.organization);
+        setMembers(snapshot.members);
         setProjects(snapshot.projects);
         setTasks(snapshot.tasks);
         setTxs(snapshot.txs);
@@ -111,6 +133,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         if (!alive) return;
         setError(messageFromError(unknownError));
         setOrganization(null);
+        setMembers([]);
         setProjects([]);
         setTasks([]);
         setTxs([]);
@@ -124,24 +147,28 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  const runMutation = async <T,>(successMessage: string, action: () => Promise<T>): Promise<T | null> => {
-    setPendingMutations((count) => count + 1);
-    setError(null);
-    try {
-      const result = await action();
-      showFlash(successMessage);
-      return result;
-    } catch (unknownError) {
-      setError(messageFromError(unknownError));
-      return null;
-    } finally {
-      setPendingMutations((count) => Math.max(0, count - 1));
-    }
-  };
+  const runMutation = useCallback(
+    async <T,>(successMessage: string, action: () => Promise<T>): Promise<T | null> => {
+      setPendingMutations((count) => count + 1);
+      setError(null);
+      try {
+        const result = await action();
+        showFlash(successMessage);
+        return result;
+      } catch (unknownError) {
+        setError(messageFromError(unknownError));
+        return null;
+      } finally {
+        setPendingMutations((count) => Math.max(0, count - 1));
+      }
+    },
+    [showFlash],
+  );
 
   const value = useMemo<Store>(
     () => ({
       organization,
+      members,
       tasks,
       emails,
       txs,
@@ -150,6 +177,58 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       isMutating: pendingMutations > 0,
       error,
       flash,
+      addProject: async (input) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        return runMutation("Проект создан", async () => {
+          const project = await createProject(user.id, organization.id, input);
+          setProjects((prev) => [project, ...prev]);
+          return project;
+        });
+      },
+      updateProject: async (id, patch) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        const project = projects.find((item) => item.id === id);
+        if (!project) {
+          setError("Проект не найден.");
+          return null;
+        }
+
+        return runMutation("Проект обновлён", async () => {
+          const updatedProject = await updateRemoteProject(user.id, project, patch);
+          setProjects((prev) =>
+            prev.map((item) => (item.id === updatedProject.id ? updatedProject : item)),
+          );
+          return updatedProject;
+        });
+      },
+      archiveProject: async (id) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        const project = projects.find((item) => item.id === id);
+        if (!project) {
+          setError("Проект не найден.");
+          return null;
+        }
+
+        return runMutation("Проект перемещён в архив", async () => {
+          const archivedProject = await archiveRemoteProject(user.id, project);
+          setProjects((prev) =>
+            prev.map((item) => (item.id === archivedProject.id ? archivedProject : item)),
+          );
+          return archivedProject;
+        });
+      },
       addTask: async (input) => {
         if (!user || !organization) {
           setError("Нужна активная сессия и организация.");
@@ -157,7 +236,8 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         }
 
         return runMutation("Задача сохранена", async () => {
-          const task = await createTask(user.id, organization.id, projects[0]?.id ?? null, input);
+          const defaultProjectId = projects.find((project) => !project.archivedAt)?.id ?? null;
+          const task = await createTask(user.id, organization.id, defaultProjectId, input);
           setTasks((prev) => [task, ...prev]);
           return task;
         });
@@ -201,7 +281,9 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         return deleted ?? false;
       },
       markRead: (id) =>
-        setEmails((prev) => prev.map((email) => (email.id === id ? { ...email, unread: false } : email))),
+        setEmails((prev) =>
+          prev.map((email) => (email.id === id ? { ...email, unread: false } : email)),
+        ),
       refresh: load,
       clearError: () => setError(null),
       clearFlash: () => setFlash(null),
@@ -210,6 +292,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     }),
     [
       organization,
+      members,
       tasks,
       emails,
       txs,
@@ -220,6 +303,8 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       flash,
       user,
       theme,
+      load,
+      runMutation,
     ],
   );
 

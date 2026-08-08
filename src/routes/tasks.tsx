@@ -12,7 +12,8 @@ export const Route = createFileRoute("/tasks")({
       { title: "Задачи и карта проектов — Orbit CRM" },
       {
         name: "description",
-        content: "Канбан, список и интерактивная карта связей проектов с деталями задач в модальном окне.",
+        content:
+          "Канбан, список и интерактивная карта связей проектов с деталями задач в модальном окне.",
       },
       { property: "og:title", content: "Задачи и карта проектов — Orbit CRM" },
       {
@@ -62,7 +63,7 @@ function TasksPage() {
         </div>
         <button
           onClick={() => void addTask({ title: "Новая задача", status: "inbox" })}
-          disabled={isLoading || isMutating || !projects.length}
+          disabled={isLoading || isMutating}
           className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
         >
           <Plus className="size-4" /> {isMutating ? "Сохраняю…" : "Задача"}
@@ -128,7 +129,9 @@ function TasksPage() {
                         >
                           {t.priority}
                         </span>
-                        <span>{projects.find((p) => p.id === t.projectId)?.name ?? "Без проекта"}</span>
+                        <span>
+                          {projects.find((p) => p.id === t.projectId)?.name ?? "Без проекта"}
+                        </span>
                         {t.due && <span className="ml-auto">{t.due}</span>}
                       </div>
                     </article>
@@ -201,22 +204,29 @@ function TasksPage() {
 
 function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
   const { projects, tasks } = useCrm();
-  const [sel, setSel] = useState<string | null>(projects[0]?.id ?? null);
-  const pos = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);
+  const activeProjects = useMemo(
+    () => projects.filter((project) => !project.archivedAt),
+    [projects],
+  );
+  const [sel, setSel] = useState<string | null>(activeProjects[0]?.id ?? null);
+  const pos = useMemo(
+    () => Object.fromEntries(activeProjects.map((p) => [p.id, p])),
+    [activeProjects],
+  );
   const related = sel ? tasks.filter((t) => t.projectId === sel) : [];
 
   useEffect(() => {
-    if (!projects.length) {
+    if (!activeProjects.length) {
       setSel(null);
       return;
     }
 
-    if (!sel || !projects.some((project) => project.id === sel)) {
-      setSel(projects[0]?.id ?? null);
+    if (!sel || !activeProjects.some((project) => project.id === sel)) {
+      setSel(activeProjects[0]?.id ?? null);
     }
-  }, [projects, sel]);
+  }, [activeProjects, sel]);
 
-  if (!projects.length) {
+  if (!activeProjects.length) {
     return <div className="panel p-6 text-sm text-muted-foreground">Проекты пока не созданы.</div>;
   }
 
@@ -224,7 +234,7 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
     <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
       <div className="panel relative h-[26rem] overflow-hidden">
         <svg className="absolute inset-0 size-full">
-          {projects.flatMap((p) =>
+          {activeProjects.flatMap((p) =>
             p.links.map((l) => {
               const b = pos[l];
               if (!b) return null;
@@ -244,7 +254,7 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
             }),
           )}
         </svg>
-        {projects.map((p) => {
+        {activeProjects.map((p) => {
           const count = tasks.filter((t) => t.projectId === p.id && t.status !== "done").length;
           return (
             <button
@@ -263,7 +273,9 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
         })}
       </div>
       <div className="panel p-5">
-        <h3 className="text-base font-semibold">{projects.find((p) => p.id === sel)?.name}</h3>
+        <h3 className="text-base font-semibold">
+          {activeProjects.find((p) => p.id === sel)?.name}
+        </h3>
         <p className="mt-1 text-xs text-muted-foreground">Задачи проекта</p>
         <div className="mt-4 space-y-2">
           {related.map((t) => (
@@ -273,7 +285,9 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
               className="w-full rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-left text-sm transition hover:border-primary/50"
             >
               {t.title}
-              <span className="block text-[11px] text-muted-foreground">{STATUS_LABEL[t.status]}</span>
+              <span className="block text-[11px] text-muted-foreground">
+                {STATUS_LABEL[t.status]}
+              </span>
             </button>
           ))}
           {!related.length && <p className="text-sm text-muted-foreground">Пока пусто.</p>}
@@ -285,6 +299,9 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
 
 function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
   const { updateTask, removeTask, projects, isMutating } = useCrm();
+  const activeProjects = projects.filter(
+    (project) => !project.archivedAt || project.id === task.projectId,
+  );
   const [draft, setDraft] = useState({
     title: task.title,
     note: task.note ?? "",
@@ -398,7 +415,7 @@ function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
               className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
             >
               <option value="">Без проекта</option>
-              {projects.map((p) => (
+              {activeProjects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>

@@ -1,12 +1,25 @@
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/database.types";
-import type { Organization, Project, Task, TaskInput, TaskPatch, Tx } from "./crm-data";
+import {
+  PROJECT_COLORS,
+  type Organization,
+  type OrganizationMember,
+  type Project,
+  type ProjectInput,
+  type ProjectPatch,
+  type Task,
+  type TaskInput,
+  type TaskPatch,
+  type Tx,
+} from "./crm-data";
 
 type OrganizationRow = Tables<"organizations">;
 type OrganizationMemberRow = Tables<"organization_members">;
+type ProfileRow = Tables<"profiles">;
 type ProjectRow = Tables<"projects">;
 type ProjectLinkRow = Tables<"project_links">;
+type ProjectMemberRow = Tables<"project_members">;
 type TaskRow = Tables<"tasks">;
 type FinanceTransactionRow = Tables<"finance_transactions">;
 
@@ -16,6 +29,7 @@ type MembershipWithOrganization = OrganizationMemberRow & {
 
 export type CrmSnapshot = {
   organization: Organization;
+  members: OrganizationMember[];
   projects: Project[];
   tasks: Task[];
   txs: Tx[];
@@ -47,14 +61,41 @@ function mapOrganization(row: OrganizationRow): Organization {
   };
 }
 
-function mapProject(row: ProjectRow, links: string[]): Project {
+function mapOrganizationMember(
+  row: OrganizationMemberRow,
+  profile: ProfileRow | undefined,
+): OrganizationMember {
+  return {
+    userId: row.user_id,
+    role: row.role,
+    email: profile?.email ?? null,
+    fullName: profile?.full_name ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
+  };
+}
+
+function mapProject(row: ProjectRow, links: string[], memberIds: string[]): Project {
   return {
     id: row.id,
+    organizationId: row.organization_id,
     name: row.name,
+    description: row.description,
     color: row.color,
+    status: row.status,
+    priority: row.priority,
+    startDate: row.start_date,
+    dueDate: row.due_date,
+    ownerId: row.owner_id,
+    budgetPlanned: row.budget_planned === null ? null : Number(row.budget_planned),
+    currency: row.currency,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    archivedAt: row.archived_at,
     x: Number(row.x_position),
     y: Number(row.y_position),
     links,
+    memberIds,
   };
 }
 
@@ -106,16 +147,21 @@ async function fetchMemberships(userId: string): Promise<MembershipWithOrganizat
 
 async function createDefaultProject(userId: string, organizationId: string): Promise<ProjectRow> {
   const supabase = getSupabaseClient();
-  const payload: TablesInsert<"projects"> = {
-    organization_id: organizationId,
-    name: "Входящие",
-    color: "var(--acc-1)",
-    x_position: 50,
-    y_position: 50,
-    created_by: userId,
-  };
+  const { data, error } = await supabase.rpc("create_project", {
+    p_budget_planned: null,
+    p_color: PROJECT_COLORS[0],
+    p_currency: "EUR",
+    p_description: null,
+    p_due_date: null,
+    p_member_ids: [userId],
+    p_name: "Входящие",
+    p_organization_id: organizationId,
+    p_owner_id: userId,
+    p_priority: "medium",
+    p_start_date: null,
+    p_status: "active",
+  });
 
-  const { data, error } = await supabase.from("projects").insert(payload).select().single();
   if (error) throw toMessage("Не удалось создать проект по умолчанию", error.message);
   return ensureData(data, "Supabase не вернул созданный проект.");
 }
@@ -196,6 +242,46 @@ async function fetchProjectLinks(organizationId: string): Promise<ProjectLinkRow
   return data ?? [];
 }
 
+async function fetchProjectMembers(organizationId: string): Promise<ProjectMemberRow[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("project_members")
+    .select("*")
+    .eq("organization_id", organizationId);
+
+  if (error) throw toMessage("Не удалось загрузить участников проектов", error.message);
+  return data ?? [];
+}
+
+async function fetchOrganizationMembers(organizationId: string): Promise<OrganizationMember[]> {
+  const supabase = getSupabaseClient();
+  const { data: memberRows, error: memberError } = await supabase
+    .from("organization_members")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: true });
+
+  if (memberError) {
+    throw toMessage("Не удалось загрузить участников организации", memberError.message);
+  }
+
+  const members = memberRows ?? [];
+  const userIds = members.map((member) => member.user_id);
+  if (!userIds.length) return [];
+
+  const { data: profileRows, error: profileError } = await supabase
+    .from("profiles")
+    .select("id,email,full_name,avatar_url,created_at,updated_at")
+    .in("id", userIds);
+
+  if (profileError) {
+    throw toMessage("Не удалось загрузить профили участников", profileError.message);
+  }
+
+  const profilesById = new Map((profileRows ?? []).map((profile) => [profile.id, profile]));
+  return members.map((member) => mapOrganizationMember(member, profilesById.get(member.user_id)));
+}
+
 async function fetchTasks(organizationId: string): Promise<Task[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -222,25 +308,189 @@ async function fetchTransactions(organizationId: string): Promise<Tx[]> {
 
 export async function loadCrmWorkspace(user: User): Promise<CrmSnapshot> {
   const organization = await ensureWorkspace(user);
-  const [projectRows, projectLinks, tasks, txs] = await Promise.all([
-    fetchProjectRows(user.id, organization.id),
+  const projectRows = await fetchProjectRows(user.id, organization.id);
+  const [projectLinks, projectMembers, members, tasks, txs] = await Promise.all([
     fetchProjectLinks(organization.id),
+    fetchProjectMembers(organization.id),
+    fetchOrganizationMembers(organization.id),
     fetchTasks(organization.id),
     fetchTransactions(organization.id),
   ]);
   const linksByProject = new Map<string, string[]>();
+  const membersByProject = new Map<string, string[]>();
 
   projectLinks.forEach((link) => {
     const current = linksByProject.get(link.source_project_id) ?? [];
     linksByProject.set(link.source_project_id, [...current, link.target_project_id]);
   });
 
+  projectMembers.forEach((member) => {
+    const current = membersByProject.get(member.project_id) ?? [];
+    membersByProject.set(member.project_id, [...current, member.user_id]);
+  });
+
   return {
     organization,
-    projects: projectRows.map((project) => mapProject(project, linksByProject.get(project.id) ?? [])),
+    members,
+    projects: projectRows.map((project) =>
+      mapProject(
+        project,
+        linksByProject.get(project.id) ?? [],
+        membersByProject.get(project.id) ?? [],
+      ),
+    ),
     tasks,
     txs,
   };
+}
+
+type NormalizedProjectInput = {
+  budgetPlanned: number | null;
+  color: string;
+  currency: string;
+  description: string | null;
+  dueDate: string | null;
+  memberIds: string[];
+  name: string;
+  ownerId: string | null;
+  priority: Project["priority"];
+  startDate: string | null;
+  status: Project["status"];
+};
+
+function uniqueIds(ids: Array<string | null | undefined>): string[] {
+  return [...new Set(ids.filter((id): id is string => Boolean(id)))];
+}
+
+function normalizeProjectInput(
+  userId: string,
+  input: ProjectInput,
+  fallback?: Project,
+): NormalizedProjectInput {
+  const hasInputValue = (key: keyof ProjectInput) =>
+    Object.prototype.hasOwnProperty.call(input, key);
+  const name = input.name.trim();
+  if (!name) throw new Error("Название проекта обязательно.");
+
+  const startDate = hasInputValue("startDate")
+    ? (input.startDate ?? null)
+    : (fallback?.startDate ?? null);
+  const dueDate = hasInputValue("dueDate") ? (input.dueDate ?? null) : (fallback?.dueDate ?? null);
+  if (startDate && dueDate && dueDate < startDate) {
+    throw new Error("Дата завершения не может быть раньше даты начала.");
+  }
+
+  const budgetPlanned = hasInputValue("budgetPlanned")
+    ? (input.budgetPlanned ?? null)
+    : (fallback?.budgetPlanned ?? null);
+  if (budgetPlanned !== null && (!Number.isFinite(budgetPlanned) || budgetPlanned < 0)) {
+    throw new Error("Плановый бюджет должен быть неотрицательным числом.");
+  }
+
+  const currency =
+    (hasInputValue("currency") ? input.currency : (fallback?.currency ?? "EUR"))
+      ?.trim()
+      .toUpperCase() || "EUR";
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new Error("Валюта должна быть трёхбуквенным ISO-кодом.");
+  }
+
+  const ownerId = hasInputValue("ownerId")
+    ? (input.ownerId ?? userId)
+    : (fallback?.ownerId ?? userId);
+  const memberIds = uniqueIds([
+    ...(hasInputValue("memberIds") ? (input.memberIds ?? []) : (fallback?.memberIds ?? [])),
+    ownerId,
+    userId,
+  ]);
+  const description = hasInputValue("description")
+    ? input.description?.trim() || null
+    : (fallback?.description ?? null);
+  const color = (
+    hasInputValue("color") ? input.color : (fallback?.color ?? PROJECT_COLORS[0])
+  )?.trim();
+
+  return {
+    budgetPlanned,
+    color: color || PROJECT_COLORS[0],
+    currency,
+    description,
+    dueDate,
+    memberIds,
+    name,
+    ownerId,
+    priority: hasInputValue("priority")
+      ? (input.priority ?? "medium")
+      : (fallback?.priority ?? "medium"),
+    startDate,
+    status: hasInputValue("status") ? (input.status ?? "planned") : (fallback?.status ?? "planned"),
+  };
+}
+
+export async function createProject(
+  userId: string,
+  organizationId: string,
+  input: ProjectInput,
+): Promise<Project> {
+  const supabase = getSupabaseClient();
+  const normalized = normalizeProjectInput(userId, input);
+
+  const { data, error } = await supabase.rpc("create_project", {
+    p_budget_planned: normalized.budgetPlanned,
+    p_color: normalized.color,
+    p_currency: normalized.currency,
+    p_description: normalized.description,
+    p_due_date: normalized.dueDate,
+    p_member_ids: normalized.memberIds,
+    p_name: normalized.name,
+    p_organization_id: organizationId,
+    p_owner_id: normalized.ownerId,
+    p_priority: normalized.priority,
+    p_start_date: normalized.startDate,
+    p_status: normalized.status,
+  });
+
+  if (error) throw toMessage("Не удалось создать проект", error.message);
+  return mapProject(
+    ensureData(data, "Supabase не вернул созданный проект."),
+    [],
+    normalized.memberIds,
+  );
+}
+
+export async function updateProject(
+  userId: string,
+  project: Project,
+  patch: ProjectPatch,
+): Promise<Project> {
+  const supabase = getSupabaseClient();
+  const normalized = normalizeProjectInput(userId, { ...project, ...patch }, project);
+
+  const { data, error } = await supabase.rpc("update_project", {
+    p_budget_planned: normalized.budgetPlanned,
+    p_color: normalized.color,
+    p_currency: normalized.currency,
+    p_description: normalized.description,
+    p_due_date: normalized.dueDate,
+    p_member_ids: normalized.memberIds,
+    p_name: normalized.name,
+    p_owner_id: normalized.ownerId,
+    p_priority: normalized.priority,
+    p_project_id: project.id,
+    p_start_date: normalized.startDate,
+    p_status: normalized.status,
+  });
+
+  if (error) throw toMessage("Не удалось обновить проект", error.message);
+  return mapProject(
+    ensureData(data, "Supabase не вернул обновлённый проект."),
+    project.links,
+    normalized.memberIds,
+  );
+}
+
+export async function archiveProject(userId: string, project: Project): Promise<Project> {
+  return updateProject(userId, project, { name: project.name, status: "archived" });
 }
 
 export async function createTask(

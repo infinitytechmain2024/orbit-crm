@@ -15,6 +15,7 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as MailRouteImport } from './routes/mail'
+import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as TasksRouteImport } from './routes/tasks'
 
@@ -48,6 +49,11 @@ const MailRoute = MailRouteImport.update({
   path: '/mail',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsRoute = RequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
   '/mail': typeof MailRoute
+  '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
   '/mail': typeof MailRoute
+  '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
   '/mail': typeof MailRoute
+  '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/finance'
     | '/mail'
+    | '/projects'
     | '/requests'
     | '/tasks'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/finance'
     | '/mail'
+    | '/projects'
     | '/requests'
     | '/tasks'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/finance'
     | '/mail'
+    | '/projects'
     | '/requests'
     | '/tasks'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRoute
   FinanceRoute: typeof FinanceRoute
   MailRoute: typeof MailRoute
+  ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
   TasksRoute: typeof TasksRoute
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests': {
       id: '/requests'
       path: '/requests'
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRoute,
   FinanceRoute: FinanceRoute,
   MailRoute: MailRoute,
+  ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,
   TasksRoute: TasksRoute,
 }
