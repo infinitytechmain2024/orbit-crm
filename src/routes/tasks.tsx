@@ -8,6 +8,8 @@ import {
   Link2,
   List,
   Network,
+  PanelRightClose,
+  PanelRightOpen,
   Plus,
   RotateCcw,
   Unlink,
@@ -113,7 +115,7 @@ function TasksPage() {
       )}
 
       {!isLoading && mode === "kanban" && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col gap-5 overflow-x-auto pb-4 md:flex-row w-full items-start">
           {TASK_STATUSES.map((col) => {
             const items = visibleTasks.filter((task) => task.status === col);
             return (
@@ -130,17 +132,17 @@ function TasksPage() {
                   setOverCol(null);
                 }}
                 className={cn(
-                  "panel min-h-64 p-3 transition",
+                  "panel min-h-72 w-full flex-1 min-w-[280px] sm:min-w-[300px] lg:min-w-[320px] p-4 transition",
                   overCol === col && "border-primary/60 ring-1 ring-primary/40",
                 )}
               >
-                <div className="mb-3 flex items-center justify-between px-1">
+                <div className="mb-4 flex items-center justify-between px-1">
                   <p className="text-sm font-semibold">{STATUS_LABEL[col]}</p>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                     {items.length}
                   </span>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {items.map((task) => (
                     <div
                       key={task.id}
@@ -159,38 +161,38 @@ function TasksPage() {
                         }
                       }}
                       className={cn(
-                        "block cursor-pointer rounded-xl border border-border bg-surface-2/70 p-3 transition hover:border-primary/50 active:cursor-grabbing",
+                        "block cursor-pointer rounded-xl border border-border bg-surface-2/70 p-4 transition hover:border-primary/50 active:cursor-grabbing shadow-sm hover:shadow-md",
                         dragId === task.id && "opacity-40",
                       )}
                     >
-                      <p className="line-clamp-2 text-sm font-medium">{task.title}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <p className="line-clamp-3 text-sm font-medium leading-snug">{task.title}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span
-                          className={cn("rounded-full px-2 py-0.5", priorityTone[task.priority])}
+                          className={cn("rounded-full px-2.5 py-0.5 font-medium text-[11px]", priorityTone[task.priority])}
                         >
                           {PRIORITY_LABEL[task.priority]}
                         </span>
-                        <span className="truncate">
+                        <span className="truncate max-w-[180px]">
                           {projects.find((project) => project.id === task.projectId)?.name ??
                             "Без проекта"}
                         </span>
-                        {task.due && <span className="ml-auto">{task.due}</span>}
+                        {task.due && <span className="ml-auto text-[11px]">{task.due}</span>}
                       </div>
                       {(task.checklistItems.length > 0 || task.files.length > 0) && (
-                        <div className="mt-2 flex gap-2 text-[11px] text-muted-foreground">
+                        <div className="mt-2.5 flex items-center gap-3 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
                           {task.checklistItems.length > 0 && (
                             <span>
-                              {task.checklistItems.filter((item) => item.completedAt).length}/
+                              Чек-лист: {task.checklistItems.filter((item) => item.completedAt).length}/
                               {task.checklistItems.length}
                             </span>
                           )}
-                          {task.files.length > 0 && <span>{task.files.length} файл.</span>}
+                          {task.files.length > 0 && <span>Файлов: {task.files.length}</span>}
                         </div>
                       )}
                     </div>
                   ))}
                   {!items.length && (
-                    <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                    <p className="rounded-xl border border-dashed border-border px-3 py-8 text-center text-xs text-muted-foreground">
                       Перетащите карточку сюда
                     </p>
                   )}
@@ -353,6 +355,8 @@ function ProjectGraph({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   // Auto-spread overlapping or uninitialized positions
   useEffect(() => {
     if (!activeProjects.length) return;
@@ -428,8 +432,8 @@ function ProjectGraph({
     const rect = containerRef.current.getBoundingClientRect();
     const clientX = e.clientX - rect.left - pan.x;
     const clientY = e.clientY - rect.top - pan.y;
-    const xPct = Math.max(5, Math.min(95, (clientX / (rect.width * zoom)) * 100));
-    const yPct = Math.max(5, Math.min(95, (clientY / (rect.height * zoom)) * 100));
+    const xPct = (clientX / (rect.width * zoom)) * 100;
+    const yPct = (clientY / (rect.height * zoom)) * 100;
     return { x: xPct, y: yPct };
   };
 
@@ -449,8 +453,8 @@ function ProjectGraph({
     setMousePos(coords);
 
     if (draggingNodeId) {
-      const newX = Math.round(Math.max(5, Math.min(95, coords.x - dragOffset.x)));
-      const newY = Math.round(Math.max(5, Math.min(95, coords.y - dragOffset.y)));
+      const newX = Math.round(coords.x - dragOffset.x);
+      const newY = Math.round(coords.y - dragOffset.y);
       setLocalPositions((prev) => ({
         ...prev,
         [draggingNodeId]: { x: newX, y: newY },
@@ -535,8 +539,13 @@ function ProjectGraph({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.8fr_1fr]">
-      <div className="panel relative flex flex-col min-h-[30rem] overflow-hidden select-none bg-surface-2/20 border border-border/70">
+    <div
+      className={cn(
+        "grid gap-4 transition-all duration-300",
+        isSidebarOpen ? "lg:grid-cols-[1fr_300px]" : "grid-cols-1",
+      )}
+    >
+      <div className="panel relative flex flex-col min-h-[34rem] overflow-hidden select-none bg-surface-2/20 border border-border/70">
         {/* Canvas Toolbar Header */}
         <div className="z-10 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-surface/80 p-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
@@ -603,6 +612,31 @@ function ProjectGraph({
             >
               <RotateCcw className="size-3.5" />
             </button>
+
+            <div className="h-4 w-px bg-border/60 mx-1" />
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen((v) => !v)}
+              title={isSidebarOpen ? "Скрыть панель задач" : "Показать панель задач"}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium transition",
+                isSidebarOpen
+                  ? "bg-surface-2 text-foreground"
+                  : "bg-primary/10 border-primary/40 text-primary hover:bg-primary/20",
+              )}
+            >
+              {isSidebarOpen ? (
+                <>
+                  <PanelRightClose className="size-3.5" />
+                  <span className="hidden sm:inline">Скрыть панель</span>
+                </>
+              ) : (
+                <>
+                  <PanelRightOpen className="size-3.5" />
+                  <span>Панель задач</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -613,7 +647,7 @@ function ProjectGraph({
           onPointerUp={handlePointerUp}
           onPointerDown={handleCanvasPointerDown}
           className={cn(
-            "relative flex-1 overflow-hidden cursor-grab active:cursor-grabbing min-h-[26rem]",
+            "relative flex-1 overflow-hidden cursor-grab active:cursor-grabbing min-h-[28rem]",
             connectingFromId && "cursor-crosshair",
           )}
           style={{
@@ -634,68 +668,107 @@ function ProjectGraph({
               <defs>
                 <marker
                   id="arrowhead"
-                  markerWidth="8"
-                  markerHeight="6"
-                  refX="18"
-                  refY="3"
+                  markerWidth="10"
+                  markerHeight="8"
+                  refX="16"
+                  refY="4"
                   orient="auto"
                 >
-                  <polygon points="0 0, 8 3, 0 6" fill="var(--primary)" opacity="0.8" />
+                  <polygon points="0 0, 10 4, 0 8" fill="var(--primary)" />
                 </marker>
+                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
               </defs>
 
               {/* Render Existing Links */}
-              {activeProjects.flatMap((project) => {
-                const sourcePos = localPositions[project.id] || { x: project.x || 50, y: project.y || 50 };
-                return project.links.map((targetId) => {
-                  const targetProject = activeProjectMap[targetId];
-                  if (!targetProject) return null;
-                  const targetPos = localPositions[targetId] || {
-                    x: targetProject.x || 50,
-                    y: targetProject.y || 50,
-                  };
+              {containerRef.current &&
+                (() => {
+                  const width = containerRef.current.clientWidth;
+                  const height = containerRef.current.clientHeight;
 
-                  const x1 = sourcePos.x;
-                  const y1 = sourcePos.y;
-                  const x2 = targetPos.x;
-                  const y2 = targetPos.y;
-                  const midX = (x1 + x2) / 2;
-                  const midY = (y1 + y2) / 2;
+                  return activeProjects.flatMap((project) => {
+                    const sourcePos = localPositions[project.id] || {
+                      x: project.x || 50,
+                      y: project.y || 50,
+                    };
+                    const x1 = (sourcePos.x / 100) * width;
+                    const y1 = (sourcePos.y / 100) * height;
 
-                  return (
-                    <g key={`link-${project.id}-${targetId}`} className="group pointer-events-auto">
-                      <path
-                        d={`M ${x1}% ${y1}% Q ${midX}% ${midY - 8}% ${x2}% ${y2}%`}
-                        stroke={project.color || "var(--primary)"}
-                        strokeWidth="2.5"
-                        strokeOpacity="0.6"
-                        fill="none"
-                        markerEnd="url(#arrowhead)"
-                        className="transition-all group-hover:stroke-primary group-hover:stroke-3 group-hover:opacity-100"
-                      />
-                    </g>
-                  );
-                });
-              })}
+                    return project.links.map((targetId) => {
+                      const targetProject = activeProjectMap[targetId];
+                      if (!targetProject) return null;
+                      const targetPos = localPositions[targetId] || {
+                        x: targetProject.x || 50,
+                        y: targetProject.y || 50,
+                      };
+
+                      const x2 = (targetPos.x / 100) * width;
+                      const y2 = (targetPos.y / 100) * height;
+                      const midX = (x1 + x2) / 2;
+                      const midY = (y1 + y2) / 2 - 25;
+
+                      const isHighlighted = sel === project.id || sel === targetId;
+
+                      return (
+                        <g key={`link-${project.id}-${targetId}`} className="group pointer-events-auto">
+                          {/* Outer glow stroke */}
+                          <path
+                            d={`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`}
+                            stroke={project.color || "var(--primary)"}
+                            strokeWidth={isHighlighted ? "5" : "3"}
+                            strokeOpacity={isHighlighted ? "0.4" : "0.2"}
+                            fill="none"
+                            className="transition-all"
+                          />
+                          {/* Main line */}
+                          <path
+                            d={`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`}
+                            stroke={project.color || "var(--primary)"}
+                            strokeWidth={isHighlighted ? "3.5" : "2.5"}
+                            strokeOpacity={isHighlighted ? "1" : "0.75"}
+                            strokeDasharray={isHighlighted ? "none" : "none"}
+                            fill="none"
+                            markerEnd="url(#arrowhead)"
+                            className="transition-all group-hover:stroke-primary group-hover:stroke-4"
+                          />
+                        </g>
+                      );
+                    });
+                  });
+                })()}
 
               {/* Temporary Link Line while connecting */}
-              {connectingFromId && mousePos && (
+              {connectingFromId &&
+                mousePos &&
+                containerRef.current &&
                 (() => {
+                  const width = containerRef.current.clientWidth;
+                  const height = containerRef.current.clientHeight;
                   const sourcePos = localPositions[connectingFromId] || { x: 50, y: 50 };
+                  const x1 = (sourcePos.x / 100) * width;
+                  const y1 = (sourcePos.y / 100) * height;
+                  const x2 = (mousePos.x / 100) * width;
+                  const y2 = (mousePos.y / 100) * height;
+
                   return (
-                    <line
-                      x1={`${sourcePos.x}%`}
-                      y1={`${sourcePos.y}%`}
-                      x2={`${mousePos.x}%`}
-                      y2={`${mousePos.y}%`}
-                      stroke="var(--primary)"
-                      strokeWidth="2"
-                      strokeDasharray="6 4"
-                      className="animate-pulse"
-                    />
+                    <g className="pointer-events-none">
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke="var(--primary)"
+                        strokeWidth="3"
+                        strokeDasharray="8 6"
+                        className="animate-pulse"
+                        filter="url(#glow)"
+                      />
+                      <circle cx={x2} cy={y2} r="6" fill="var(--primary)" className="animate-ping" />
+                    </g>
                   );
-                })()
-              )}
+                })()}
             </svg>
 
             {/* Render Interactive Nodes */}
@@ -727,7 +800,7 @@ function ProjectGraph({
                   }}
                   style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                   className={cn(
-                    "absolute -translate-x-1/2 -translate-y-1/2 group min-w-[13rem] max-w-[17rem] rounded-2xl border bg-surface/95 p-3.5 shadow-xl backdrop-blur-md transition-all cursor-grab active:cursor-grabbing hover:z-20",
+                    "absolute -translate-x-1/2 -translate-y-1/2 group min-w-[12rem] max-w-[15rem] rounded-2xl border bg-surface/95 p-3 shadow-xl backdrop-blur-md transition-all cursor-grab active:cursor-grabbing hover:z-20",
                     isSelected && "ring-2 ring-primary border-primary shadow-primary/10",
                     isSource && "ring-2 ring-primary animate-pulse border-primary",
                     isTargetHovered && "ring-2 ring-emerald-500 border-emerald-500 scale-105",
@@ -740,7 +813,7 @@ function ProjectGraph({
                         className="size-3 rounded-full shrink-0 shadow-sm"
                         style={{ backgroundColor: project.color || "var(--primary)" }}
                       />
-                      <span className="font-semibold text-sm truncate text-foreground">
+                      <span className="font-semibold text-xs sm:text-sm truncate text-foreground">
                         {project.name}
                       </span>
                     </div>
@@ -775,100 +848,112 @@ function ProjectGraph({
       </div>
 
       {/* Sidebar Task List & Links Inspector */}
-      <div className="panel p-5 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
-            <div>
-              <h3 className="text-base font-semibold text-foreground">
-                {selectedProject?.name ?? "Выберите проект"}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {selectedProject?.description || "Управление задачами и связями проекта"}
-              </p>
-            </div>
-            {selectedProject && (
-              <span
-                className="size-3.5 rounded-full shrink-0"
-                style={{ backgroundColor: selectedProject.color || "var(--primary)" }}
-              />
-            )}
-          </div>
-
-          {/* Connected Projects Badges */}
-          {selectedProject && selectedProject.links.length > 0 && (
-            <div className="mt-3">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground block mb-1.5">
-                Связанные проекты:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {selectedProject.links.map((linkId) => {
-                  const target = activeProjectMap[linkId];
-                  if (!target) return null;
-                  return (
-                    <span
-                      key={linkId}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2/60 px-2.5 py-1 text-xs text-foreground"
-                    >
-                      <span
-                        className="size-2 rounded-full"
-                        style={{ backgroundColor: target.color }}
-                      />
-                      {target.name}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveLink(selectedProject.id, linkId)}
-                        title="Удалить связь"
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </span>
-                  );
-                })}
+      {isSidebarOpen && (
+        <div className="panel p-4 sm:p-5 flex flex-col justify-between h-full animate-in fade-in slide-in-from-right-2 duration-200">
+          <div>
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm sm:text-base font-semibold text-foreground truncate">
+                  {selectedProject?.name ?? "Выберите проект"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                  {selectedProject?.description || "Управление задачами и связями проекта"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {selectedProject && (
+                  <span
+                    className="size-3 rounded-full"
+                    style={{ backgroundColor: selectedProject.color || "var(--primary)" }}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  title="Закрыть панель"
+                  className="rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-surface-2 transition"
+                >
+                  <X className="size-4" />
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Project Tasks */}
-          <div className="mt-4">
-            <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground block mb-2">
-              Задачи проекта ({relatedTasks.length}):
-            </span>
-            <div className="space-y-2 max-h-[18rem] overflow-y-auto pr-1">
-              {relatedTasks.map((task) => (
-                <button
-                  key={task.id}
-                  type="button"
-                  onClick={() => onSelectTask(task)}
-                  className="block w-full rounded-xl border border-border/80 bg-surface-2/40 hover:bg-surface-2 px-3 py-2.5 text-left text-sm transition hover:border-primary/50 group"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-foreground group-hover:text-primary transition truncate">
-                      {task.title}
+            {/* Connected Projects Badges */}
+            {selectedProject && selectedProject.links.length > 0 && (
+              <div className="mt-3">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground block mb-1.5">
+                  Связанные проекты:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedProject.links.map((linkId) => {
+                    const target = activeProjectMap[linkId];
+                    if (!target) return null;
+                    return (
+                      <span
+                        key={linkId}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2/60 px-2 py-1 text-xs text-foreground max-w-full"
+                      >
+                        <span
+                          className="size-2 rounded-full shrink-0"
+                          style={{ backgroundColor: target.color }}
+                        />
+                        <span className="truncate">{target.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLink(selectedProject.id, linkId)}
+                          title="Удалить связь"
+                          className="ml-0.5 hover:text-destructive shrink-0"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Project Tasks */}
+            <div className="mt-4">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground block mb-2">
+                Задачи проекта ({relatedTasks.length}):
+              </span>
+              <div className="space-y-2 max-h-[22rem] overflow-y-auto pr-1">
+                {relatedTasks.map((task) => (
+                  <button
+                    key={task.id}
+                    type="button"
+                    onClick={() => onSelectTask(task)}
+                    className="block w-full rounded-xl border border-border/80 bg-surface-2/40 hover:bg-surface-2 px-3 py-2 text-left text-sm transition hover:border-primary/50 group"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-foreground group-hover:text-primary transition truncate text-xs sm:text-sm">
+                        {task.title}
+                      </span>
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider shrink-0",
+                          priorityTone[task.priority],
+                        )}
+                      >
+                        {PRIORITY_LABEL[task.priority]}
+                      </span>
+                    </div>
+                    <span className="block text-[11px] text-muted-foreground mt-1">
+                      {STATUS_LABEL[task.status]}
                     </span>
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider shrink-0",
-                        priorityTone[task.priority],
-                      )}
-                    >
-                      {PRIORITY_LABEL[task.priority]}
-                    </span>
-                  </div>
-                  <span className="block text-[11px] text-muted-foreground mt-1">
-                    {STATUS_LABEL[task.status]}
-                  </span>
-                </button>
-              ))}
-              {!relatedTasks.length && (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  В этом проекте пока нет задач.
-                </p>
-              )}
+                  </button>
+                ))}
+                {!relatedTasks.length && (
+                  <p className="text-xs text-muted-foreground py-4 text-center">
+                    В этом проекте пока нет задач.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
