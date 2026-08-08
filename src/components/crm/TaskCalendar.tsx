@@ -1,0 +1,685 @@
+import { DragEvent, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Plus, SquareMousePointer } from "lucide-react";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  differenceInCalendarDays,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  startOfMonth,
+  startOfToday,
+  startOfWeek,
+  subMonths,
+  subWeeks,
+} from "date-fns";
+import { ru } from "date-fns/locale";
+import { Link } from "@tanstack/react-router";
+import { useCrm } from "@/lib/crm-store";
+import {
+  DEFAULT_TASK_FILTERS,
+  PRIORITY_LABEL,
+  STATUS_LABEL,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+  filterTasks,
+  type Priority,
+  type Task,
+  type TaskFilters,
+  type TaskPatch,
+  todayLocalIsoDate,
+} from "@/lib/crm-data";
+import { cn } from "@/lib/utils";
+
+const WEEK_STARTS_ON = 1;
+const WEEKDAYS: string[] = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+const priorityDot: Record<Priority, string> = {
+  high: "bg-acc-4",
+  med: "bg-acc-3",
+  low: "bg-acc-2",
+};
+
+function localDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  const d = date.getDate();
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function parseLocalDate(iso: string): Date {
+  const parts = iso.split("-").map(Number);
+  const y = parts[0] ?? 0;
+  const mo = parts[1] ?? 1;
+  const d = parts[2] ?? 1;
+  return new Date(y, mo - 1, d);
+}
+
+function taskMatchesDate(task: Task, iso: string): boolean {
+  const start = task.startDate;
+  const due = task.dueDate;
+  if (start && due) return start <= iso && iso <= due;
+  if (start) return start === iso;
+  if (due) return due === iso;
+  return false;
+}
+
+function capitalize(value: string): string {
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+type CellHandlers = {
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  onDragOver: (event: DragEvent<HTMLDivElement>) => void;
+  onDateClick: (cellDate: string) => void;
+};
+
+export type CalendarViewMode = "month" | "week";
+
+type TaskCalendarProps = {
+  onCreateDate: (dueDate: string) => void;
+  onSelectTask?: (task: Task) => void;
+};
+
+export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) {
+  const { tasks, updateTask, isMutating, isLoading } = useCrm();
+  const visibleTasks = useMemo(() => tasks.filter((task) => !task.archivedAt), [tasks]);
+
+  const [view, setView] = useState<CalendarViewMode>("month");
+  const [currentDate, setCurrentDate] = useState<Date>(startOfToday());
+  const [filters, setFilters] = useState<TaskFilters>({ ...DEFAULT_TASK_FILTERS });
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  const today = todayLocalIsoDate();
+
+  const gridTasks = useMemo(
+    () => filterTasks(visibleTasks, filters).filter((task) => task.startDate || task.dueDate),
+    [visibleTasks, filters],
+  );
+
+  const noDateTasks = useMemo(
+    () =>
+      filterTasks(visibleTasks, { ...filters, dateFrom: "", dateTo: "" }).filter(
+        (task) => !task.startDate && !task.dueDate,
+      ),
+    [visibleTasks, filters],
+  );
+
+  const navigate = (dir: -1 | 1) => {
+    setCurrentDate((current) => {
+      if (view === "month") return dir === -1 ? subMonths(current, 1) : addMonths(current, 1);
+      return dir === -1 ? subWeeks(current, 1) : addWeeks(current, 1);
+    });
+  };
+
+  const goToday = () => setCurrentDate(startOfToday());
+
+  const headerLabel = useMemo(() => {
+    if (view === "month") {
+      return capitalize(format(currentDate, "LLLL yyyy", { locale: ru }));
+    }
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: WEEK_STARTS_ON });
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: WEEK_STARTS_ON });
+    return `${format(weekStart, "d MMM", { locale: ru })} — ${format(weekEnd, "d MMM", { locale: ru })}, ${capitalize(format(weekStart, "LLLL yyyy", { locale: ru }))}`;
+  }, [view, currentDate]);
+
+  const handleDragStart = (id: string) => setDraggedId(id);
+  const handleDragEnd = () => setDraggedId(null);
+  const dragOver = (event: DragEvent<HTMLDivElement>) => event.preventDefault();
+
+  const handleDrop = async (targetIso: string) => {
+    if (!draggedId) return;
+    const task = visibleTasks.find((item) => item.id === draggedId);
+    if (!task) return;
+
+    const patch: TaskPatch = {};
+    if (task.startDate && task.dueDate) {
+      const duration = differenceInCalendarDays(
+        parseLocalDate(task.dueDate),
+        parseLocalDate(task.startDate),
+      );
+      patch.startDate = targetIso;
+      patch.dueDate = localDateStr(addDays(parseLocalDate(targetIso), duration));
+    } else if (task.dueDate) {
+      patch.dueDate = targetIso;
+    } else if (task.startDate) {
+      patch.startDate = targetIso;
+    } else {
+      patch.dueDate = targetIso;
+    }
+
+    await updateTask(task.id, patch);
+    setDraggedId(null);
+  };
+
+  const resetFilters = () => setFilters({ ...DEFAULT_TASK_FILTERS });
+
+  const activeFilters =
+    Boolean(filters.search) ||
+    filters.status !== "all" ||
+    filters.priority !== "all" ||
+    filters.projectId !== "all" ||
+    filters.assigneeId !== "all" ||
+    filters.overdue === "overdue";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            disabled={isMutating}
+            className="grid size-9 place-items-center rounded-xl border border-border text-muted-foreground transition hover:text-foreground"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(1)}
+            disabled={isMutating}
+            className="grid size-9 place-items-center rounded-xl border border-border text-muted-foreground transition hover:text-foreground"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={goToday}
+            disabled={isMutating}
+            className="rounded-xl border border-border px-4 py-2 text-sm font-medium transition hover:border-primary/50"
+          >
+            Сегодня
+          </button>
+          <h2 className="ml-2 text-lg font-semibold">{headerLabel}</h2>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1 rounded-xl border border-border bg-surface-2/40 p-1">
+            <button
+              type="button"
+              onClick={() => setView("month")}
+              className={cn(
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition",
+                view === "month"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Месяц
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("week")}
+              className={cn(
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition",
+                view === "week"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Неделя
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        onReset={resetFilters}
+        active={activeFilters}
+      />
+
+      {isLoading && (
+        <div className="panel p-6 text-sm text-muted-foreground">Загружаю задачи из Supabase…</div>
+      )}
+
+      {!isLoading && (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="flex-1 min-w-0">
+            {view === "month" && (
+              <MonthView
+                currentDate={currentDate}
+                tasks={gridTasks}
+                draggedId={draggedId}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                dragOver={dragOver}
+                onDrop={handleDrop}
+                onCreateDate={onCreateDate}
+                onSelectTask={onSelectTask}
+                isMutating={isMutating}
+                today={today}
+              />
+            )}
+            {view === "week" && (
+              <WeekView
+                currentDate={currentDate}
+                tasks={gridTasks}
+                draggedId={draggedId}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                dragOver={dragOver}
+                onDrop={handleDrop}
+                onCreateDate={onCreateDate}
+                onSelectTask={onSelectTask}
+                isMutating={isMutating}
+                today={today}
+              />
+            )}
+          </div>
+
+          <div className="w-full max-w-xs flex-shrink-0 lg:max-w-sm">
+            <NoDatePanel
+              tasks={noDateTasks}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onCreateDate={onCreateDate}
+              onSelectTask={onSelectTask}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FilterBar({
+  filters,
+  onChange,
+  onReset,
+  active,
+}: {
+  filters: TaskFilters;
+  onChange: (filters: TaskFilters) => void;
+  onReset: () => void;
+  active: boolean;
+}) {
+  const { projects, members } = useCrm();
+  const update = <K extends keyof TaskFilters>(key: K, value: TaskFilters[K]) =>
+    onChange({ ...filters, [key]: value });
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      <input
+        type="search"
+        value={filters.search}
+        onChange={(event) => update("search", event.target.value)}
+        placeholder="Поиск по задаче, описанию, тегам…"
+        className="w-full min-w-[18rem] rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-sm outline-none transition focus:border-primary/60"
+      />
+      <select
+        value={filters.status}
+        onChange={(event) => update("status", event.target.value as TaskFilters["status"])}
+        className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
+      >
+        <option value="all">Все статусы</option>
+        {TASK_STATUSES.map((status) => (
+          <option key={status} value={status}>
+            {STATUS_LABEL[status]}
+          </option>
+        ))}
+      </select>
+      <select
+        value={filters.priority}
+        onChange={(event) => update("priority", event.target.value as TaskFilters["priority"])}
+        className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
+      >
+        <option value="all">Все приоритеты</option>
+        {TASK_PRIORITIES.map((priority) => (
+          <option key={priority} value={priority}>
+            {PRIORITY_LABEL[priority]}
+          </option>
+        ))}
+      </select>
+      <select
+        value={filters.projectId}
+        onChange={(event) => update("projectId", event.target.value)}
+        className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
+      >
+        <option value="all">Все проекты</option>
+        <option value="__none">Без проекта</option>
+        {projects
+          .filter((project) => !project.archivedAt)
+          .map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+      </select>
+      <select
+        value={filters.assigneeId}
+        onChange={(event) => update("assigneeId", event.target.value)}
+        className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
+      >
+        <option value="all">Все исполнители</option>
+        <option value="__none">Без исполнителя</option>
+        {members.map((member) => (
+          <option key={member.userId} value={member.userId}>
+            {member.fullName || member.email || member.userId.slice(0, 8)}
+          </option>
+        ))}
+      </select>
+      <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={filters.overdue === "overdue"}
+          onChange={(event) => update("overdue", event.target.checked ? "overdue" : "all")}
+          className="size-4 accent-primary"
+        />
+        Просроченные
+      </label>
+      {active && (
+        <button
+          type="button"
+          onClick={onReset}
+          className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+        >
+          Сбросить
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TaskChip({
+  task,
+  onDragStart,
+  onDragEnd,
+  onSelectTask,
+}: {
+  task: Task;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  onSelectTask?: (task: Task) => void;
+}) {
+  const { projects } = useCrm();
+  const project = task.projectId ? projects.find((item) => item.id === task.projectId) : null;
+  const isRange = Boolean(task.startDate) && Boolean(task.dueDate);
+  const indicatorColor = project?.color ?? priorityDot[task.priority];
+
+  return (
+    <div
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData("text/plain", task.id);
+        onDragStart(task.id);
+      }}
+      onDragEnd={onDragEnd}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelectTask?.(task);
+      }}
+      className="group mb-1 flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface-2/70 px-2 py-1.5 text-xs transition hover:border-primary/50 active:cursor-grabbing"
+      title={task.title}
+    >
+      <span
+        className="size-1.5 shrink-0 rounded-full"
+        style={{ backgroundColor: indicatorColor }}
+      />
+      <span className="block min-w-0 flex-1 truncate">{task.title}</span>
+      {isRange && <span className="shrink-0 text-[10px] text-muted-foreground">период</span>}
+    </div>
+  );
+}
+
+function EmptyCell({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="mt-0.5 flex w-full items-center justify-center gap-1 rounded border border-dashed border-border px-1 py-0.5 text-[10px] text-muted-foreground opacity-0 transition hover:border-primary/50 hover:text-primary group-hover:opacity-100"
+    >
+      <Plus className="size-3" />+ задача
+    </button>
+  );
+}
+
+function MonthView({
+  currentDate,
+  tasks,
+  draggedId,
+  onDragStart,
+  onDragEnd,
+  dragOver,
+  onDrop,
+  onCreateDate,
+  onSelectTask,
+  isMutating,
+  today,
+}: {
+  currentDate: Date;
+  tasks: Task[];
+  draggedId: string | null;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  dragOver: (event: DragEvent<HTMLDivElement>) => void;
+  onDrop: (iso: string) => void;
+  onCreateDate: (date: string) => void;
+  onSelectTask?: (task: Task) => void;
+  isMutating: boolean;
+  today: string;
+}) {
+  const monthStart = startOfMonth(currentDate);
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: WEEK_STARTS_ON });
+  const gridEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: WEEK_STARTS_ON });
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
+
+  return (
+    <div className="panel overflow-hidden">
+      <div className="grid grid-cols-7 border-b border-border">
+        {WEEKDAYS.map((day) => (
+          <div
+            key={day}
+            className="border-r border-border py-2 text-center text-xs font-medium text-muted-foreground last:border-r-0"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {days.map((day) => {
+          const cellDate = localDateStr(day);
+          const inMonth = day.getMonth() === currentDate.getMonth();
+          const isToday = cellDate === today;
+          const tasksHere = tasks.filter((task) => taskMatchesDate(task, cellDate));
+          return (
+            <div
+              key={cellDate}
+              className={cn(
+                "relative min-h-[5.5rem] group border-b border-r border-border p-1 align-top last:border-r-0",
+                !inMonth && "bg-surface-2/20",
+                isToday && "bg-primary/5",
+              )}
+              onDragOver={dragOver}
+              onDrop={() => onDrop(cellDate)}
+            >
+              <span
+                className={cn(
+                  "mb-1 block text-xs",
+                  inMonth ? "text-muted-foreground" : "text-muted-foreground/50",
+                  isToday && "font-semibold text-primary",
+                )}
+              >
+                {day.getDate()}
+              </span>
+              <div className="space-y-0.5 overflow-hidden">
+                {tasksHere.map((task) => (
+                  <TaskChip
+                    key={task.id}
+                    task={task}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    onSelectTask={onSelectTask}
+                  />
+                ))}
+                {tasksHere.length === 0 && (
+                  <EmptyCell disabled={isMutating} onClick={() => onCreateDate(cellDate)} />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WeekView({
+  currentDate,
+  tasks,
+  draggedId,
+  onDragStart,
+  onDragEnd,
+  dragOver,
+  onDrop,
+  onCreateDate,
+  onSelectTask,
+  isMutating,
+  today,
+}: {
+  currentDate: Date;
+  tasks: Task[];
+  draggedId: string | null;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  dragOver: (event: DragEvent<HTMLDivElement>) => void;
+  onDrop: (iso: string) => void;
+  onCreateDate: (date: string) => void;
+  onSelectTask?: (task: Task) => void;
+  isMutating: boolean;
+  today: string;
+}) {
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: WEEK_STARTS_ON });
+  const days = eachDayOfInterval({
+    start: weekStart,
+    end: endOfWeek(weekStart, { weekStartsOn: WEEK_STARTS_ON }),
+  });
+
+  return (
+    <div className="panel overflow-hidden">
+      <div className="grid grid-cols-7 border-b border-border">
+        {days.map((day) => {
+          const cellDate = localDateStr(day);
+          return (
+            <div key={cellDate} className="border-r border-border p-2 text-center last:border-r-0">
+              <span className="block text-xs text-muted-foreground">
+                {capitalize(format(day, "EEEE", { locale: ru }))}
+              </span>
+              <span
+                className={cn(
+                  "text-sm font-semibold",
+                  cellDate === today ? "text-primary" : "text-foreground",
+                )}
+              >
+                {day.getDate()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="grid grid-cols-7">
+        {days.map((day) => {
+          const cellDate = localDateStr(day);
+          const isToday = cellDate === today;
+          const tasksHere = tasks.filter((task) => taskMatchesDate(task, cellDate));
+          return (
+            <div
+              key={cellDate}
+              className={cn(
+                "relative min-h-[9rem] group border-b border-r border-border p-1 last:border-r-0",
+                isToday && "bg-primary/5",
+              )}
+              onDragOver={dragOver}
+              onDrop={() => onDrop(cellDate)}
+            >
+              <div className="space-y-0.5 overflow-hidden">
+                {tasksHere.map((task) => (
+                  <TaskChip
+                    key={task.id}
+                    task={task}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    onSelectTask={onSelectTask}
+                  />
+                ))}
+              </div>
+              {tasksHere.length === 0 && (
+                <div className="mt-1 flex items-center justify-center">
+                  <EmptyCell disabled={isMutating} onClick={() => onCreateDate(cellDate)} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NoDatePanel({
+  tasks,
+  onDragStart,
+  onDragEnd,
+  onCreateDate,
+  onSelectTask,
+}: {
+  tasks: Task[];
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  onCreateDate: (date: string) => void;
+  onSelectTask?: (task: Task) => void;
+}) {
+  return (
+    <div className="panel flex flex-col gap-3 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <SquareMousePointer className="size-4 text-muted-foreground" />
+          Без даты
+        </h3>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+          {tasks.length}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Перетащите задачу на день, чтобы назначить дедлайн.
+      </p>
+      <div className="space-y-1.5 overflow-y-auto pr-1">
+        {tasks.map((task) => (
+          <div
+            key={task.id}
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.setData("text/plain", task.id);
+              onDragStart(task.id);
+            }}
+            onDragEnd={onDragEnd}
+            onClick={(event) => {
+              event.stopPropagation();
+              onSelectTask?.(task);
+            }}
+            className="group mb-1 flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface-2/70 px-2 py-1.5 text-xs transition hover:border-primary/50 active:cursor-grabbing"
+            title={task.title}
+          >
+            <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground" />
+            <span className="block min-w-0 flex-1 truncate">{task.title}</span>
+          </div>
+        ))}
+        {!tasks.length && <p className="text-sm text-muted-foreground">Задач без даты нет.</p>}
+      </div>
+      <button
+        type="button"
+        onClick={() => onCreateDate(todayLocalIsoDate())}
+        className="mt-auto inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+      >
+        <Plus className="size-4" />
+        Создать задачу
+      </button>
+    </div>
+  );
+}

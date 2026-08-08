@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Archive,
   Check,
   Download,
+  ExternalLink,
   FileUp,
   Loader2,
   MessageSquare,
@@ -69,7 +71,10 @@ function moneyInputValue(value: number | null): string {
   return value === null ? "" : String(value);
 }
 
-function createDraft(task: Task | null, initial?: { startDate?: string; dueDate?: string }): TaskDraft {
+function createDraft(
+  task: Task | null,
+  initial: { startDate: string | undefined; dueDate: string | undefined },
+): TaskDraft {
   return {
     title: task?.title ?? "",
     description: task?.description ?? "",
@@ -98,8 +103,8 @@ function parseOptionalInteger(value: string, label: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const parsed = Number(trimmed);
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    throw new Error(`${label} должно быть неотрицательным целым числом.`);
+  if (isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`Поле "${label}" должно быть целым положительным числом.`);
   }
   return parsed;
 }
@@ -111,9 +116,9 @@ function parseRequiredInteger(value: string, label: string): number {
 function parseOptionalMoney(value: string, label: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new Error(`${label} должно быть неотрицательным числом.`);
+  const parsed = Number(trimmed.replace(",", "."));
+  if (isNaN(parsed) || parsed < 0) {
+    throw new Error(`Поле "${label}" должно быть корректным числом.`);
   }
   return parsed;
 }
@@ -127,22 +132,27 @@ function splitLabels(value: string): string[] {
 
 function descendantIds(taskId: string, tasks: Task[]): Set<string> {
   const result = new Set<string>();
-  let changed = true;
-  while (changed) {
-    changed = false;
-    tasks.forEach((task) => {
-      if (task.parentTaskId && (task.parentTaskId === taskId || result.has(task.parentTaskId))) {
-        if (!result.has(task.id)) {
-          result.add(task.id);
-          changed = true;
-        }
+  const queue = [taskId];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    tasks.forEach((candidate) => {
+      if (candidate.parentTaskId === current && !result.has(candidate.id)) {
+        result.add(candidate.id);
+        queue.push(candidate.id);
       }
     });
   }
   return result;
 }
 
-export function TaskEditor({ task, onClose, onSaved, onDeleted }: TaskEditorProps) {
+export function TaskEditor({
+  task,
+  onClose,
+  onSaved,
+  onDeleted,
+  initialStartDate,
+  initialDueDate,
+}: TaskEditorProps) {
   const {
     addTask,
     updateTask,
@@ -182,7 +192,7 @@ export function TaskEditor({ task, onClose, onSaved, onDeleted }: TaskEditorProp
     setCommentBody("");
     setPendingFiles([]);
     setLocalError(null);
-  }, [task]);
+  }, [task, initialStartDate, initialDueDate]);
 
   const activeProjects = projects.filter(
     (project) => !project.archivedAt || project.id === task?.projectId,
@@ -384,15 +394,28 @@ export function TaskEditor({ task, onClose, onSaved, onDeleted }: TaskEditorProp
             className="mt-1 w-full bg-transparent font-display text-xl font-semibold outline-none"
           />
         </div>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-muted-foreground transition hover:text-foreground"
-          >
-            <X className="size-5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {task && (
+            <Link
+              to="/tasks/$taskId"
+              params={{ taskId: task.id }}
+              title="Открыть карточку задачи на отдельной странице"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+            >
+              <ExternalLink className="size-3.5" />
+              <span className="hidden sm:inline">Страница</span>
+            </Link>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <X className="size-5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {localError && (

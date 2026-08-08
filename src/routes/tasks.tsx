@@ -1,7 +1,8 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Columns3, List, Network, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Columns3, List, Network, Plus } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
+import { TaskCalendar } from "@/components/crm/TaskCalendar";
 import { TaskEditor } from "@/components/crm/TaskEditor";
 import { useCrm } from "@/lib/crm-store";
 import {
@@ -41,14 +42,25 @@ const priorityTone: Record<Priority, string> = {
 function TasksPage() {
   const { tasks, projects, moveTask, isLoading, isMutating } = useCrm();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"kanban" | "list" | "graph">("kanban");
-  const [creating, setCreating] = useState(false);
+  const [mode, setMode] = useState<"kanban" | "list" | "graph" | "calendar">("kanban");
+  const [creating, setCreating] = useState<{ dueDate?: string } | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [overCol, setOverCol] = useState<TaskStatus | null>(null);
   const visibleTasks = useMemo(() => tasks.filter((task) => !task.archivedAt), [tasks]);
 
   return (
-    <AppShell title="Задачи и проекты" subtitle="Канбан, список и карта связей">
+    <AppShell
+      title="Задачи и проекты"
+      subtitle={
+        mode === "graph"
+          ? "Канбан, список и карта связей"
+          : mode === "calendar"
+            ? "Календарь задач: месяц и неделя"
+            : "Канбан, список и карта связей"
+      }
+    >
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="flex gap-1 rounded-xl border border-border bg-surface-2/60 p-1">
           {(
@@ -56,6 +68,7 @@ function TasksPage() {
               ["kanban", "Канбан", Columns3],
               ["list", "Список", List],
               ["graph", "Карта", Network],
+              ["calendar", "Календарь", CalendarIcon],
             ] as const
           ).map(([key, label, Icon]) => (
             <button
@@ -73,7 +86,7 @@ function TasksPage() {
           ))}
         </div>
         <button
-          onClick={() => setCreating(true)}
+          onClick={() => setCreating({})}
           disabled={isLoading || isMutating}
           className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-60"
         >
@@ -115,19 +128,28 @@ function TasksPage() {
                 </div>
                 <div className="space-y-2">
                   {items.map((task) => (
-                    <Link
+                    <div
                       key={task.id}
-                      to="/tasks/$taskId"
-                      params={{ taskId: task.id }}
                       draggable
-                      onDragStart={() => setDragId(task.id)}
-                      onDragEnd={() => setDragId(null)}
+                      onDragStart={() => {
+                        setDragId(task.id);
+                        setIsDragging(true);
+                      }}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setTimeout(() => setIsDragging(false), 150);
+                      }}
+                      onClick={() => {
+                        if (!isDragging) {
+                          setEditingTask(task);
+                        }
+                      }}
                       className={cn(
-                        "block cursor-grab rounded-xl border border-border bg-surface-2/70 p-3 transition hover:border-primary/50 active:cursor-grabbing",
+                        "block cursor-pointer rounded-xl border border-border bg-surface-2/70 p-3 transition hover:border-primary/50 active:cursor-grabbing",
                         dragId === task.id && "opacity-40",
                       )}
                     >
-                      <p className="line-clamp-2 text-sm">{task.title}</p>
+                      <p className="line-clamp-2 text-sm font-medium">{task.title}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                         <span
                           className={cn("rounded-full px-2 py-0.5", priorityTone[task.priority])}
@@ -151,7 +173,7 @@ function TasksPage() {
                           {task.files.length > 0 && <span>{task.files.length} файл.</span>}
                         </div>
                       )}
-                    </Link>
+                    </div>
                   ))}
                   {!items.length && (
                     <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
@@ -184,13 +206,13 @@ function TasksPage() {
                 {visibleTasks.map((task) => (
                   <tr key={task.id} className="transition hover:bg-surface-2/50">
                     <td className="px-4 py-3">
-                      <Link
-                        to="/tasks/$taskId"
-                        params={{ taskId: task.id }}
-                        className="font-medium transition hover:text-primary"
+                      <button
+                        type="button"
+                        onClick={() => setEditingTask(task)}
+                        className="text-left font-medium transition hover:text-primary"
                       >
                         {task.title}
-                      </Link>
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {projects.find((project) => project.id === task.projectId)?.name ??
@@ -232,12 +254,21 @@ function TasksPage() {
         </div>
       )}
 
-      {!isLoading && mode === "graph" && <ProjectGraph tasks={visibleTasks} />}
+      {!isLoading && mode === "graph" && (
+        <ProjectGraph tasks={visibleTasks} onSelectTask={(task) => setEditingTask(task)} />
+      )}
 
-      {creating && (
+      {!isLoading && mode === "calendar" && (
+        <TaskCalendar
+          onCreateDate={(dueDate) => setCreating({ dueDate })}
+          onSelectTask={(task) => setEditingTask(task)}
+        />
+      )}
+
+      {creating !== null && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setCreating(false)}
+          onClick={() => setCreating(null)}
         >
           <div
             onClick={(event) => event.stopPropagation()}
@@ -245,11 +276,31 @@ function TasksPage() {
           >
             <TaskEditor
               task={null}
-              onClose={() => setCreating(false)}
+              initialDueDate={creating.dueDate}
+              onClose={() => setCreating(null)}
               onSaved={(task) => {
-                setCreating(false);
-                void navigate({ to: "/tasks/$taskId", params: { taskId: task.id } });
+                setCreating(null);
+                setEditingTask(task);
               }}
+            />
+          </div>
+        </div>
+      )}
+
+      {editingTask !== null && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setEditingTask(null)}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[calc(100vh-2rem)] w-full max-w-5xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-2xl animate-in zoom-in-95"
+          >
+            <TaskEditor
+              task={editingTask}
+              onClose={() => setEditingTask(null)}
+              onSaved={() => setEditingTask(null)}
+              onDeleted={() => setEditingTask(null)}
             />
           </div>
         </div>
@@ -258,7 +309,13 @@ function TasksPage() {
   );
 }
 
-function ProjectGraph({ tasks }: { tasks: Task[] }) {
+function ProjectGraph({
+  tasks,
+  onSelectTask,
+}: {
+  tasks: Task[];
+  onSelectTask: (task: Task) => void;
+}) {
   const { projects } = useCrm();
   const activeProjects = useMemo(
     () => projects.filter((project) => !project.archivedAt),
@@ -340,17 +397,17 @@ function ProjectGraph({ tasks }: { tasks: Task[] }) {
         <p className="mt-1 text-xs text-muted-foreground">Задачи проекта</p>
         <div className="mt-4 space-y-2">
           {related.map((task) => (
-            <Link
+            <button
               key={task.id}
-              to="/tasks/$taskId"
-              params={{ taskId: task.id }}
+              type="button"
+              onClick={() => onSelectTask(task)}
               className="block w-full rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-left text-sm transition hover:border-primary/50"
             >
               {task.title}
               <span className="block text-[11px] text-muted-foreground">
                 {STATUS_LABEL[task.status]}
               </span>
-            </Link>
+            </button>
           ))}
           {!related.length && <p className="text-sm text-muted-foreground">Пока пусто.</p>}
         </div>
