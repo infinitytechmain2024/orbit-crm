@@ -4,7 +4,16 @@ import type { Database } from "./database.types";
 const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"]?.trim() ?? "";
 const supabasePublishableKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"]?.trim() ?? "";
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export const isSupabaseConfigured = isHttpUrl(supabaseUrl) && Boolean(supabasePublishableKey);
 
 export type AppSupabaseClient = SupabaseClient<Database>;
 
