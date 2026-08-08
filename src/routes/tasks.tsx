@@ -276,7 +276,7 @@ function TasksPage() {
           >
             <TaskEditor
               task={null}
-              initialDueDate={creating.dueDate}
+              {...(creating.dueDate ? { initialDueDate: creating.dueDate } : {})}
               onClose={() => setCreating(null)}
               onSaved={(task) => {
                 setCreating(null);

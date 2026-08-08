@@ -16,7 +16,6 @@ import {
   subWeeks,
 } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Link } from "@tanstack/react-router";
 import { useCrm } from "@/lib/crm-store";
 import {
   DEFAULT_TASK_FILTERS,
@@ -26,6 +25,7 @@ import {
   TASK_STATUSES,
   filterTasks,
   type Priority,
+  type Project,
   type Task,
   type TaskFilters,
   type TaskPatch,
@@ -71,18 +71,11 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-type CellHandlers = {
-  onDragStart: (id: string) => void;
-  onDragEnd: () => void;
-  onDragOver: (event: DragEvent<HTMLDivElement>) => void;
-  onDateClick: (cellDate: string) => void;
-};
-
 export type CalendarViewMode = "month" | "week";
 
 type TaskCalendarProps = {
   onCreateDate: (dueDate: string) => void;
-  onSelectTask?: (task: Task) => void;
+  onSelectTask: (task: Task) => void;
 };
 
 export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) {
@@ -93,6 +86,7 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
   const [currentDate, setCurrentDate] = useState<Date>(startOfToday());
   const [filters, setFilters] = useState<TaskFilters>({ ...DEFAULT_TASK_FILTERS });
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const today = todayLocalIsoDate();
 
@@ -127,8 +121,16 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
     return `${format(weekStart, "d MMM", { locale: ru })} — ${format(weekEnd, "d MMM", { locale: ru })}, ${capitalize(format(weekStart, "LLLL yyyy", { locale: ru }))}`;
   }, [view, currentDate]);
 
-  const handleDragStart = (id: string) => setDraggedId(id);
-  const handleDragEnd = () => setDraggedId(null);
+  const handleDragStart = (id: string) => {
+    setDraggedId(id);
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    window.setTimeout(() => setIsDragging(false), 150);
+  };
+
   const dragOver = (event: DragEvent<HTMLDivElement>) => event.preventDefault();
 
   const handleDrop = async (targetIso: string) => {
@@ -197,33 +199,31 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
           <h2 className="ml-2 text-lg font-semibold">{headerLabel}</h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1 rounded-xl border border-border bg-surface-2/40 p-1">
-            <button
-              type="button"
-              onClick={() => setView("month")}
-              className={cn(
-                "rounded-lg px-4 py-1.5 text-sm font-medium transition",
-                view === "month"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              Месяц
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("week")}
-              className={cn(
-                "rounded-lg px-4 py-1.5 text-sm font-medium transition",
-                view === "week"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              Неделя
-            </button>
-          </div>
+        <div className="flex gap-1 rounded-xl border border-border bg-surface-2/40 p-1">
+          <button
+            type="button"
+            onClick={() => setView("month")}
+            className={cn(
+              "rounded-lg px-4 py-1.5 text-sm font-medium transition",
+              view === "month"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Месяц
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("week")}
+            className={cn(
+              "rounded-lg px-4 py-1.5 text-sm font-medium transition",
+              view === "week"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Неделя
+          </button>
         </div>
       </div>
 
@@ -246,10 +246,11 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
                 currentDate={currentDate}
                 tasks={gridTasks}
                 draggedId={draggedId}
+                isDragging={isDragging}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 dragOver={dragOver}
-                onDrop={handleDrop}
+                onDateDrop={handleDrop}
                 onCreateDate={onCreateDate}
                 onSelectTask={onSelectTask}
                 isMutating={isMutating}
@@ -261,10 +262,11 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
                 currentDate={currentDate}
                 tasks={gridTasks}
                 draggedId={draggedId}
+                isDragging={isDragging}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 dragOver={dragOver}
-                onDrop={handleDrop}
+                onDateDrop={handleDrop}
                 onCreateDate={onCreateDate}
                 onSelectTask={onSelectTask}
                 isMutating={isMutating}
@@ -276,10 +278,12 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
           <div className="w-full max-w-xs flex-shrink-0 lg:max-w-sm">
             <NoDatePanel
               tasks={noDateTasks}
+              draggedId={draggedId}
+              isDragging={isDragging}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
-              onCreateDate={onCreateDate}
               onSelectTask={onSelectTask}
+              onCreateDate={onCreateDate}
             />
           </div>
         </div>
@@ -388,14 +392,18 @@ function FilterBar({
 
 function TaskChip({
   task,
+  draggedId,
+  isDragging,
   onDragStart,
   onDragEnd,
   onSelectTask,
 }: {
   task: Task;
+  draggedId: string | null;
+  isDragging: boolean;
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
-  onSelectTask?: (task: Task) => void;
+  onSelectTask: (task: Task) => void;
 }) {
   const { projects } = useCrm();
   const project = task.projectId ? projects.find((item) => item.id === task.projectId) : null;
@@ -403,7 +411,8 @@ function TaskChip({
   const indicatorColor = project?.color ?? priorityDot[task.priority];
 
   return (
-    <div
+    <button
+      type="button"
       draggable
       onDragStart={(event) => {
         event.dataTransfer.setData("text/plain", task.id);
@@ -412,9 +421,12 @@ function TaskChip({
       onDragEnd={onDragEnd}
       onClick={(event) => {
         event.stopPropagation();
-        onSelectTask?.(task);
+        if (!isDragging) onSelectTask(task);
       }}
-      className="group mb-1 flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface-2/70 px-2 py-1.5 text-xs transition hover:border-primary/50 active:cursor-grabbing"
+      className={cn(
+        "group mb-1 flex w-full cursor-grab items-center gap-1.5 rounded-lg border border-border bg-surface-2/70 px-2 py-1.5 text-xs text-left transition hover:border-primary/50 active:cursor-grabbing",
+        draggedId === task.id && "opacity-40",
+      )}
       title={task.title}
     >
       <span
@@ -423,7 +435,7 @@ function TaskChip({
       />
       <span className="block min-w-0 flex-1 truncate">{task.title}</span>
       {isRange && <span className="shrink-0 text-[10px] text-muted-foreground">период</span>}
-    </div>
+    </button>
   );
 }
 
@@ -440,31 +452,22 @@ function EmptyCell({ onClick, disabled }: { onClick: () => void; disabled?: bool
   );
 }
 
-function MonthView({
-  currentDate,
-  tasks,
-  draggedId,
-  onDragStart,
-  onDragEnd,
-  dragOver,
-  onDrop,
-  onCreateDate,
-  onSelectTask,
-  isMutating,
-  today,
-}: {
+type SharedViewProps = {
   currentDate: Date;
   tasks: Task[];
   draggedId: string | null;
+  isDragging: boolean;
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
   dragOver: (event: DragEvent<HTMLDivElement>) => void;
-  onDrop: (iso: string) => void;
+  onDateDrop: (iso: string) => void;
   onCreateDate: (date: string) => void;
-  onSelectTask?: (task: Task) => void;
+  onSelectTask: (task: Task) => void;
   isMutating: boolean;
   today: string;
-}) {
+};
+
+function MonthView({ currentDate, tasks, today, isMutating, ...rest }: SharedViewProps) {
   const monthStart = startOfMonth(currentDate);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: WEEK_STARTS_ON });
   const gridEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: WEEK_STARTS_ON });
@@ -488,6 +491,10 @@ function MonthView({
           const inMonth = day.getMonth() === currentDate.getMonth();
           const isToday = cellDate === today;
           const tasksHere = tasks.filter((task) => taskMatchesDate(task, cellDate));
+          const onDateClick = () => {
+            if (isMutating) return;
+            rest.onCreateDate(cellDate);
+          };
           return (
             <div
               key={cellDate}
@@ -496,8 +503,8 @@ function MonthView({
                 !inMonth && "bg-surface-2/20",
                 isToday && "bg-primary/5",
               )}
-              onDragOver={dragOver}
-              onDrop={() => onDrop(cellDate)}
+              onDragOver={rest.dragOver}
+              onDrop={() => rest.onDateDrop(cellDate)}
             >
               <span
                 className={cn(
@@ -513,13 +520,15 @@ function MonthView({
                   <TaskChip
                     key={task.id}
                     task={task}
-                    onDragStart={onDragStart}
-                    onDragEnd={onDragEnd}
-                    onSelectTask={onSelectTask}
+                    draggedId={rest.draggedId}
+                    isDragging={rest.isDragging}
+                    onDragStart={rest.onDragStart}
+                    onDragEnd={rest.onDragEnd}
+                    onSelectTask={rest.onSelectTask}
                   />
                 ))}
                 {tasksHere.length === 0 && (
-                  <EmptyCell disabled={isMutating} onClick={() => onCreateDate(cellDate)} />
+                  <EmptyCell disabled={isMutating} onClick={onDateClick} />
                 )}
               </div>
             </div>
@@ -530,31 +539,7 @@ function MonthView({
   );
 }
 
-function WeekView({
-  currentDate,
-  tasks,
-  draggedId,
-  onDragStart,
-  onDragEnd,
-  dragOver,
-  onDrop,
-  onCreateDate,
-  onSelectTask,
-  isMutating,
-  today,
-}: {
-  currentDate: Date;
-  tasks: Task[];
-  draggedId: string | null;
-  onDragStart: (id: string) => void;
-  onDragEnd: () => void;
-  dragOver: (event: DragEvent<HTMLDivElement>) => void;
-  onDrop: (iso: string) => void;
-  onCreateDate: (date: string) => void;
-  onSelectTask?: (task: Task) => void;
-  isMutating: boolean;
-  today: string;
-}) {
+function WeekView({ currentDate, tasks, today, isMutating, ...rest }: SharedViewProps) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: WEEK_STARTS_ON });
   const days = eachDayOfInterval({
     start: weekStart,
@@ -595,23 +580,25 @@ function WeekView({
                 "relative min-h-[9rem] group border-b border-r border-border p-1 last:border-r-0",
                 isToday && "bg-primary/5",
               )}
-              onDragOver={dragOver}
-              onDrop={() => onDrop(cellDate)}
+              onDragOver={rest.dragOver}
+              onDrop={() => rest.onDateDrop(cellDate)}
             >
               <div className="space-y-0.5 overflow-hidden">
                 {tasksHere.map((task) => (
                   <TaskChip
                     key={task.id}
                     task={task}
-                    onDragStart={onDragStart}
-                    onDragEnd={onDragEnd}
-                    onSelectTask={onSelectTask}
+                    draggedId={rest.draggedId}
+                    isDragging={rest.isDragging}
+                    onDragStart={rest.onDragStart}
+                    onDragEnd={rest.onDragEnd}
+                    onSelectTask={rest.onSelectTask}
                   />
                 ))}
               </div>
               {tasksHere.length === 0 && (
                 <div className="mt-1 flex items-center justify-center">
-                  <EmptyCell disabled={isMutating} onClick={() => onCreateDate(cellDate)} />
+                  <EmptyCell disabled={isMutating} onClick={() => rest.onCreateDate(cellDate)} />
                 </div>
               )}
             </div>
@@ -624,16 +611,20 @@ function WeekView({
 
 function NoDatePanel({
   tasks,
+  draggedId,
+  isDragging,
   onDragStart,
   onDragEnd,
-  onCreateDate,
   onSelectTask,
+  onCreateDate,
 }: {
   tasks: Task[];
+  draggedId: string | null;
+  isDragging: boolean;
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
+  onSelectTask: (task: Task) => void;
   onCreateDate: (date: string) => void;
-  onSelectTask?: (task: Task) => void;
 }) {
   return (
     <div className="panel flex flex-col gap-3 p-4">
@@ -651,24 +642,15 @@ function NoDatePanel({
       </p>
       <div className="space-y-1.5 overflow-y-auto pr-1">
         {tasks.map((task) => (
-          <div
+          <TaskChip
             key={task.id}
-            draggable
-            onDragStart={(event) => {
-              event.dataTransfer.setData("text/plain", task.id);
-              onDragStart(task.id);
-            }}
+            task={task}
+            draggedId={draggedId}
+            isDragging={isDragging}
+            onDragStart={onDragStart}
             onDragEnd={onDragEnd}
-            onClick={(event) => {
-              event.stopPropagation();
-              onSelectTask?.(task);
-            }}
-            className="group mb-1 flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface-2/70 px-2 py-1.5 text-xs transition hover:border-primary/50 active:cursor-grabbing"
-            title={task.title}
-          >
-            <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground" />
-            <span className="block min-w-0 flex-1 truncate">{task.title}</span>
-          </div>
+            onSelectTask={onSelectTask}
+          />
         ))}
         {!tasks.length && <p className="text-sm text-muted-foreground">Задач без даты нет.</p>}
       </div>
