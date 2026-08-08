@@ -1,5 +1,4 @@
-export type TaskStatus =
-  "backlog" | "planned" | "in_progress" | "review" | "blocked" | "completed" | "cancelled";
+export type TaskStatus = "backlog" | "in_progress" | "review" | "completed";
 export type Priority = "low" | "med" | "high";
 export type TaskView = "kanban" | "list";
 export type TaskSortDirection = "asc" | "desc";
@@ -235,23 +234,17 @@ export type Organization = {
 };
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
-  backlog: "Бэклог",
-  planned: "Запланировано",
+  backlog: "Входящие",
   in_progress: "В работе",
   review: "На проверке",
-  blocked: "Заблокировано",
   completed: "Завершено",
-  cancelled: "Отменено",
 };
 
 export const TASK_STATUSES: TaskStatus[] = [
   "backlog",
-  "planned",
   "in_progress",
   "review",
-  "blocked",
   "completed",
-  "cancelled",
 ];
 
 export const PRIORITY_LABEL: Record<Priority, string> = {

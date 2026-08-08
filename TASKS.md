@@ -26,13 +26,13 @@
 
 #### Файлы для замены
 
-| Файл | Текущее состояние | Действие |
-|---|---|---|
-| `public/favicon.ico` | Существует (ico) | Заменить на новый логотип 32×32 / 16×16 |
-| `public/apple-touch-icon.png` | **Отсутствует** | Создать 180×180 PNG с логотипом |
-| `public/icon-192.png` | **Отсутствует** | Создать 192×192 PNG (для PWA/Android) |
-| `public/icon-512.png` | **Отсутствует** | Создать 512×512 PNG (для PWA/Android) |
-| `public/manifest.json` | **Отсутствует** | Создать веб-манифест |
+| Файл                          | Текущее состояние | Действие                                |
+| ----------------------------- | ----------------- | --------------------------------------- |
+| `public/favicon.ico`          | Существует (ico)  | Заменить на новый логотип 32×32 / 16×16 |
+| `public/apple-touch-icon.png` | **Отсутствует**   | Создать 180×180 PNG с логотипом         |
+| `public/icon-192.png`         | **Отсутствует**   | Создать 192×192 PNG (для PWA/Android)   |
+| `public/icon-512.png`         | **Отсутствует**   | Создать 512×512 PNG (для PWA/Android)   |
+| `public/manifest.json`        | **Отсутствует**   | Создать веб-манифест                    |
 
 #### Генерация иконок
 
@@ -69,9 +69,7 @@
 Текущий блок `links`:
 
 ```ts
-links: [
-  { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-]
+links: [{ rel: "icon", href: "/favicon.ico", type: "image/x-icon" }];
 ```
 
 Заменить на:
@@ -83,7 +81,7 @@ links: [
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
   { rel: "manifest", href: "/manifest.json" },
   { name: "theme-color", content: "#14b8a6" },
-]
+];
 ```
 
 ---
@@ -103,7 +101,7 @@ meta: [
   { name: "author", content: "Orbit CRM" },
   { property: "og:type", content: "website" },
   { name: "twitter:card", content: "summary_large_image" },
-]
+];
 ```
 
 Добавить:
@@ -114,24 +112,27 @@ meta: [
   { name: "viewport", content: "width=device-width, initial-scale=1" },
   { name: "author", content: "Orbit CRM" },
   { title: "Orbit CRM — Панель управления" },
-  { name: "description", content: "Персональная CRM-система для управления записями, клиентами и финансами" },
+  {
+    name: "description",
+    content: "Персональная CRM-система для управления записями, клиентами и финансами",
+  },
   { property: "og:type", content: "website" },
   { property: "og:site_name", content: "Orbit CRM" },
   { name: "twitter:card", content: "summary_large_image" },
-]
+];
 ```
 
 #### Per-Route Meta (каждый роут переопределяет title)
 
-| Роут | Файл | Title | Description |
-|---|---|---|---|
-| `/` | `src/routes/index.tsx:22-32` | `Orbit CRM — Дашборд` | Обзор задач, почты и финансов |
-| `/tasks` | `src/routes/tasks.tsx:11-22` | `Задачи и проекты — Orbit CRM` | Канбан, список и карта проектов |
-| `/mail` | `src/routes/mail.tsx:10-18` | `Почта — Orbit CRM` | Входящие и отправленные письма |
-| `/finance` | `src/routes/finance.tsx:25-33` | `Финансы — Orbit CRM` | Доходы, расходы и аналитика |
-| `/clients` (новый) | Новый файл | `Клиенты — Orbit CRM` | Управление базой клиентов |
-| `/calendar` (новый) | Новый файл | `Календарь — Orbit CRM` | Расписание и записи |
-| `/book` (новый) | Новый файл | `Запись на приём — Orbit CRM` | Клиентская форма бронирования |
+| Роут                | Файл                           | Title                          | Description                     |
+| ------------------- | ------------------------------ | ------------------------------ | ------------------------------- |
+| `/`                 | `src/routes/index.tsx:22-32`   | `Orbit CRM — Дашборд`          | Обзор задач, почты и финансов   |
+| `/tasks`            | `src/routes/tasks.tsx:11-22`   | `Задачи и проекты — Orbit CRM` | Канбан, список и карта проектов |
+| `/mail`             | `src/routes/mail.tsx:10-18`    | `Почта — Orbit CRM`            | Входящие и отправленные письма  |
+| `/finance`          | `src/routes/finance.tsx:25-33` | `Финансы — Orbit CRM`          | Доходы, расходы и аналитика     |
+| `/clients` (новый)  | Новый файл                     | `Клиенты — Orbit CRM`          | Управление базой клиентов       |
+| `/calendar` (новый) | Новый файл                     | `Календарь — Orbit CRM`        | Расписание и записи             |
+| `/book` (новый)     | Новый файл                     | `Запись на приём — Orbit CRM`  | Клиентская форма бронирования   |
 
 ---
 
@@ -145,7 +146,10 @@ meta: [
 meta: [
   // ...существующие...
   { property: "og:title", content: "Orbit CRM — Панель управления" },
-  { property: "og:description", content: "Персональная CRM-система для управления записями, клиентами и финансами" },
+  {
+    property: "og:description",
+    content: "Персональная CRM-система для управления записями, клиентами и финансами",
+  },
   { property: "og:image", content: "/og-image.png" },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },
@@ -154,9 +158,12 @@ meta: [
   { property: "og:locale", content: "ru_RU" },
   { name: "twitter:card", content: "summary_large_image" },
   { name: "twitter:title", content: "Orbit CRM" },
-  { name: "twitter:description", content: "Персональная CRM-система для управления записями и клиентами" },
+  {
+    name: "twitter:description",
+    content: "Персональная CRM-система для управления записями и клиентами",
+  },
   { name: "twitter:image", content: "/og-image.png" },
-]
+];
 ```
 
 #### OG Image (`public/og-image.png`)
@@ -202,11 +209,13 @@ meta: [
 const [collapsed, setCollapsed] = useState(false);
 
 // Aside
-<aside className={cn(
-  "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-border bg-sidebar/80 backdrop-blur-xl transition-all duration-200",
-  collapsed ? "w-16" : "w-64",
-  "hidden lg:flex"
-)}>
+<aside
+  className={cn(
+    "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-border bg-sidebar/80 backdrop-blur-xl transition-all duration-200",
+    collapsed ? "w-16" : "w-64",
+    "hidden lg:flex",
+  )}
+>
   {/* Логотип */}
   <div className="flex items-center gap-3 px-4 py-6">
     {collapsed ? <OrbitLogoIcon className="size-8" /> : <OrbitLogoFull className="h-8" />}
@@ -226,7 +235,7 @@ const [collapsed, setCollapsed] = useState(false);
   <button onClick={() => setCollapsed(!collapsed)} className="mx-auto mb-4">
     {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
   </button>
-</aside>
+</aside>;
 ```
 
 ---
@@ -282,14 +291,11 @@ Header показывает `title` и `subtitle` (passed as props). В хеде
    - Если ранее был редирект `/` → `/book`, удалить его.
 
 3. **Настроить Vercel Routing** (`vercel.json` в корне проекта):
+
    ```json
    {
-     "rewrites": [
-       { "source": "/book", "destination": "/book" }
-     ],
-     "redirects": [
-       { "source": "/", "destination": "/", "permanent": false }
-     ]
+     "rewrites": [{ "source": "/book", "destination": "/book" }],
+     "redirects": [{ "source": "/", "destination": "/", "permanent": false }]
    }
    ```
    - Убедиться, что TanStack Start SSR обрабатывает все роуты корректно.
@@ -517,8 +523,8 @@ async function moveBooking(bookingId: string, newStartTime: Date, newEndTime: Da
   // Обновление локального стейта
   setBookings((prev) =>
     prev.map((b) =>
-      b.id === bookingId ? { ...b, startTime: newStartTime, endTime: newEndTime } : b
-    )
+      b.id === bookingId ? { ...b, startTime: newStartTime, endTime: newEndTime } : b,
+    ),
   );
 }
 ```
@@ -607,25 +613,25 @@ interface Client {
 
 **Компонент:** `ClientsTable.tsx`
 
-| Колонка | Описание |
-|---|---|
-| Имя | `full_name`, клик → открытие `ClientCard` |
-| Телефон | `phone` с иконкой `Phone` |
-| Email | `email` с иконкой `Mail` |
-| Сегмент | Бейдж с цветом (см. ниже) |
-| Первый визит | `first_visit_date` (формат: DD.MM.YYYY) |
-| Последний визит | `last_visit_date` (формат: DD.MM.YYYY) |
-| Визитов | `total_visits` |
-| Действия | Edit / Delete |
+| Колонка         | Описание                                  |
+| --------------- | ----------------------------------------- |
+| Имя             | `full_name`, клик → открытие `ClientCard` |
+| Телефон         | `phone` с иконкой `Phone`                 |
+| Email           | `email` с иконкой `Mail`                  |
+| Сегмент         | Бейдж с цветом (см. ниже)                 |
+| Первый визит    | `first_visit_date` (формат: DD.MM.YYYY)   |
+| Последний визит | `last_visit_date` (формат: DD.MM.YYYY)    |
+| Визитов         | `total_visits`                            |
+| Действия        | Edit / Delete                             |
 
 ### 6.5 Сегменты клиентов
 
-| Сегмент | Лейбл | Цвет | Описание |
-|---|---|---|---|
-| `first_time` | Первичный | Синий | Нет записей или 1 визит |
-| `regular` | Постоянный клиент | Зелёный | ≥ 2 визитов за последние 90 дней |
-| `referral` | Реферал | Фиолетовый | Отметка «по рекомендации» |
-| `lost` | Потерянный | Серый/Красный | Нет визитов > 90 дней |
+| Сегмент      | Лейбл             | Цвет          | Описание                         |
+| ------------ | ----------------- | ------------- | -------------------------------- |
+| `first_time` | Первичный         | Синий         | Нет записей или 1 визит          |
+| `regular`    | Постоянный клиент | Зелёный       | ≥ 2 визитов за последние 90 дней |
+| `referral`   | Реферал           | Фиолетовый    | Отметка «по рекомендации»        |
+| `lost`       | Потерянный        | Серый/Красный | Нет визитов > 90 дней            |
 
 #### Авто-определение сегмента (SQL / функция)
 
@@ -687,14 +693,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 serve(async () => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   // Найти клиентов без визитов > 90 дней
   const { data: inactiveClients, error } = await supabase
     .from("clients")
     .select("id, full_name, phone, email, last_visit_date")
-    .or(`last_visit_date.lt.${new Date(Date.now() - 90 * 86400000).toISOString()},last_visit_date.is.null`)
+    .or(
+      `last_visit_date.lt.${new Date(Date.now() - 90 * 86400000).toISOString()},last_visit_date.is.null`,
+    )
     .eq("segment", "lost");
 
   if (error) throw error;
@@ -702,16 +710,12 @@ serve(async () => {
   // Обновить сегмент
   if (inactiveClients && inactiveClients.length > 0) {
     const ids = inactiveClients.map((c) => c.id);
-    await supabase
-      .from("clients")
-      .update({ segment: "lost" })
-      .in("id", ids);
+    await supabase.from("clients").update({ segment: "lost" }).in("id", ids);
   }
 
-  return new Response(
-    JSON.stringify({ checked: inactiveClients?.length ?? 0 }),
-    { headers: { "Content-Type": "application/json" } }
-  );
+  return new Response(JSON.stringify({ checked: inactiveClients?.length ?? 0 }), {
+    headers: { "Content-Type": "application/json" },
+  });
 });
 ```
 
@@ -786,34 +790,34 @@ serve(async (req) => {
 
 ## Чек-лист: Статус задач
 
-| # | Задача | Frontend | Backend/DB | UI/UX | Статус |
-|---|---|---|---|---|---|
-| 1.1 | Favicon + apple-touch-icon + manifest | `__root.tsx` links, `public/` файлы | — | Иконка 32×32, 180×180 | ⬜ |
-| 1.2 | Meta title + description (root + per-route) | `__root.tsx` meta, per-route head | — | Title bar браузера | ⬜ |
-| 1.3 | OG tags + og:image | `__root.tsx` meta, `public/og-image.png` | — | Social preview 1200×630 | ⬜ |
-| 2.1 | Динамический логотип в сайдбаре | `AppShell.tsx`, `OrbitLogo.tsx` | — | Collapsed/expanded sidebar | ⬜ |
-| 2.2 | Название "Orbit CRM" в хедере | `AppShell.tsx` header section | — | Mobile header logo | ⬜ |
-| 3.1 | Роут `/book` (изолированная форма) | `src/routes/book.tsx` | — | Публичная страница | ⬜ |
-| 3.2 | Редирект `/` → dashboard | `__root.tsx`, `vercel.json` | — | Корректный entry point | ⬜ |
-| 4.1 | Роут `/requests` — «Заявки и записи» | `src/routes/requests.tsx`, сайдбар nav | `bookings` table | Табы: Входящие / Подтверждённые / Архив | ⬜ |
-| 5.1 | Установка `@hello-pangea/dnd` | `package.json` | — | — | ⬜ |
-| 5.2 | Day/Week/Month views | `src/routes/calendar.tsx`, компоненты | `bookings` table | Часовые слоты, drag-and-drop | ⬜ |
-| 5.3 | Drag-and-Drop логика | `@hello-pangea/dnd`, `moveBooking()` | UPDATE bookings | Перетаскивание между слотами | ⬜ |
-| 5.4 | Смена статуса из календаря | `CalendarEvent.tsx` dropdown | UPDATE bookings.status | Цветовые бейджи | ⬜ |
-| 6.1 | Роут `/clients` | `src/routes/clients.tsx`, сайдбар nav | `clients` table | Таблица + фильтры | ⬜ |
-| 6.2 | Сегменты клиентов | `SegmentFilter.tsx`, бейджи | `clients.segment` + триггер | 4 сегмента с цветами | ⬜ |
-| 6.3 | История визитов | `ClientHistory.tsx` | `bookings` join `clients` | First/last visit dates | ⬜ |
-| 7.1 | Auto-detect lost clients (90 дней) | — | SQL триггер `update_client_segment` | — | ⬜ |
-| 7.2 | Cron-job проверки | Edge Function | pg_cron / Vercel Cron | — | ⬜ |
-| 7.3 | UI рассылки напоминаний | `RetentionPanel.tsx`, модалка | Edge Function `send-reminders` | WhatsApp / Telegram / SMS | ⬜ |
+| #   | Задача                                      | Frontend                                 | Backend/DB                          | UI/UX                                   | Статус |
+| --- | ------------------------------------------- | ---------------------------------------- | ----------------------------------- | --------------------------------------- | ------ |
+| 1.1 | Favicon + apple-touch-icon + manifest       | `__root.tsx` links, `public/` файлы      | —                                   | Иконка 32×32, 180×180                   | ⬜     |
+| 1.2 | Meta title + description (root + per-route) | `__root.tsx` meta, per-route head        | —                                   | Title bar браузера                      | ⬜     |
+| 1.3 | OG tags + og:image                          | `__root.tsx` meta, `public/og-image.png` | —                                   | Social preview 1200×630                 | ⬜     |
+| 2.1 | Динамический логотип в сайдбаре             | `AppShell.tsx`, `OrbitLogo.tsx`          | —                                   | Collapsed/expanded sidebar              | ⬜     |
+| 2.2 | Название "Orbit CRM" в хедере               | `AppShell.tsx` header section            | —                                   | Mobile header logo                      | ⬜     |
+| 3.1 | Роут `/book` (изолированная форма)          | `src/routes/book.tsx`                    | —                                   | Публичная страница                      | ⬜     |
+| 3.2 | Редирект `/` → dashboard                    | `__root.tsx`, `vercel.json`              | —                                   | Корректный entry point                  | ⬜     |
+| 4.1 | Роут `/requests` — «Заявки и записи»        | `src/routes/requests.tsx`, сайдбар nav   | `bookings` table                    | Табы: Входящие / Подтверждённые / Архив | ⬜     |
+| 5.1 | Установка `@hello-pangea/dnd`               | `package.json`                           | —                                   | —                                       | ⬜     |
+| 5.2 | Day/Week/Month views                        | `src/routes/calendar.tsx`, компоненты    | `bookings` table                    | Часовые слоты, drag-and-drop            | ⬜     |
+| 5.3 | Drag-and-Drop логика                        | `@hello-pangea/dnd`, `moveBooking()`     | UPDATE bookings                     | Перетаскивание между слотами            | ⬜     |
+| 5.4 | Смена статуса из календаря                  | `CalendarEvent.tsx` dropdown             | UPDATE bookings.status              | Цветовые бейджи                         | ⬜     |
+| 6.1 | Роут `/clients`                             | `src/routes/clients.tsx`, сайдбар nav    | `clients` table                     | Таблица + фильтры                       | ⬜     |
+| 6.2 | Сегменты клиентов                           | `SegmentFilter.tsx`, бейджи              | `clients.segment` + триггер         | 4 сегмента с цветами                    | ⬜     |
+| 6.3 | История визитов                             | `ClientHistory.tsx`                      | `bookings` join `clients`           | First/last visit dates                  | ⬜     |
+| 7.1 | Auto-detect lost clients (90 дней)          | —                                        | SQL триггер `update_client_segment` | —                                       | ⬜     |
+| 7.2 | Cron-job проверки                           | Edge Function                            | pg_cron / Vercel Cron               | —                                       | ⬜     |
+| 7.3 | UI рассылки напоминаний                     | `RetentionPanel.tsx`, модалка            | Edge Function `send-reminders`      | WhatsApp / Telegram / SMS               | ⬜     |
 
 ---
 
 ## Приоритет выполнения
 
-| Приоритет | Задачи | Оценка |
-|---|---|---|
-| **P0 — Критично** | 1.1 (Favicon), 1.2 (Meta), 3.1-3.2 (Routing) | 1-2 дня |
-| **P1 — Высокий** | 2.1-2.2 (Logo/Header), 4.1 (Заявки+Записи) | 2-3 дня |
-| **P2 — Средний** | 5.1-5.4 (Календарь + DnD) | 3-5 дней |
-| **P3 — Низкий** | 6.1-6.3 (Клиенты + Сегментация), 7.1-7.3 (Retention) | 3-5 дней |
+| Приоритет         | Задачи                                               | Оценка   |
+| ----------------- | ---------------------------------------------------- | -------- |
+| **P0 — Критично** | 1.1 (Favicon), 1.2 (Meta), 3.1-3.2 (Routing)         | 1-2 дня  |
+| **P1 — Высокий**  | 2.1-2.2 (Logo/Header), 4.1 (Заявки+Записи)           | 2-3 дня  |
+| **P2 — Средний**  | 5.1-5.4 (Календарь + DnD)                            | 3-5 дней |
+| **P3 — Низкий**   | 6.1-6.3 (Клиенты + Сегментация), 7.1-7.3 (Retention) | 3-5 дней |

@@ -41,7 +41,15 @@ interface CalendarEvent {
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 7);
 const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const DAYS_FULL = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+const DAYS_FULL = [
+  "Понедельник",
+  "Вторник",
+  "Среда",
+  "Четверг",
+  "Пятница",
+  "Суббота",
+  "Воскресенье",
+];
 
 const STATUS_COLORS: Record<BookingStatus, string> = {
   new: "border-l-blue-400 bg-blue-400/10",
@@ -60,13 +68,69 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
 };
 
 const mockEvents: CalendarEvent[] = [
-  { id: "e1", title: "Массаж", clientName: "Анна С.", startTime: "09:00", endTime: "10:00", status: "confirmed", dayIndex: 0 },
-  { id: "e2", title: "Уход за лицом", clientName: "Иван П.", startTime: "11:00", endTime: "11:45", status: "new", dayIndex: 0 },
-  { id: "e3", title: "Body-терапия", clientName: "Мария К.", startTime: "14:00", endTime: "15:30", status: "pending", dayIndex: 1 },
-  { id: "e4", title: "Консультация", clientName: "Дмитрий В.", startTime: "10:00", endTime: "10:30", status: "confirmed", dayIndex: 2 },
-  { id: "e5", title: "Массаж", clientName: "Елена Н.", startTime: "16:00", endTime: "17:00", status: "new", dayIndex: 3 },
-  { id: "e6", title: "Массаж", clientName: "Ольга Р.", startTime: "09:00", endTime: "10:00", status: "completed", dayIndex: 4 },
-  { id: "e7", title: "Уход за лицом", clientName: "Сергей М.", startTime: "13:00", endTime: "13:45", status: "confirmed", dayIndex: 5 },
+  {
+    id: "e1",
+    title: "Массаж",
+    clientName: "Анна С.",
+    startTime: "09:00",
+    endTime: "10:00",
+    status: "confirmed",
+    dayIndex: 0,
+  },
+  {
+    id: "e2",
+    title: "Уход за лицом",
+    clientName: "Иван П.",
+    startTime: "11:00",
+    endTime: "11:45",
+    status: "new",
+    dayIndex: 0,
+  },
+  {
+    id: "e3",
+    title: "Body-терапия",
+    clientName: "Мария К.",
+    startTime: "14:00",
+    endTime: "15:30",
+    status: "pending",
+    dayIndex: 1,
+  },
+  {
+    id: "e4",
+    title: "Консультация",
+    clientName: "Дмитрий В.",
+    startTime: "10:00",
+    endTime: "10:30",
+    status: "confirmed",
+    dayIndex: 2,
+  },
+  {
+    id: "e5",
+    title: "Массаж",
+    clientName: "Елена Н.",
+    startTime: "16:00",
+    endTime: "17:00",
+    status: "new",
+    dayIndex: 3,
+  },
+  {
+    id: "e6",
+    title: "Массаж",
+    clientName: "Ольга Р.",
+    startTime: "09:00",
+    endTime: "10:00",
+    status: "completed",
+    dayIndex: 4,
+  },
+  {
+    id: "e7",
+    title: "Уход за лицом",
+    clientName: "Сергей М.",
+    startTime: "13:00",
+    endTime: "13:45",
+    status: "confirmed",
+    dayIndex: 5,
+  },
 ];
 
 function CalendarPage() {
@@ -95,7 +159,7 @@ function CalendarPage() {
         const start = `${String(hour).padStart(2, "0")}:00`;
         const end = `${String(hour + 1).padStart(2, "0")}:00`;
         return { ...e, dayIndex, startTime: start, endTime: end };
-      })
+      }),
     );
     setDraggedId(null);
   };
@@ -143,7 +207,7 @@ function CalendarPage() {
                   "rounded-lg px-4 py-1.5 text-sm font-medium transition",
                   view === v
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {v === "day" ? "День" : v === "week" ? "Неделя" : "Месяц"}
@@ -152,8 +216,22 @@ function CalendarPage() {
           </div>
         </div>
 
-        {view === "day" && <DayView events={events} onDragStart={handleDragStart} onDrop={handleDrop} onChangeStatus={changeStatus} />}
-        {view === "week" && <WeekView events={events} onDragStart={handleDragStart} onDrop={handleDrop} onChangeStatus={changeStatus} />}
+        {view === "day" && (
+          <DayView
+            events={events}
+            onDragStart={handleDragStart}
+            onDrop={handleDrop}
+            onChangeStatus={changeStatus}
+          />
+        )}
+        {view === "week" && (
+          <WeekView
+            events={events}
+            onDragStart={handleDragStart}
+            onDrop={handleDrop}
+            onChangeStatus={changeStatus}
+          />
+        )}
         {view === "month" && <MonthView currentDate={currentDate} events={events} />}
       </div>
     </AppShell>
@@ -175,7 +253,7 @@ function EventCard({
       onDragStart={() => onDragStart(event.id)}
       className={cn(
         "group cursor-grab rounded-lg border-l-2 p-2 text-xs transition hover:shadow-md active:cursor-grabbing",
-        STATUS_COLORS[event.status]
+        STATUS_COLORS[event.status],
       )}
     >
       <div className="flex items-center gap-1">
@@ -219,7 +297,10 @@ function DayView({
     <div className="flex rounded-xl border border-border bg-surface-2/40">
       <div className="w-16 flex-shrink-0 border-r border-border">
         {HOURS.map((h) => (
-          <div key={h} className="h-16 border-b border-border px-2 pt-1 text-[10px] text-muted-foreground">
+          <div
+            key={h}
+            className="h-16 border-b border-border px-2 pt-1 text-[10px] text-muted-foreground"
+          >
             {String(h).padStart(2, "0")}:00
           </div>
         ))}
@@ -235,7 +316,12 @@ function DayView({
             {events
               .filter((e) => parseInt(e.startTime) === h)
               .map((e) => (
-                <EventCard key={e.id} event={e} onDragStart={onDragStart} onChangeStatus={onChangeStatus} />
+                <EventCard
+                  key={e.id}
+                  event={e}
+                  onDragStart={onDragStart}
+                  onChangeStatus={onChangeStatus}
+                />
               ))}
           </div>
         ))}
@@ -269,7 +355,10 @@ function WeekView({
       <div className="grid grid-cols-8">
         <div className="border-r border-border">
           {HOURS.map((h) => (
-            <div key={h} className="h-14 border-b border-border px-2 pt-1 text-[10px] text-muted-foreground">
+            <div
+              key={h}
+              className="h-14 border-b border-border px-2 pt-1 text-[10px] text-muted-foreground"
+            >
               {String(h).padStart(2, "0")}:00
             </div>
           ))}
@@ -286,7 +375,12 @@ function WeekView({
                 {events
                   .filter((e) => e.dayIndex === dayIdx && parseInt(e.startTime) === h)
                   .map((e) => (
-                    <EventCard key={e.id} event={e} onDragStart={onDragStart} onChangeStatus={onChangeStatus} />
+                    <EventCard
+                      key={e.id}
+                      event={e}
+                      onDragStart={onDragStart}
+                      onChangeStatus={onChangeStatus}
+                    />
                   ))}
               </div>
             ))}
@@ -314,22 +408,28 @@ function MonthView({ currentDate, events }: { currentDate: Date; events: Calenda
     <div className="rounded-xl border border-border bg-surface-2/40">
       <div className="grid grid-cols-7 border-b border-border">
         {DAYS.map((d) => (
-          <div key={d} className="border-r border-border p-2 text-center text-xs font-medium text-muted-foreground last:border-r-0">
+          <div
+            key={d}
+            className="border-r border-border p-2 text-center text-xs font-medium text-muted-foreground last:border-r-0"
+          >
             {d}
           </div>
         ))}
       </div>
       <div className="grid grid-cols-7">
         {cells.map((day, i) => (
-          <div
-            key={i}
-            className="min-h-20 border-b border-r border-border p-1 last:border-r-0"
-          >
+          <div key={i} className="min-h-20 border-b border-r border-border p-1 last:border-r-0">
             {day && (
               <>
                 <span className="text-xs text-muted-foreground">{day}</span>
                 {events.slice(0, 2).map((e) => (
-                  <div key={e.id} className={cn("mt-0.5 truncate rounded px-1 py-0.5 text-[10px]", STATUS_COLORS[e.status])}>
+                  <div
+                    key={e.id}
+                    className={cn(
+                      "mt-0.5 truncate rounded px-1 py-0.5 text-[10px]",
+                      STATUS_COLORS[e.status],
+                    )}
+                  >
                     {e.clientName}
                   </div>
                 ))}

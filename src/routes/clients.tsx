@@ -46,15 +46,72 @@ interface Client {
 }
 
 const mockClients: Client[] = [
-  { id: "c1", fullName: "Анна Смирнова", phone: "+7 (999) 123-45-67", email: "anna@mail.ru", segment: "regular", firstVisitDate: "15.03.2025", lastVisitDate: "05.08.2026", totalVisits: 12 },
-  { id: "c2", fullName: "Иван Петров", phone: "+7 (916) 234-56-78", email: "ivan@gmail.com", segment: "first_time", firstVisitDate: "01.08.2026", lastVisitDate: "01.08.2026", totalVisits: 1 },
-  { id: "c3", fullName: "Мария Козлова", phone: "+7 (903) 345-67-89", email: "maria@yandex.ru", segment: "referral", firstVisitDate: "20.01.2025", lastVisitDate: "03.08.2026", totalVisits: 8 },
-  { id: "c4", fullName: "Дмитрий Волков", phone: "+7 (926) 456-78-90", email: "dmitry@mail.ru", segment: "lost", firstVisitDate: "10.05.2025", lastVisitDate: "15.04.2026", totalVisits: 5 },
-  { id: "c5", fullName: "Елена Новикова", phone: "+7 (985) 567-89-01", email: "elena@gmail.com", segment: "regular", firstVisitDate: "01.02.2025", lastVisitDate: "07.08.2026", totalVisits: 20 },
-  { id: "c6", fullName: "Ольга Романова", phone: "+7 (925) 678-90-12", email: "olga@mail.ru", segment: "lost", firstVisitDate: "05.06.2025", lastVisitDate: "20.03.2026", totalVisits: 3 },
+  {
+    id: "c1",
+    fullName: "Анна Смирнова",
+    phone: "+7 (999) 123-45-67",
+    email: "anna@mail.ru",
+    segment: "regular",
+    firstVisitDate: "15.03.2025",
+    lastVisitDate: "05.08.2026",
+    totalVisits: 12,
+  },
+  {
+    id: "c2",
+    fullName: "Иван Петров",
+    phone: "+7 (916) 234-56-78",
+    email: "ivan@gmail.com",
+    segment: "first_time",
+    firstVisitDate: "01.08.2026",
+    lastVisitDate: "01.08.2026",
+    totalVisits: 1,
+  },
+  {
+    id: "c3",
+    fullName: "Мария Козлова",
+    phone: "+7 (903) 345-67-89",
+    email: "maria@yandex.ru",
+    segment: "referral",
+    firstVisitDate: "20.01.2025",
+    lastVisitDate: "03.08.2026",
+    totalVisits: 8,
+  },
+  {
+    id: "c4",
+    fullName: "Дмитрий Волков",
+    phone: "+7 (926) 456-78-90",
+    email: "dmitry@mail.ru",
+    segment: "lost",
+    firstVisitDate: "10.05.2025",
+    lastVisitDate: "15.04.2026",
+    totalVisits: 5,
+  },
+  {
+    id: "c5",
+    fullName: "Елена Новикова",
+    phone: "+7 (985) 567-89-01",
+    email: "elena@gmail.com",
+    segment: "regular",
+    firstVisitDate: "01.02.2025",
+    lastVisitDate: "07.08.2026",
+    totalVisits: 20,
+  },
+  {
+    id: "c6",
+    fullName: "Ольга Романова",
+    phone: "+7 (925) 678-90-12",
+    email: "olga@mail.ru",
+    segment: "lost",
+    firstVisitDate: "05.06.2025",
+    lastVisitDate: "20.03.2026",
+    totalVisits: 3,
+  },
 ];
 
-const SEGMENT_CONFIG: Record<ClientSegment, { label: string; color: string; bg: string; icon: typeof Star }> = {
+const SEGMENT_CONFIG: Record<
+  ClientSegment,
+  { label: string; color: string; bg: string; icon: typeof Star }
+> = {
   first_time: { label: "Первичный", color: "text-blue-400", bg: "bg-blue-400/12", icon: UserPlus },
   regular: { label: "Постоянный", color: "text-green-400", bg: "bg-green-400/12", icon: Star },
   referral: { label: "Реферал", color: "text-purple-400", bg: "bg-purple-400/12", icon: Users },
@@ -80,7 +137,7 @@ function ClientsPage() {
 
   const toggleClient = (id: string) => {
     setSelectedClients((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
@@ -138,7 +195,7 @@ function ClientsPage() {
                   "rounded-lg px-3 py-1.5 text-xs font-medium transition",
                   segmentFilter === seg.id
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {seg.label}
@@ -152,12 +209,24 @@ function ClientsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-2/60">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Клиент</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Контакты</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Сегмент</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Первый визит</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Последний визит</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Визитов</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    Клиент
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    Контакты
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    Сегмент
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    Первый визит
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    Последний визит
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">
+                    Визитов
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -185,14 +254,26 @@ function ClientsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium", seg.bg, seg.color)}>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                            seg.bg,
+                            seg.color,
+                          )}
+                        >
                           <SegIcon className="size-3" />
                           {seg.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{client.firstVisitDate}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{client.lastVisitDate}</td>
-                      <td className="px-4 py-3 text-center text-sm font-semibold">{client.totalVisits}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {client.firstVisitDate}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {client.lastVisitDate}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm font-semibold">
+                        {client.totalVisits}
+                      </td>
                     </tr>
                   );
                 })}

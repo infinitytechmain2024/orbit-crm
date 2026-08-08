@@ -29,17 +29,7 @@ const services = [
   { id: "consult", name: "Консультация", duration: "30 мин", price: "1 500 ₽" },
 ];
 
-const timeSlots = [
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-];
+const timeSlots = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
 
 function BookingPage() {
   const [step, setStep] = useState<"service" | "time" | "contact" | "done">("service");
@@ -95,7 +85,7 @@ function BookingPage() {
                   "grid size-7 place-items-center rounded-full text-xs font-semibold",
                   step === s || i < ["service", "time", "contact"].indexOf(step)
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
                 {i + 1}
@@ -120,7 +110,7 @@ function BookingPage() {
                   "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition",
                   selectedService === s.id
                     ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
+                    : "border-border hover:border-primary/50",
                 )}
               >
                 <div className="grid size-10 place-items-center rounded-lg bg-primary/12 text-primary">
@@ -153,7 +143,7 @@ function BookingPage() {
                         "flex flex-col items-center rounded-xl border px-3 py-2 transition",
                         selectedDate === val
                           ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
+                          : "border-border hover:border-primary/50",
                       )}
                     >
                       <span className="text-[11px] text-muted-foreground">{dayName}</span>
@@ -176,7 +166,7 @@ function BookingPage() {
                         "rounded-lg border px-3 py-2 text-sm transition",
                         selectedTime === t
                           ? "border-primary bg-primary/5 font-semibold"
-                          : "border-border hover:border-primary/50"
+                          : "border-border hover:border-primary/50",
                       )}
                     >
                       {t}

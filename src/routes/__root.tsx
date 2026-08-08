@@ -15,7 +15,6 @@ import { CrmProvider } from "../lib/crm-store";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { AuthScreen } from "../components/crm/AuthScreen";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

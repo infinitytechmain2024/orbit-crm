@@ -1,15 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  Check,
-  Clock,
-  Filter,
-  MoreHorizontal,
-  Search,
-  X,
-  CalendarClock,
-  User,
-} from "lucide-react";
+import { Check, Clock, Filter, MoreHorizontal, Search, X, CalendarClock, User } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
 
@@ -89,10 +80,7 @@ const mockBookings: Booking[] = [
   },
 ];
 
-const STATUS_CONFIG: Record<
-  BookingStatus,
-  { label: string; color: string; bg: string }
-> = {
+const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: string }> = {
   new: { label: "Новая", color: "text-blue-400", bg: "bg-blue-400/12" },
   pending: { label: "Ожидает", color: "text-yellow-400", bg: "bg-yellow-400/12" },
   confirmed: { label: "Подтверждена", color: "text-green-400", bg: "bg-green-400/12" },
@@ -110,13 +98,18 @@ function RequestsPage() {
     const matchesSearch =
       b.clientName.toLowerCase().includes(search.toLowerCase()) ||
       b.service.toLowerCase().includes(search.toLowerCase());
-    if (activeTab === "incoming") return matchesSearch && (b.status === "new" || b.status === "pending");
-    if (activeTab === "confirmed") return matchesSearch && (b.status === "confirmed" || b.status === "completed");
+    if (activeTab === "incoming")
+      return matchesSearch && (b.status === "new" || b.status === "pending");
+    if (activeTab === "confirmed")
+      return matchesSearch && (b.status === "confirmed" || b.status === "completed");
     return matchesSearch && b.status === "cancelled";
   });
 
   return (
-    <AppShell title="Заявки и записи" subtitle="Управление входящими заявками и подтверждёнными записями">
+    <AppShell
+      title="Заявки и записи"
+      subtitle="Управление входящими заявками и подтверждёнными записями"
+    >
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1">
@@ -150,7 +143,7 @@ function RequestsPage() {
                 "flex-1 rounded-lg px-4 py-2 text-sm font-medium transition",
                 activeTab === tab.id
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {tab.label}
@@ -186,7 +179,7 @@ function RequestsPage() {
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-medium",
                     STATUS_CONFIG[booking.status].bg,
-                    STATUS_CONFIG[booking.status].color
+                    STATUS_CONFIG[booking.status].color,
                   )}
                 >
                   {STATUS_CONFIG[booking.status].label}
