@@ -216,10 +216,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       error,
       flash,
       addProject: async (input) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Проект создан", async () => {
           const project = await createProject(user.id, organization.id, input);
@@ -228,10 +225,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       updateProject: async (id, patch) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         const project = projects.find((item) => item.id === id);
         if (!project) {
@@ -248,10 +242,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       archiveProject: async (id) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         const project = projects.find((item) => item.id === id);
         if (!project) {
@@ -268,10 +259,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       addTask: async (input) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Задача сохранена", async () => {
           const task = await createTask(user.id, organization.id, input);
@@ -281,10 +269,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       updateTask: async (id, patch) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Задача обновлена", async () => {
           const task = await updateRemoteTask(user.id, organization.id, id, patch);
@@ -293,10 +278,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       moveTask: async (id, status, position) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Статус задачи обновлён", async () => {
           const patch: TaskPatch = { status };
@@ -307,10 +289,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       archiveTask: async (id) => {
-        if (!organization) {
-          setError("Организация ещё не загружена.");
-          return null;
-        }
+        if (!organization) return null;
 
         return runMutation("Задача архивирована", async () => {
           const task = await archiveRemoteTask(organization.id, id);
@@ -319,10 +298,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       removeTask: async (id) => {
-        if (!organization) {
-          setError("Организация ещё не загружена.");
-          return false;
-        }
+        if (!organization) return false;
 
         const deleted = await runMutation("Задача удалена", async () => {
           await deleteTask(id);
@@ -333,10 +309,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         return deleted ?? false;
       },
       refreshTask: async (id) => {
-        if (!organization) {
-          setError("Организация ещё не загружена.");
-          return null;
-        }
+        if (!organization) return null;
 
         try {
           const task = await fetchTaskById(organization.id, id);
@@ -348,10 +321,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         }
       },
       addChecklistItem: async (taskId, title) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Пункт чек-листа добавлен", async () => {
           const task = tasks.find((item) => item.id === taskId);
@@ -368,10 +338,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       updateChecklistItem: async (taskId, itemId, patch) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Чек-лист обновлён", async () => {
           const item = await updateRemoteChecklistItem(user.id, organization.id, itemId, patch);
@@ -381,10 +348,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       deleteChecklistItem: async (taskId, itemId) => {
-        if (!organization) {
-          setError("Организация ещё не загружена.");
-          return false;
-        }
+        if (!organization) return false;
 
         const deleted = await runMutation("Пункт чек-листа удалён", async () => {
           await deleteRemoteChecklistItem(organization.id, itemId);
@@ -396,10 +360,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         return deleted ?? false;
       },
       addTaskComment: async (taskId, body) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Комментарий добавлен", async () => {
           const comment = await createRemoteTaskComment(user.id, organization.id, taskId, body);
@@ -409,10 +370,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         });
       },
       uploadTaskFile: async (taskId, file) => {
-        if (!user || !organization) {
-          setError("Нужна активная сессия и организация.");
-          return null;
-        }
+        if (!user || !organization) return null;
 
         return runMutation("Файл загружен", async () => {
           const uploaded = await uploadRemoteTaskFile(user.id, organization.id, taskId, file);
