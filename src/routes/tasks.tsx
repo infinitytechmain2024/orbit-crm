@@ -195,7 +195,7 @@ function TasksPage() {
 
 function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
   const { projects, tasks } = useCrm();
-  const [sel, setSel] = useState<string>(projects[0].id);
+  const [sel, setSel] = useState<string>(projects[0]!.id);
   const pos = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);
   const related = tasks.filter((t) => t.projectId === sel);
 
@@ -206,6 +206,7 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
           {projects.flatMap((p) =>
             p.links.map((l) => {
               const b = pos[l];
+              if (!b) return null;
               return (
                 <line
                   key={`${p.id}-${l}`}
