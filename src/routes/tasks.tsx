@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Columns3, List, Network, Plus, X } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/tasks")({
 const COLUMNS: TaskStatus[] = ["inbox", "todo", "doing", "done"];
 
 function TasksPage() {
-  const { tasks, projects, moveTask, addTask } = useCrm();
+  const { tasks, projects, moveTask, addTask, isLoading, isMutating } = useCrm();
   const [mode, setMode] = useState<"kanban" | "list" | "graph">("kanban");
   const [active, setActive] = useState<Task | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -61,14 +61,19 @@ function TasksPage() {
           ))}
         </div>
         <button
-          onClick={() => addTask({ title: "Новая задача", status: "inbox" })}
+          onClick={() => void addTask({ title: "Новая задача", status: "inbox" })}
+          disabled={isLoading || isMutating || !projects.length}
           className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
         >
-          <Plus className="size-4" /> Задача
+          <Plus className="size-4" /> {isMutating ? "Сохраняю…" : "Задача"}
         </button>
       </div>
 
-      {mode === "kanban" && (
+      {isLoading && (
+        <div className="panel p-6 text-sm text-muted-foreground">Загружаю задачи из Supabase…</div>
+      )}
+
+      {!isLoading && mode === "kanban" && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((col) => {
             const items = tasks.filter((t) => t.status === col);
@@ -81,7 +86,7 @@ function TasksPage() {
                 }}
                 onDragLeave={() => setOverCol((c) => (c === col ? null : c))}
                 onDrop={() => {
-                  if (dragId) moveTask(dragId, col);
+                  if (dragId) void moveTask(dragId, col);
                   setDragId(null);
                   setOverCol(null);
                 }}
@@ -140,7 +145,7 @@ function TasksPage() {
         </div>
       )}
 
-      {mode === "list" && (
+      {!isLoading && mode === "list" && (
         <div className="panel overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-surface-2/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -166,8 +171,9 @@ function TasksPage() {
                   <td className="px-4 py-3">
                     <select
                       value={t.status}
+                      disabled={isMutating}
                       onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => moveTask(t.id, e.target.value as TaskStatus)}
+                      onChange={(e) => void moveTask(t.id, e.target.value as TaskStatus)}
                       className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs outline-none"
                     >
                       {COLUMNS.map((c) => (
@@ -186,7 +192,7 @@ function TasksPage() {
         </div>
       )}
 
-      {mode === "graph" && <ProjectGraph onPick={(t) => setActive(t)} />}
+      {!isLoading && mode === "graph" && <ProjectGraph onPick={(t) => setActive(t)} />}
 
       {current && <TaskModal task={current} onClose={() => setActive(null)} />}
     </AppShell>
@@ -195,9 +201,24 @@ function TasksPage() {
 
 function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
   const { projects, tasks } = useCrm();
-  const [sel, setSel] = useState<string>(projects[0]!.id);
+  const [sel, setSel] = useState<string | null>(projects[0]?.id ?? null);
   const pos = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);
-  const related = tasks.filter((t) => t.projectId === sel);
+  const related = sel ? tasks.filter((t) => t.projectId === sel) : [];
+
+  useEffect(() => {
+    if (!projects.length) {
+      setSel(null);
+      return;
+    }
+
+    if (!sel || !projects.some((project) => project.id === sel)) {
+      setSel(projects[0]?.id ?? null);
+    }
+  }, [projects, sel]);
+
+  if (!projects.length) {
+    return <div className="panel p-6 text-sm text-muted-foreground">Проекты пока не созданы.</div>;
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">

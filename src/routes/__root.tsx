@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CrmProvider } from "../lib/crm-store";
+import { AuthProvider, useAuth } from "../lib/auth";
+import { AuthScreen } from "../components/crm/AuthScreen";
 
 
 function NotFoundComponent() {
@@ -80,8 +82,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "author", content: "Orbit CRM" },
+      { title: "Orbit CRM — Панель управления" },
+      {
+        name: "description",
+        content: "Персональная CRM-система для управления записями, клиентами и финансами",
+      },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Orbit CRM" },
+      { property: "og:title", content: "Orbit CRM — Панель управления" },
+      {
+        property: "og:description",
+        content: "Персональная CRM-система для управления записями, клиентами и финансами",
+      },
+      { property: "og:image", content: "/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:url", content: "https://wellness-flow-crm.vercel.app" },
+      { property: "og:locale", content: "ru_RU" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Orbit CRM" },
+      {
+        name: "twitter:description",
+        content: "Персональная CRM-система для управления записями и клиентами",
+      },
+      { name: "twitter:image", content: "/og-image.png" },
     ],
     links: [
       {
@@ -94,7 +118,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon", sizes: "32x32" },
+      { rel: "icon", href: "/logo-icon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "manifest", href: "/manifest.json" },
+      { name: "theme-color", content: "#14b8a6" },
     ],
   }),
 
@@ -123,11 +151,30 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CrmProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </CrmProvider>
+      <AuthProvider>
+        <ProtectedApp />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
 
+function ProtectedApp() {
+  const { status } = useAuth();
+
+  if (status === "loading") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background px-5">
+        <div className="panel p-5 text-sm text-muted-foreground">Восстанавливаю сессию…</div>
+      </div>
+    );
+  }
+
+  if (status !== "authenticated") return <AuthScreen />;
+
+  return (
+    <CrmProvider>
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
+    </CrmProvider>
+  );
+}
