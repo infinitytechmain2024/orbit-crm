@@ -72,7 +72,7 @@ function FinancePage() {
                     view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground",
                   )}
                 >
-                  {v === "area" ? "Área" : "Столбцы"}
+                  {v === "area" ? "Область" : "Столбцы"}
                 </button>
               ))}
             </div>
