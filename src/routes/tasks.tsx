@@ -1,9 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Columns3, List, Network, Plus, X } from "lucide-react";
+import { Columns3, List, Network, Plus } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
+import { TaskEditor } from "@/components/crm/TaskEditor";
 import { useCrm } from "@/lib/crm-store";
-import { STATUS_LABEL, type Task, type TaskStatus } from "@/lib/crm-data";
+import {
+  PRIORITY_LABEL,
+  STATUS_LABEL,
+  TASK_STATUSES,
+  type Priority,
+  type Task,
+  type TaskStatus,
+} from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/tasks")({
@@ -12,8 +20,7 @@ export const Route = createFileRoute("/tasks")({
       { title: "Задачи и карта проектов — Orbit CRM" },
       {
         name: "description",
-        content:
-          "Канбан, список и интерактивная карта связей проектов с деталями задач в модальном окне.",
+        content: "Канбан, список и интерактивная карта связей проектов с полноценными задачами.",
       },
       { property: "og:title", content: "Задачи и карта проектов — Orbit CRM" },
       {
@@ -25,16 +32,20 @@ export const Route = createFileRoute("/tasks")({
   component: TasksPage,
 });
 
-const COLUMNS: TaskStatus[] = ["inbox", "todo", "doing", "done"];
+const priorityTone: Record<Priority, string> = {
+  high: "bg-acc-4/15 text-acc-4",
+  med: "bg-acc-3/15 text-acc-3",
+  low: "bg-acc-2/15 text-acc-2",
+};
 
 function TasksPage() {
-  const { tasks, projects, moveTask, addTask, isLoading, isMutating } = useCrm();
+  const { tasks, projects, moveTask, isLoading, isMutating } = useCrm();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"kanban" | "list" | "graph">("kanban");
-  const [active, setActive] = useState<Task | null>(null);
+  const [creating, setCreating] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<TaskStatus | null>(null);
-
-  const current = active ? (tasks.find((t) => t.id === active.id) ?? null) : null;
+  const visibleTasks = useMemo(() => tasks.filter((task) => !task.archivedAt), [tasks]);
 
   return (
     <AppShell title="Задачи и проекты" subtitle="Канбан, список и карта связей">
@@ -62,11 +73,11 @@ function TasksPage() {
           ))}
         </div>
         <button
-          onClick={() => void addTask({ title: "Новая задача", status: "inbox" })}
+          onClick={() => setCreating(true)}
           disabled={isLoading || isMutating}
-          className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+          className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-60"
         >
-          <Plus className="size-4" /> {isMutating ? "Сохраняю…" : "Задача"}
+          <Plus className="size-4" /> Задача
         </button>
       </div>
 
@@ -75,17 +86,17 @@ function TasksPage() {
       )}
 
       {!isLoading && mode === "kanban" && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {COLUMNS.map((col) => {
-            const items = tasks.filter((t) => t.status === col);
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+          {TASK_STATUSES.map((col) => {
+            const items = visibleTasks.filter((task) => task.status === col);
             return (
               <div
                 key={col}
-                onDragOver={(e) => {
-                  e.preventDefault();
+                onDragOver={(event) => {
+                  event.preventDefault();
                   setOverCol(col);
                 }}
-                onDragLeave={() => setOverCol((c) => (c === col ? null : c))}
+                onDragLeave={() => setOverCol((current) => (current === col ? null : current))}
                 onDrop={() => {
                   if (dragId) void moveTask(dragId, col);
                   setDragId(null);
@@ -103,38 +114,44 @@ function TasksPage() {
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {items.map((t) => (
-                    <article
-                      key={t.id}
+                  {items.map((task) => (
+                    <Link
+                      key={task.id}
+                      to="/tasks/$taskId"
+                      params={{ taskId: task.id }}
                       draggable
-                      onDragStart={() => setDragId(t.id)}
+                      onDragStart={() => setDragId(task.id)}
                       onDragEnd={() => setDragId(null)}
-                      onClick={() => setActive(t)}
                       className={cn(
-                        "cursor-grab rounded-xl border border-border bg-surface-2/70 p-3 transition hover:border-primary/50 active:cursor-grabbing",
-                        dragId === t.id && "opacity-40",
+                        "block cursor-grab rounded-xl border border-border bg-surface-2/70 p-3 transition hover:border-primary/50 active:cursor-grabbing",
+                        dragId === task.id && "opacity-40",
                       )}
                     >
-                      <p className="text-sm">{t.title}</p>
+                      <p className="line-clamp-2 text-sm">{task.title}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                         <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5",
-                            t.priority === "high"
-                              ? "bg-acc-4/15 text-acc-4"
-                              : t.priority === "med"
-                                ? "bg-acc-3/15 text-acc-3"
-                                : "bg-acc-2/15 text-acc-2",
-                          )}
+                          className={cn("rounded-full px-2 py-0.5", priorityTone[task.priority])}
                         >
-                          {t.priority}
+                          {PRIORITY_LABEL[task.priority]}
                         </span>
-                        <span>
-                          {projects.find((p) => p.id === t.projectId)?.name ?? "Без проекта"}
+                        <span className="truncate">
+                          {projects.find((project) => project.id === task.projectId)?.name ??
+                            "Без проекта"}
                         </span>
-                        {t.due && <span className="ml-auto">{t.due}</span>}
+                        {task.due && <span className="ml-auto">{task.due}</span>}
                       </div>
-                    </article>
+                      {(task.checklistItems.length > 0 || task.files.length > 0) && (
+                        <div className="mt-2 flex gap-2 text-[11px] text-muted-foreground">
+                          {task.checklistItems.length > 0 && (
+                            <span>
+                              {task.checklistItems.filter((item) => item.completedAt).length}/
+                              {task.checklistItems.length}
+                            </span>
+                          )}
+                          {task.files.length > 0 && <span>{task.files.length} файл.</span>}
+                        </div>
+                      )}
+                    </Link>
                   ))}
                   {!items.length && (
                     <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
@@ -150,70 +167,109 @@ function TasksPage() {
 
       {!isLoading && mode === "list" && (
         <div className="panel overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-2/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Задача</th>
-                <th className="px-4 py-3">Проект</th>
-                <th className="px-4 py-3">Статус</th>
-                <th className="px-4 py-3">Приоритет</th>
-                <th className="px-4 py-3">Срок</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {tasks.map((t) => (
-                <tr
-                  key={t.id}
-                  onClick={() => setActive(t)}
-                  className="cursor-pointer transition hover:bg-surface-2/50"
-                >
-                  <td className="px-4 py-3">{t.title}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {projects.find((p) => p.id === t.projectId)?.name ?? "Без проекта"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={t.status}
-                      disabled={isMutating}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => void moveTask(t.id, e.target.value as TaskStatus)}
-                      className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs outline-none"
-                    >
-                      {COLUMNS.map((c) => (
-                        <option key={c} value={c}>
-                          {STATUS_LABEL[c]}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{t.priority}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{t.due ?? "—"}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead className="bg-surface-2/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Задача</th>
+                  <th className="px-4 py-3">Проект</th>
+                  <th className="px-4 py-3">Статус</th>
+                  <th className="px-4 py-3">Исполнитель</th>
+                  <th className="px-4 py-3">Приоритет</th>
+                  <th className="px-4 py-3">Срок</th>
+                  <th className="px-4 py-3">Чек-лист</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {visibleTasks.map((task) => (
+                  <tr key={task.id} className="transition hover:bg-surface-2/50">
+                    <td className="px-4 py-3">
+                      <Link
+                        to="/tasks/$taskId"
+                        params={{ taskId: task.id }}
+                        className="font-medium transition hover:text-primary"
+                      >
+                        {task.title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {projects.find((project) => project.id === task.projectId)?.name ??
+                        "Без проекта"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={task.status}
+                        disabled={isMutating}
+                        onChange={(event) =>
+                          void moveTask(task.id, event.target.value as TaskStatus)
+                        }
+                        className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs outline-none"
+                      >
+                        {TASK_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {STATUS_LABEL[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {task.assigneeId ? task.assigneeId.slice(0, 8) : "Не назначен"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {PRIORITY_LABEL[task.priority]}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{task.due ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {task.checklistItems.length
+                        ? `${task.checklistItems.filter((item) => item.completedAt).length}/${task.checklistItems.length}`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {!isLoading && mode === "graph" && <ProjectGraph onPick={(t) => setActive(t)} />}
+      {!isLoading && mode === "graph" && <ProjectGraph tasks={visibleTasks} />}
 
-      {current && <TaskModal task={current} onClose={() => setActive(null)} />}
+      {creating && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setCreating(false)}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[calc(100vh-2rem)] w-full max-w-5xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-2xl animate-in zoom-in-95"
+          >
+            <TaskEditor
+              task={null}
+              onClose={() => setCreating(false)}
+              onSaved={(task) => {
+                setCreating(false);
+                void navigate({ to: "/tasks/$taskId", params: { taskId: task.id } });
+              }}
+            />
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
 
-function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
-  const { projects, tasks } = useCrm();
+function ProjectGraph({ tasks }: { tasks: Task[] }) {
+  const { projects } = useCrm();
   const activeProjects = useMemo(
     () => projects.filter((project) => !project.archivedAt),
     [projects],
   );
   const [sel, setSel] = useState<string | null>(activeProjects[0]?.id ?? null);
   const pos = useMemo(
-    () => Object.fromEntries(activeProjects.map((p) => [p.id, p])),
+    () => Object.fromEntries(activeProjects.map((project) => [project.id, project])),
     [activeProjects],
   );
-  const related = sel ? tasks.filter((t) => t.projectId === sel) : [];
+  const related = sel ? tasks.filter((task) => task.projectId === sel) : [];
 
   useEffect(() => {
     if (!activeProjects.length) {
@@ -234,17 +290,17 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
     <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
       <div className="panel relative h-[26rem] overflow-hidden">
         <svg className="absolute inset-0 size-full">
-          {activeProjects.flatMap((p) =>
-            p.links.map((l) => {
-              const b = pos[l];
-              if (!b) return null;
+          {activeProjects.flatMap((project) =>
+            project.links.map((linkId) => {
+              const linkedProject = pos[linkId];
+              if (!linkedProject) return null;
               return (
                 <line
-                  key={`${p.id}-${l}`}
-                  x1={`${p.x}%`}
-                  y1={`${p.y}%`}
-                  x2={`${b.x}%`}
-                  y2={`${b.y}%`}
+                  key={`${project.id}-${linkId}`}
+                  x1={`${project.x}%`}
+                  y1={`${project.y}%`}
+                  x2={`${linkedProject.x}%`}
+                  y2={`${linkedProject.y}%`}
                   stroke="var(--acc-1)"
                   strokeOpacity={0.45}
                   strokeWidth={1.5}
@@ -254,19 +310,24 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
             }),
           )}
         </svg>
-        {activeProjects.map((p) => {
-          const count = tasks.filter((t) => t.projectId === p.id && t.status !== "done").length;
+        {activeProjects.map((project) => {
+          const count = tasks.filter(
+            (task) =>
+              task.projectId === project.id &&
+              task.status !== "completed" &&
+              task.status !== "cancelled",
+          ).length;
           return (
             <button
-              key={p.id}
-              onClick={() => setSel(p.id)}
-              style={{ left: `${p.x}%`, top: `${p.y}%`, borderColor: p.color }}
+              key={project.id}
+              onClick={() => setSel(project.id)}
+              style={{ left: `${project.x}%`, top: `${project.y}%`, borderColor: project.color }}
               className={cn(
                 "absolute -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-surface px-4 py-3 text-left shadow-lg transition hover:scale-105",
-                sel === p.id && "ring-2 ring-primary",
+                sel === project.id && "ring-2 ring-primary",
               )}
             >
-              <span className="block text-sm font-semibold">{p.name}</span>
+              <span className="block text-sm font-semibold">{project.name}</span>
               <span className="text-xs text-muted-foreground">{count} активных задач</span>
             </button>
           );
@@ -274,184 +335,26 @@ function ProjectGraph({ onPick }: { onPick: (t: Task) => void }) {
       </div>
       <div className="panel p-5">
         <h3 className="text-base font-semibold">
-          {activeProjects.find((p) => p.id === sel)?.name}
+          {activeProjects.find((project) => project.id === sel)?.name}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">Задачи проекта</p>
         <div className="mt-4 space-y-2">
-          {related.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => onPick(t)}
-              className="w-full rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-left text-sm transition hover:border-primary/50"
+          {related.map((task) => (
+            <Link
+              key={task.id}
+              to="/tasks/$taskId"
+              params={{ taskId: task.id }}
+              className="block w-full rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-left text-sm transition hover:border-primary/50"
             >
-              {t.title}
+              {task.title}
               <span className="block text-[11px] text-muted-foreground">
-                {STATUS_LABEL[t.status]}
+                {STATUS_LABEL[task.status]}
               </span>
-            </button>
+            </Link>
           ))}
           {!related.length && <p className="text-sm text-muted-foreground">Пока пусто.</p>}
         </div>
       </div>
     </div>
-  );
-}
-
-function TaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { updateTask, removeTask, projects, isMutating } = useCrm();
-  const activeProjects = projects.filter(
-    (project) => !project.archivedAt || project.id === task.projectId,
-  );
-  const [draft, setDraft] = useState({
-    title: task.title,
-    note: task.note ?? "",
-    status: task.status,
-    priority: task.priority,
-    projectId: task.projectId,
-  });
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    setDraft({
-      title: task.title,
-      note: task.note ?? "",
-      status: task.status,
-      priority: task.priority,
-      projectId: task.projectId,
-    });
-  }, [task]);
-
-  const save = async () => {
-    if (busy || !draft.title.trim()) return;
-    setBusy(true);
-    const saved = await updateTask(task.id, {
-      title: draft.title,
-      note: draft.note.trim() ? draft.note : null,
-      status: draft.status,
-      priority: draft.priority,
-      projectId: draft.projectId,
-    });
-    setBusy(false);
-    if (saved) onClose();
-  };
-
-  const remove = async () => {
-    if (busy) return;
-    setBusy(true);
-    const deleted = await removeTask(task.id);
-    setBusy(false);
-    if (deleted) onClose();
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl animate-in zoom-in-95"
-      >
-        <div className="flex items-start gap-4">
-          <input
-            value={draft.title}
-            onChange={(e) => setDraft((current) => ({ ...current, title: e.target.value }))}
-            className="flex-1 bg-transparent font-display text-lg font-semibold outline-none"
-          />
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <textarea
-          value={draft.note}
-          onChange={(e) => setDraft((current) => ({ ...current, note: e.target.value }))}
-          rows={4}
-          placeholder="Заметки, контекст, ссылки…"
-          className="mt-4 w-full resize-none rounded-xl border border-border bg-surface-2/60 p-3 text-sm outline-none focus:border-primary/60"
-        />
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <Field label="Статус">
-            <select
-              value={draft.status}
-              disabled={busy || isMutating}
-              onChange={(e) =>
-                setDraft((current) => ({ ...current, status: e.target.value as TaskStatus }))
-              }
-              className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
-            >
-              {COLUMNS.map((c) => (
-                <option key={c} value={c}>
-                  {STATUS_LABEL[c]}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Приоритет">
-            <select
-              value={draft.priority}
-              disabled={busy || isMutating}
-              onChange={(e) =>
-                setDraft((current) => ({
-                  ...current,
-                  priority: e.target.value as Task["priority"],
-                }))
-              }
-              className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
-            >
-              <option value="low">low</option>
-              <option value="med">med</option>
-              <option value="high">high</option>
-            </select>
-          </Field>
-          <Field label="Проект">
-            <select
-              value={draft.projectId ?? ""}
-              disabled={busy || isMutating}
-              onChange={(e) =>
-                setDraft((current) => ({ ...current, projectId: e.target.value || null }))
-              }
-              className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
-            >
-              <option value="">Без проекта</option>
-              {activeProjects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-
-        <div className="mt-6 flex justify-between">
-          <button
-            onClick={() => void remove()}
-            disabled={busy || isMutating}
-            className="rounded-xl border border-border px-3 py-2 text-sm text-destructive transition hover:bg-destructive/10"
-          >
-            {busy ? "Удаляю…" : "Удалить"}
-          </button>
-          <button
-            onClick={() => void save()}
-            disabled={busy || isMutating || !draft.title.trim()}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            {busy || isMutating ? "Сохраняю…" : "Готово"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[11px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }

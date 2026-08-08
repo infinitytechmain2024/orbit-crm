@@ -16,6 +16,7 @@ export type Database = {
           label: string;
           occurred_on: string;
           organization_id: string;
+          task_id: string | null;
           type: Database["public"]["Enums"]["finance_transaction_type"];
           updated_at: string;
         };
@@ -28,6 +29,7 @@ export type Database = {
           label: string;
           occurred_on?: string;
           organization_id: string;
+          task_id?: string | null;
           type: Database["public"]["Enums"]["finance_transaction_type"];
           updated_at?: string;
         };
@@ -40,6 +42,7 @@ export type Database = {
           label?: string;
           occurred_on?: string;
           organization_id?: string;
+          task_id?: string | null;
           type?: Database["public"]["Enums"]["finance_transaction_type"];
           updated_at?: string;
         };
@@ -50,6 +53,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "finance_transactions_task_same_organization_fkey";
+            columns: ["organization_id", "task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -304,50 +314,437 @@ export type Database = {
           },
         ];
       };
-      tasks: {
+      files: {
+        Row: {
+          bucket_id: string;
+          created_at: string;
+          file_name: string;
+          id: string;
+          mime_type: string;
+          organization_id: string;
+          size_bytes: number;
+          storage_path: string;
+          task_id: string;
+          uploaded_by: string;
+        };
+        Insert: {
+          bucket_id?: string;
+          created_at?: string;
+          file_name: string;
+          id?: string;
+          mime_type: string;
+          organization_id: string;
+          size_bytes: number;
+          storage_path: string;
+          task_id: string;
+          uploaded_by: string;
+        };
+        Update: {
+          bucket_id?: string;
+          created_at?: string;
+          file_name?: string;
+          id?: string;
+          mime_type?: string;
+          organization_id?: string;
+          size_bytes?: number;
+          storage_path?: string;
+          task_id?: string;
+          uploaded_by?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "files_task_id_fkey";
+            columns: ["organization_id", "task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      task_assignees: {
         Row: {
           created_at: string;
           created_by: string;
-          due_date: string | null;
+          organization_id: string;
+          task_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          organization_id: string;
+          task_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          organization_id?: string;
+          task_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_assignees_organization_id_task_id_fkey";
+            columns: ["organization_id", "task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "task_assignees_organization_id_user_id_fkey";
+            columns: ["organization_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_members";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+        ];
+      };
+      task_checklist_items: {
+        Row: {
+          completed_at: string | null;
+          completed_by: string | null;
+          created_at: string;
+          created_by: string;
           id: string;
+          organization_id: string;
+          sort_order: number;
+          task_id: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          sort_order?: number;
+          task_id: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          sort_order?: number;
+          task_id?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_organization_id_task_id_fkey";
+            columns: ["organization_id", "task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      task_comments: {
+        Row: {
+          body: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          task_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          task_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          task_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_organization_id_task_id_fkey";
+            columns: ["organization_id", "task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      task_label_links: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          label_id: string;
+          organization_id: string;
+          task_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          label_id: string;
+          organization_id: string;
+          task_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          label_id?: string;
+          organization_id?: string;
+          task_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_label_links_organization_id_label_id_fkey";
+            columns: ["organization_id", "label_id"];
+            isOneToOne: false;
+            referencedRelation: "task_labels";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "task_label_links_organization_id_task_id_fkey";
+            columns: ["organization_id", "task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      task_labels: {
+        Row: {
+          color: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          name: string;
+          organization_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          color?: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          name: string;
+          organization_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          color?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_labels_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_watchers: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          organization_id: string;
+          task_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          organization_id: string;
+          task_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          organization_id?: string;
+          task_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_watchers_organization_id_task_id_fkey";
+            columns: ["organization_id", "task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "task_watchers_organization_id_user_id_fkey";
+            columns: ["organization_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_members";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+        ];
+      };
+      task_view_preferences: {
+        Row: {
+          created_at: string;
+          filters: Json;
+          list_columns: string[];
+          organization_id: string;
+          page_size: number;
+          selected_view: string;
+          sort_direction: string;
+          sort_key: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          filters?: Json;
+          list_columns?: string[];
+          organization_id: string;
+          page_size?: number;
+          selected_view?: string;
+          sort_direction?: string;
+          sort_key?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          filters?: Json;
+          list_columns?: string[];
+          organization_id?: string;
+          page_size?: number;
+          selected_view?: string;
+          sort_direction?: string;
+          sort_key?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_view_preferences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tasks: {
+        Row: {
+          actual_minutes: number;
+          archived_at: string | null;
+          assignee_id: string | null;
+          author_id: string;
+          completed_at: string | null;
+          created_at: string;
+          created_by: string;
+          currency: string;
+          description: string | null;
+          due_date: string | null;
+          estimated_minutes: number | null;
+          expected_revenue: number | null;
+          id: string;
+          internal_cost: number | null;
           note: string | null;
           organization_id: string;
+          parent_task_id: string | null;
           priority: Database["public"]["Enums"]["task_priority"];
           project_id: string | null;
-          status: Database["public"]["Enums"]["task_status"];
+          sort_order: number;
+          start_date: string | null;
+          status: string;
           tags: string[];
           title: string;
           updated_at: string;
         };
         Insert: {
+          actual_minutes?: number;
+          archived_at?: string | null;
+          assignee_id?: string | null;
+          author_id: string;
+          completed_at?: string | null;
           created_at?: string;
           created_by: string;
+          currency?: string;
+          description?: string | null;
           due_date?: string | null;
+          estimated_minutes?: number | null;
+          expected_revenue?: number | null;
           id?: string;
+          internal_cost?: number | null;
           note?: string | null;
           organization_id: string;
+          parent_task_id?: string | null;
           priority?: Database["public"]["Enums"]["task_priority"];
           project_id?: string | null;
-          status?: Database["public"]["Enums"]["task_status"];
+          sort_order?: number;
+          start_date?: string | null;
+          status?: string;
           tags?: string[];
           title: string;
           updated_at?: string;
         };
         Update: {
+          actual_minutes?: number;
+          archived_at?: string | null;
+          assignee_id?: string | null;
+          author_id?: string;
+          completed_at?: string | null;
           created_at?: string;
           created_by?: string;
+          currency?: string;
+          description?: string | null;
           due_date?: string | null;
+          estimated_minutes?: number | null;
+          expected_revenue?: number | null;
           id?: string;
+          internal_cost?: number | null;
           note?: string | null;
           organization_id?: string;
+          parent_task_id?: string | null;
           priority?: Database["public"]["Enums"]["task_priority"];
           project_id?: string | null;
-          status?: Database["public"]["Enums"]["task_status"];
+          sort_order?: number;
+          start_date?: string | null;
+          status?: string;
           tags?: string[];
           title?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_same_organization_fkey";
+            columns: ["organization_id", "assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_members";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "tasks_author_same_organization_fkey";
+            columns: ["organization_id", "author_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_members";
+            referencedColumns: ["organization_id", "user_id"];
+          },
           {
             foreignKeyName: "tasks_organization_id_fkey";
             columns: ["organization_id"];
@@ -356,11 +753,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "tasks_parent_task_same_organization_fkey";
+            columns: ["organization_id", "parent_task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
             foreignKeyName: "tasks_project_id_fkey";
             columns: ["project_id"];
             isOneToOne: false;
             referencedRelation: "projects";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_project_same_organization_fkey";
+            columns: ["organization_id", "project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -369,6 +780,12 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      archive_task: {
+        Args: {
+          p_task_id: string;
+        };
+        Returns: Database["public"]["Tables"]["tasks"]["Row"];
+      };
       create_project: {
         Args: {
           p_budget_planned: number | null;
@@ -385,6 +802,12 @@ export type Database = {
           p_status: Database["public"]["Enums"]["project_status"] | null;
         };
         Returns: Database["public"]["Tables"]["projects"]["Row"];
+      };
+      delete_task: {
+        Args: {
+          p_task_id: string;
+        };
+        Returns: undefined;
       };
       update_project: {
         Args: {
@@ -410,7 +833,8 @@ export type Database = {
       project_priority: "low" | "medium" | "high" | "critical";
       project_status: "planned" | "active" | "paused" | "completed" | "archived";
       task_priority: "low" | "med" | "high";
-      task_status: "inbox" | "todo" | "doing" | "done";
+      task_status:
+        "backlog" | "planned" | "in_progress" | "review" | "blocked" | "completed" | "cancelled";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -536,7 +960,15 @@ export const Constants = {
       project_priority: ["low", "medium", "high", "critical"],
       project_status: ["planned", "active", "paused", "completed", "archived"],
       task_priority: ["low", "med", "high"],
-      task_status: ["inbox", "todo", "doing", "done"],
+      task_status: [
+        "backlog",
+        "planned",
+        "in_progress",
+        "review",
+        "blocked",
+        "completed",
+        "cancelled",
+      ],
     },
   },
 } as const;

@@ -11,7 +11,8 @@ export const Route = createFileRoute("/mail")({
       { title: "Почта — Orbit CRM" },
       {
         name: "description",
-        content: "Почтовый хаб личной CRM: просмотр писем и превращение письма в задачу одним кликом.",
+        content:
+          "Почтовый хаб личной CRM: просмотр писем и превращение письма в задачу одним кликом.",
       },
       { property: "og:title", content: "Почта — Orbit CRM" },
       { property: "og:description", content: "Читайте письма и превращайте их в задачи." },
@@ -31,7 +32,7 @@ function MailPage() {
     const task = await addTask({
       title: sel.subject,
       note: `Из письма от ${sel.from}\n\n${sel.body}`,
-      status: "todo",
+      status: "planned",
       priority: "high",
       tags: ["почта"],
     });
@@ -64,8 +65,12 @@ function MailPage() {
               />
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline gap-2">
-                  <span className={cn("truncate text-sm", e.unread && "font-semibold")}>{e.from}</span>
-                  <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{e.date}</span>
+                  <span className={cn("truncate text-sm", e.unread && "font-semibold")}>
+                    {e.from}
+                  </span>
+                  <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                    {e.date}
+                  </span>
                 </span>
                 <span className="block truncate text-sm">{e.subject}</span>
                 <span className="block truncate text-xs text-muted-foreground">{e.preview}</span>

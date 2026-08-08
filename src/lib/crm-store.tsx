@@ -9,13 +9,21 @@ import {
 } from "react";
 import { useAuth } from "@/lib/auth";
 import {
+  archiveTask as archiveRemoteTask,
   archiveProject as archiveRemoteProject,
+  createChecklistItem as createRemoteChecklistItem,
   createProject,
   createTask,
+  createTaskComment as createRemoteTaskComment,
+  deleteChecklistItem as deleteRemoteChecklistItem,
   deleteTask,
+  fetchTaskById,
+  getTaskFileSignedUrl,
   loadCrmWorkspace,
+  updateChecklistItem as updateRemoteChecklistItem,
   updateProject as updateRemoteProject,
   updateTask as updateRemoteTask,
+  uploadTaskFile as uploadRemoteTaskFile,
 } from "@/lib/crm-repository";
 import {
   initialEmails,
@@ -26,7 +34,11 @@ import {
   type ProjectInput,
   type ProjectPatch,
   type Task,
+  type TaskChecklistItem,
+  type TaskComment,
+  type TaskFile,
   type TaskInput,
+  type TaskLabel,
   type TaskPatch,
   type TaskStatus,
   type Tx,
@@ -36,6 +48,7 @@ type Store = {
   organization: Organization | null;
   members: OrganizationMember[];
   tasks: Task[];
+  taskLabels: TaskLabel[];
   emails: Email[];
   txs: Tx[];
   projects: Project[];
@@ -48,8 +61,20 @@ type Store = {
   archiveProject: (id: string) => Promise<Project | null>;
   addTask: (t: TaskInput) => Promise<Task | null>;
   updateTask: (id: string, patch: TaskPatch) => Promise<Task | null>;
-  moveTask: (id: string, status: TaskStatus) => Promise<Task | null>;
+  moveTask: (id: string, status: TaskStatus, position?: number) => Promise<Task | null>;
+  archiveTask: (id: string) => Promise<Task | null>;
   removeTask: (id: string) => Promise<boolean>;
+  refreshTask: (id: string) => Promise<Task | null>;
+  addChecklistItem: (taskId: string, title: string) => Promise<TaskChecklistItem | null>;
+  updateChecklistItem: (
+    taskId: string,
+    itemId: string,
+    patch: { title?: string; completed?: boolean },
+  ) => Promise<TaskChecklistItem | null>;
+  deleteChecklistItem: (taskId: string, itemId: string) => Promise<boolean>;
+  addTaskComment: (taskId: string, body: string) => Promise<TaskComment | null>;
+  uploadTaskFile: (taskId: string, file: File) => Promise<TaskFile | null>;
+  openTaskFile: (storagePath: string) => Promise<string | null>;
   markRead: (id: string) => void;
   refresh: () => Promise<void>;
   clearError: () => void;
@@ -70,6 +95,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskLabels, setTaskLabels] = useState<TaskLabel[]>([]);
   const [emails, setEmails] = useState<Email[]>(initialEmails);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -90,6 +116,23 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     window.setTimeout(() => setFlash(null), 2600);
   }, []);
 
+  const applySnapshot = useCallback((snapshot: Awaited<ReturnType<typeof loadCrmWorkspace>>) => {
+    setOrganization(snapshot.organization);
+    setMembers(snapshot.members);
+    setProjects(snapshot.projects);
+    setTasks(snapshot.tasks);
+    setTaskLabels(snapshot.taskLabels);
+    setTxs(snapshot.txs);
+  }, []);
+
+  const replaceTask = useCallback((task: Task) => {
+    setTasks((prev) =>
+      prev.some((item) => item.id === task.id)
+        ? prev.map((item) => (item.id === task.id ? task : item))
+        : [task, ...prev],
+    );
+  }, []);
+
   const load = useCallback(async () => {
     if (!user) return;
 
@@ -97,22 +140,19 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const snapshot = await loadCrmWorkspace(user);
-      setOrganization(snapshot.organization);
-      setMembers(snapshot.members);
-      setProjects(snapshot.projects);
-      setTasks(snapshot.tasks);
-      setTxs(snapshot.txs);
+      applySnapshot(snapshot);
     } catch (unknownError) {
       setError(messageFromError(unknownError));
       setOrganization(null);
       setMembers([]);
       setProjects([]);
       setTasks([]);
+      setTaskLabels([]);
       setTxs([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [applySnapshot, user]);
 
   useEffect(() => {
     let alive = true;
@@ -123,11 +163,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     loadCrmWorkspace(user)
       .then((snapshot) => {
         if (!alive) return;
-        setOrganization(snapshot.organization);
-        setMembers(snapshot.members);
-        setProjects(snapshot.projects);
-        setTasks(snapshot.tasks);
-        setTxs(snapshot.txs);
+        applySnapshot(snapshot);
       })
       .catch((unknownError: unknown) => {
         if (!alive) return;
@@ -136,6 +172,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         setMembers([]);
         setProjects([]);
         setTasks([]);
+        setTaskLabels([]);
         setTxs([]);
       })
       .finally(() => {
@@ -145,7 +182,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     return () => {
       alive = false;
     };
-  }, [user]);
+  }, [applySnapshot, user]);
 
   const runMutation = useCallback(
     async <T,>(successMessage: string, action: () => Promise<T>): Promise<T | null> => {
@@ -170,6 +207,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       organization,
       members,
       tasks,
+      taskLabels,
       emails,
       txs,
       projects,
@@ -236,33 +274,47 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         }
 
         return runMutation("Задача сохранена", async () => {
-          const defaultProjectId = projects.find((project) => !project.archivedAt)?.id ?? null;
-          const task = await createTask(user.id, organization.id, defaultProjectId, input);
-          setTasks((prev) => [task, ...prev]);
+          const task = await createTask(user.id, organization.id, input);
+          const snapshot = await loadCrmWorkspace(user);
+          applySnapshot(snapshot);
           return task;
         });
       },
       updateTask: async (id, patch) => {
-        if (!organization) {
-          setError("Организация ещё не загружена.");
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
           return null;
         }
 
         return runMutation("Задача обновлена", async () => {
-          const task = await updateRemoteTask(organization.id, id, patch);
-          setTasks((prev) => prev.map((item) => (item.id === id ? task : item)));
+          const task = await updateRemoteTask(user.id, organization.id, id, patch);
+          replaceTask(task);
           return task;
         });
       },
-      moveTask: async (id, status) => {
+      moveTask: async (id, status, position) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        return runMutation("Статус задачи обновлён", async () => {
+          const patch: TaskPatch = { status };
+          if (position !== undefined) patch.sortOrder = position;
+          const task = await updateRemoteTask(user.id, organization.id, id, patch);
+          replaceTask(task);
+          return task;
+        });
+      },
+      archiveTask: async (id) => {
         if (!organization) {
           setError("Организация ещё не загружена.");
           return null;
         }
 
-        return runMutation("Статус задачи обновлён", async () => {
-          const task = await updateRemoteTask(organization.id, id, { status });
-          setTasks((prev) => prev.map((item) => (item.id === id ? task : item)));
+        return runMutation("Задача архивирована", async () => {
+          const task = await archiveRemoteTask(organization.id, id);
+          replaceTask(task);
           return task;
         });
       },
@@ -273,12 +325,107 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         }
 
         const deleted = await runMutation("Задача удалена", async () => {
-          await deleteTask(organization.id, id);
+          await deleteTask(id);
           setTasks((prev) => prev.filter((item) => item.id !== id));
           return true;
         });
 
         return deleted ?? false;
+      },
+      refreshTask: async (id) => {
+        if (!organization) {
+          setError("Организация ещё не загружена.");
+          return null;
+        }
+
+        try {
+          const task = await fetchTaskById(organization.id, id);
+          replaceTask(task);
+          return task;
+        } catch (unknownError) {
+          setError(messageFromError(unknownError));
+          return null;
+        }
+      },
+      addChecklistItem: async (taskId, title) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        return runMutation("Пункт чек-листа добавлен", async () => {
+          const task = tasks.find((item) => item.id === taskId);
+          const item = await createRemoteChecklistItem(
+            user.id,
+            organization.id,
+            taskId,
+            title,
+            task?.checklistItems.length ?? 0,
+          );
+          const freshTask = await fetchTaskById(organization.id, taskId);
+          replaceTask(freshTask);
+          return item;
+        });
+      },
+      updateChecklistItem: async (taskId, itemId, patch) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        return runMutation("Чек-лист обновлён", async () => {
+          const item = await updateRemoteChecklistItem(user.id, organization.id, itemId, patch);
+          const freshTask = await fetchTaskById(organization.id, taskId);
+          replaceTask(freshTask);
+          return item;
+        });
+      },
+      deleteChecklistItem: async (taskId, itemId) => {
+        if (!organization) {
+          setError("Организация ещё не загружена.");
+          return false;
+        }
+
+        const deleted = await runMutation("Пункт чек-листа удалён", async () => {
+          await deleteRemoteChecklistItem(organization.id, itemId);
+          const freshTask = await fetchTaskById(organization.id, taskId);
+          replaceTask(freshTask);
+          return true;
+        });
+
+        return deleted ?? false;
+      },
+      addTaskComment: async (taskId, body) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        return runMutation("Комментарий добавлен", async () => {
+          const comment = await createRemoteTaskComment(user.id, organization.id, taskId, body);
+          const freshTask = await fetchTaskById(organization.id, taskId);
+          replaceTask(freshTask);
+          return comment;
+        });
+      },
+      uploadTaskFile: async (taskId, file) => {
+        if (!user || !organization) {
+          setError("Нужна активная сессия и организация.");
+          return null;
+        }
+
+        return runMutation("Файл загружен", async () => {
+          const uploaded = await uploadRemoteTaskFile(user.id, organization.id, taskId, file);
+          const freshTask = await fetchTaskById(organization.id, taskId);
+          replaceTask(freshTask);
+          return uploaded;
+        });
+      },
+      openTaskFile: async (storagePath) => {
+        const url = await runMutation("Ссылка на файл готова", async () =>
+          getTaskFileSignedUrl(storagePath),
+        );
+        return url;
       },
       markRead: (id) =>
         setEmails((prev) =>
@@ -294,6 +441,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       organization,
       members,
       tasks,
+      taskLabels,
       emails,
       txs,
       projects,
@@ -305,6 +453,8 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       theme,
       load,
       runMutation,
+      applySnapshot,
+      replaceTask,
     ],
   );
 

@@ -28,8 +28,9 @@ export function AiAssistant() {
   const reply = async (q: string) => {
     const lower = q.toLowerCase();
     if (lower.includes("задач") && (lower.includes("созда") || lower.includes("добав"))) {
-      const title = q.replace(/созда(й|ть)\s*задач[уy]?:?/i, "").trim() || "Новая задача из ИИ-чата";
-      const task = await addTask({ title, status: "todo", priority: "high", tags: ["ии"] });
+      const title =
+        q.replace(/созда(й|ть)\s*задач[уy]?:?/i, "").trim() || "Новая задача из ИИ-чата";
+      const task = await addTask({ title, status: "planned", priority: "high", tags: ["ии"] });
       return task
         ? `Готово — создал задачу «${title}» в колонке «К работе» с высоким приоритетом.`
         : "Не смог сохранить задачу. Проверьте сообщение об ошибке внизу экрана.";
@@ -40,7 +41,11 @@ export function AiAssistant() {
       return `За август: доход ${inc.toLocaleString("ru-RU")} €, расход ${exp.toLocaleString("ru-RU")} €, чистыми ${(inc - exp).toLocaleString("ru-RU")} €. Маржинальность ~${Math.round(((inc - exp) / inc) * 100)}%.`;
     }
     if (lower.includes("горит") || lower.includes("сегодня") || lower.includes("важн")) {
-      const hot = tasks.filter((t) => t.priority === "high" && t.status !== "done").slice(0, 3);
+      const hot = tasks
+        .filter(
+          (t) => t.priority === "high" && t.status !== "completed" && t.status !== "cancelled",
+        )
+        .slice(0, 3);
       return hot.length
         ? `Приоритет на сегодня:\n${hot.map((t, i) => `${i + 1}. ${t.title}`).join("\n")}`
         : "Всё под контролем — срочных задач нет.";

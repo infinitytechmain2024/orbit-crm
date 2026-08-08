@@ -1,16 +1,34 @@
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import type { Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/database.types";
+import type { Json, Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/database.types";
 import {
+  DEFAULT_TASK_LIST_COLUMNS,
+  DEFAULT_TASK_PREFERENCES,
   PROJECT_COLORS,
+  TASK_LIST_COLUMN_LABEL,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
   type Organization,
   type OrganizationMember,
+  type Priority,
   type Project,
   type ProjectInput,
   type ProjectPatch,
   type Task,
+  type TaskChecklistItem,
+  type TaskComment,
+  type TaskFile,
+  type TaskFilters,
   type TaskInput,
+  type TaskLabel,
+  type TaskListColumn,
   type TaskPatch,
+  type TaskPreferences,
+  type TaskSort,
+  type TaskSortDirection,
+  type TaskSortKey,
+  type TaskStatus,
+  type TaskView,
   type Tx,
 } from "./crm-data";
 
@@ -21,10 +39,28 @@ type ProjectRow = Tables<"projects">;
 type ProjectLinkRow = Tables<"project_links">;
 type ProjectMemberRow = Tables<"project_members">;
 type TaskRow = Tables<"tasks">;
+type TaskAssigneeRow = Tables<"task_assignees">;
+type TaskWatcherRow = Tables<"task_watchers">;
+type TaskLabelRow = Tables<"task_labels">;
+type TaskLabelLinkRow = Tables<"task_label_links">;
+type TaskChecklistItemRow = Tables<"task_checklist_items">;
+type TaskCommentRow = Tables<"task_comments">;
+type TaskFileRow = Tables<"files">;
+type TaskViewPreferenceRow = Tables<"task_view_preferences">;
 type FinanceTransactionRow = Tables<"finance_transactions">;
 
 type MembershipWithOrganization = OrganizationMemberRow & {
   organizations: OrganizationRow | null;
+};
+
+type TaskRelationMaps = {
+  assigneeIdsByTask: Map<string, string[]>;
+  watcherIdsByTask: Map<string, string[]>;
+  labelsByTask: Map<string, TaskLabel[]>;
+  checklistByTask: Map<string, TaskChecklistItem[]>;
+  commentsByTask: Map<string, TaskComment[]>;
+  filesByTask: Map<string, TaskFile[]>;
+  financeCountByTask: Map<string, number>;
 };
 
 export type CrmSnapshot = {
@@ -32,13 +68,64 @@ export type CrmSnapshot = {
   members: OrganizationMember[];
   projects: Project[];
   tasks: Task[];
+  taskLabels: TaskLabel[];
   txs: Tx[];
 };
+
+export type TaskPage = {
+  tasks: Task[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type TaskQuery = {
+  filters: TaskFilters;
+  page: number;
+  pageSize: number;
+  sort: TaskSort;
+};
+
+export class TaskArchiveRequiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TaskArchiveRequiredError";
+  }
+}
+
+const TASK_FILE_BUCKET = "task-files";
+const MAX_TASK_FILE_BYTES = 6 * 1024 * 1024;
+const ALLOWED_TASK_FILE_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
 
 const dateLabelFormatter = new Intl.DateTimeFormat("ru-RU", {
   day: "2-digit",
   month: "short",
 });
+
+const TASK_SORT_KEYS: TaskSortKey[] = [
+  "position",
+  "title",
+  "project",
+  "status",
+  "priority",
+  "dueDate",
+  "assignee",
+  "updatedAt",
+];
+
+const TASK_SORT_DIRECTIONS: TaskSortDirection[] = ["asc", "desc"];
+const TASK_VIEWS: TaskView[] = ["kanban", "list"];
+const TASK_LIST_COLUMNS = Object.keys(TASK_LIST_COLUMN_LABEL) as TaskListColumn[];
 
 function ensureData<T>(data: T | null, message: string): T {
   if (data === null) throw new Error(message);
@@ -51,6 +138,200 @@ function toMessage(message: string, errorMessage: string): Error {
 
 function makeOrganizationSlug(id: string): string {
   return `orbit-${id.slice(0, 8).toLowerCase()}`;
+}
+
+function uniqueIds(ids: Array<string | null | undefined>): string[] {
+  return [...new Set(ids.filter((id): id is string => Boolean(id)))];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function readDate(value: unknown): string {
+  const raw = readString(value).trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : "";
+}
+
+function readIdFilter(value: unknown): string {
+  const raw = readString(value).trim();
+  return raw || "all";
+}
+
+function isTaskStatus(value: unknown): value is TaskStatus {
+  return typeof value === "string" && TASK_STATUSES.includes(value as TaskStatus);
+}
+
+function isPriority(value: unknown): value is Priority {
+  return typeof value === "string" && TASK_PRIORITIES.includes(value as Priority);
+}
+
+function isTaskView(value: unknown): value is TaskView {
+  return typeof value === "string" && TASK_VIEWS.includes(value as TaskView);
+}
+
+function isTaskSortKey(value: unknown): value is TaskSortKey {
+  return typeof value === "string" && TASK_SORT_KEYS.includes(value as TaskSortKey);
+}
+
+function isTaskSortDirection(value: unknown): value is TaskSortDirection {
+  return typeof value === "string" && TASK_SORT_DIRECTIONS.includes(value as TaskSortDirection);
+}
+
+function isTaskListColumn(value: unknown): value is TaskListColumn {
+  return typeof value === "string" && TASK_LIST_COLUMNS.includes(value as TaskListColumn);
+}
+
+function normalizeTaskFilters(value: unknown): TaskFilters {
+  const source = isRecord(value) ? value : {};
+  const status = source["status"];
+  const priority = source["priority"];
+  const overdue = source["overdue"];
+
+  return {
+    search: readString(source["search"]).trim().slice(0, 120),
+    projectId: readIdFilter(source["projectId"]),
+    status: isTaskStatus(status) ? status : "all",
+    priority: isPriority(priority) ? priority : "all",
+    assigneeId: readIdFilter(source["assigneeId"]),
+    tag: readString(source["tag"]).trim().slice(0, 48),
+    overdue: overdue === "overdue" ? "overdue" : "all",
+    dateFrom: readDate(source["dateFrom"]),
+    dateTo: readDate(source["dateTo"]),
+  };
+}
+
+function normalizeTaskSort(key: unknown, direction: unknown): TaskSort {
+  return {
+    key: isTaskSortKey(key) ? key : DEFAULT_TASK_PREFERENCES.sort.key,
+    direction: isTaskSortDirection(direction) ? direction : DEFAULT_TASK_PREFERENCES.sort.direction,
+  };
+}
+
+function normalizeListColumns(value: unknown): TaskListColumn[] {
+  if (!Array.isArray(value)) return DEFAULT_TASK_LIST_COLUMNS;
+
+  const columns = value.filter(isTaskListColumn);
+  return columns.length ? [...new Set(columns)] : DEFAULT_TASK_LIST_COLUMNS;
+}
+
+function normalizePageSize(value: unknown): number {
+  const pageSize = typeof value === "number" && Number.isFinite(value) ? value : 25;
+  return Math.min(100, Math.max(10, Math.round(pageSize)));
+}
+
+function mapTaskPreferences(row: TaskViewPreferenceRow | null): TaskPreferences {
+  if (!row) return DEFAULT_TASK_PREFERENCES;
+
+  return {
+    view: isTaskView(row.selected_view) ? row.selected_view : DEFAULT_TASK_PREFERENCES.view,
+    filters: normalizeTaskFilters(row.filters),
+    listColumns: normalizeListColumns(row.list_columns),
+    sort: normalizeTaskSort(row.sort_key, row.sort_direction),
+    pageSize: normalizePageSize(row.page_size),
+  };
+}
+
+function taskFiltersToJson(filters: TaskFilters): Json {
+  return {
+    search: filters.search,
+    projectId: filters.projectId,
+    status: filters.status,
+    priority: filters.priority,
+    assigneeId: filters.assigneeId,
+    tag: filters.tag,
+    overdue: filters.overdue,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+  };
+}
+
+function todayIsoDate(): string {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
+function sanitizePostgrestSearch(value: string): string {
+  return value
+    .trim()
+    .replace(/[%,()]/g, " ")
+    .replace(/\s+/g, "%")
+    .slice(0, 80);
+}
+
+function sortColumn(sortKey: TaskSortKey): keyof TaskRow {
+  const columns: Record<TaskSortKey, keyof TaskRow> = {
+    position: "sort_order",
+    title: "title",
+    project: "project_id",
+    status: "status",
+    priority: "priority",
+    dueDate: "due_date",
+    assignee: "assignee_id",
+    updatedAt: "updated_at",
+  };
+
+  return columns[sortKey];
+}
+
+function hasOwn<Key extends string>(source: object, key: Key): boolean {
+  return Object.prototype.hasOwnProperty.call(source, key);
+}
+
+function normalizeIntegerMinutes(value: number | null, fieldName: string): number | null {
+  if (value === null) return null;
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${fieldName} должно быть неотрицательным целым числом минут.`);
+  }
+  return value;
+}
+
+function normalizeMoney(value: number | null, fieldName: string): number | null {
+  if (value === null) return null;
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${fieldName} должно быть неотрицательным числом.`);
+  }
+  return value;
+}
+
+function normalizeSortOrder(value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error("Позиция сортировки должна быть неотрицательным числом.");
+  }
+  return value;
+}
+
+function normalizeLabelNames(values: Array<string | null | undefined>): string[] {
+  const names = values
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+  return [...new Set(names)];
+}
+
+function sanitizeStorageName(fileName: string): string {
+  const normalized = fileName
+    .normalize("NFKD")
+    .replace(/[^\w.-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 120);
+
+  return normalized || "attachment";
+}
+
+function validateTaskFile(file: File): void {
+  if (file.size <= 0) throw new Error("Файл пустой и не может быть загружен.");
+  if (file.size > MAX_TASK_FILE_BYTES) {
+    throw new Error("Файл слишком большой. Максимальный размер вложения — 6 МБ.");
+  }
+  if (!ALLOWED_TASK_FILE_TYPES.has(file.type)) {
+    throw new Error("Этот тип файла нельзя загрузить в задачу.");
+  }
 }
 
 function mapOrganization(row: OrganizationRow): Organization {
@@ -99,23 +380,106 @@ function mapProject(row: ProjectRow, links: string[], memberIds: string[]): Proj
   };
 }
 
-function mapTask(row: TaskRow): Task {
-  const task: Task = {
+function mapTaskLabel(row: TaskLabelRow): TaskLabel {
+  return {
     id: row.id,
+    organizationId: row.organization_id,
+    name: row.name,
+    color: row.color,
+  };
+}
+
+function mapChecklistItem(row: TaskChecklistItemRow): TaskChecklistItem {
+  return {
+    id: row.id,
+    taskId: row.task_id,
     title: row.title,
-    status: row.status,
+    completedAt: row.completed_at,
+    sortOrder: Number(row.sort_order),
+    createdAt: row.created_at,
+  };
+}
+
+function mapTaskComment(row: TaskCommentRow): TaskComment {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    body: row.body,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapTaskFile(row: TaskFileRow): TaskFile {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    bucketId: row.bucket_id,
+    storagePath: row.storage_path,
+    fileName: row.file_name,
+    mimeType: row.mime_type,
+    sizeBytes: Number(row.size_bytes),
+    uploadedBy: row.uploaded_by,
+    createdAt: row.created_at,
+  };
+}
+
+function emptyTaskRelations(): TaskRelationMaps {
+  return {
+    assigneeIdsByTask: new Map(),
+    watcherIdsByTask: new Map(),
+    labelsByTask: new Map(),
+    checklistByTask: new Map(),
+    commentsByTask: new Map(),
+    filesByTask: new Map(),
+    financeCountByTask: new Map(),
+  };
+}
+
+function pushGroupedValue<T>(target: Map<string, T[]>, key: string, value: T): void {
+  const current = target.get(key) ?? [];
+  target.set(key, [...current, value]);
+}
+
+function mapTask(row: TaskRow, relations: TaskRelationMaps = emptyTaskRelations()): Task {
+  const labels = relations.labelsByTask.get(row.id) ?? [];
+  const tags = [...new Set([...(row.tags ?? []), ...labels.map((label) => label.name)])];
+
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    parentTaskId: row.parent_task_id,
+    title: row.title,
+    description: row.description,
+    note: row.note,
+    status: row.status as TaskStatus,
     priority: row.priority,
     projectId: row.project_id,
-    tags: row.tags,
+    startDate: row.start_date,
+    dueDate: row.due_date,
+    due: row.due_date ? dateLabelFormatter.format(new Date(`${row.due_date}T00:00:00`)) : null,
+    estimatedMinutes: row.estimated_minutes === null ? null : Number(row.estimated_minutes),
+    actualMinutes: Number(row.actual_minutes),
+    assigneeId: row.assignee_id,
+    assigneeIds: relations.assigneeIdsByTask.get(row.id) ?? [],
+    watcherIds: relations.watcherIdsByTask.get(row.id) ?? [],
+    authorId: row.author_id,
+    expectedRevenue: row.expected_revenue === null ? null : Number(row.expected_revenue),
+    internalCost: row.internal_cost === null ? null : Number(row.internal_cost),
+    currency: row.currency,
+    sortOrder: Number(row.sort_order),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    completedAt: row.completed_at,
+    archivedAt: row.archived_at,
+    tags,
+    labels,
+    checklistItems: relations.checklistByTask.get(row.id) ?? [],
+    comments: relations.commentsByTask.get(row.id) ?? [],
+    files: relations.filesByTask.get(row.id) ?? [],
+    financeOperationsCount: relations.financeCountByTask.get(row.id) ?? 0,
   };
-
-  if (row.note !== null) task.note = row.note;
-  if (row.due_date) {
-    task.dueDate = row.due_date;
-    task.due = dateLabelFormatter.format(new Date(`${row.due_date}T00:00:00`));
-  }
-
-  return task;
 }
 
 function mapTx(row: FinanceTransactionRow): Tx {
@@ -127,6 +491,7 @@ function mapTx(row: FinanceTransactionRow): Tx {
     category: row.category,
     date: dateLabelFormatter.format(new Date(`${row.occurred_on}T00:00:00`)),
     dateIso: row.occurred_on,
+    taskId: row.task_id,
   };
 }
 
@@ -282,16 +647,181 @@ async function fetchOrganizationMembers(organizationId: string): Promise<Organiz
   return members.map((member) => mapOrganizationMember(member, profilesById.get(member.user_id)));
 }
 
-async function fetchTasks(organizationId: string): Promise<Task[]> {
+export async function fetchTaskLabels(organizationId: string): Promise<TaskLabel[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
+    .from("task_labels")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .order("name", { ascending: true });
+
+  if (error) throw toMessage("Не удалось загрузить метки задач", error.message);
+  return (data ?? []).map(mapTaskLabel);
+}
+
+async function fetchTaskIdsForLabel(organizationId: string, labelId: string): Promise<string[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("task_label_links")
+    .select("task_id")
+    .eq("organization_id", organizationId)
+    .eq("label_id", labelId);
+
+  if (error) throw toMessage("Не удалось применить фильтр по метке", error.message);
+  return (data ?? []).map((link) => link.task_id);
+}
+
+async function fetchTaskRelations(
+  organizationId: string,
+  taskIds: string[],
+): Promise<TaskRelationMaps> {
+  const relations = emptyTaskRelations();
+  if (!taskIds.length) return relations;
+
+  const supabase = getSupabaseClient();
+  const [
+    assigneesResult,
+    watchersResult,
+    labelsResult,
+    labelLinksResult,
+    checklistResult,
+    commentsResult,
+    filesResult,
+    transactionsResult,
+  ] = await Promise.all([
+    supabase
+      .from("task_assignees")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("task_id", taskIds),
+    supabase
+      .from("task_watchers")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("task_id", taskIds),
+    supabase.from("task_labels").select("*").eq("organization_id", organizationId),
+    supabase
+      .from("task_label_links")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("task_id", taskIds),
+    supabase
+      .from("task_checklist_items")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("task_id", taskIds)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("task_comments")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("task_id", taskIds)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("files")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("task_id", taskIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("finance_transactions")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("task_id", taskIds),
+  ]);
+
+  if (assigneesResult.error) {
+    throw toMessage("Не удалось загрузить исполнителей задач", assigneesResult.error.message);
+  }
+  if (watchersResult.error) {
+    throw toMessage("Не удалось загрузить наблюдателей задач", watchersResult.error.message);
+  }
+  if (labelsResult.error) {
+    throw toMessage("Не удалось загрузить метки задач", labelsResult.error.message);
+  }
+  if (labelLinksResult.error) {
+    throw toMessage("Не удалось загрузить связи меток задач", labelLinksResult.error.message);
+  }
+  if (checklistResult.error) {
+    throw toMessage("Не удалось загрузить чек-листы задач", checklistResult.error.message);
+  }
+  if (commentsResult.error) {
+    throw toMessage("Не удалось загрузить комментарии задач", commentsResult.error.message);
+  }
+  if (filesResult.error) {
+    throw toMessage("Не удалось загрузить вложения задач", filesResult.error.message);
+  }
+  if (transactionsResult.error) {
+    throw toMessage(
+      "Не удалось загрузить финансовые связи задач",
+      transactionsResult.error.message,
+    );
+  }
+
+  (assigneesResult.data ?? []).forEach((row: TaskAssigneeRow) => {
+    pushGroupedValue(relations.assigneeIdsByTask, row.task_id, row.user_id);
+  });
+  (watchersResult.data ?? []).forEach((row: TaskWatcherRow) => {
+    pushGroupedValue(relations.watcherIdsByTask, row.task_id, row.user_id);
+  });
+
+  const labelsById = new Map(
+    (labelsResult.data ?? []).map((row: TaskLabelRow) => [row.id, mapTaskLabel(row)]),
+  );
+  (labelLinksResult.data ?? []).forEach((row: TaskLabelLinkRow) => {
+    const label = labelsById.get(row.label_id);
+    if (label) pushGroupedValue(relations.labelsByTask, row.task_id, label);
+  });
+  (checklistResult.data ?? []).forEach((row: TaskChecklistItemRow) => {
+    pushGroupedValue(relations.checklistByTask, row.task_id, mapChecklistItem(row));
+  });
+  (commentsResult.data ?? []).forEach((row: TaskCommentRow) => {
+    pushGroupedValue(relations.commentsByTask, row.task_id, mapTaskComment(row));
+  });
+  (filesResult.data ?? []).forEach((row: TaskFileRow) => {
+    pushGroupedValue(relations.filesByTask, row.task_id, mapTaskFile(row));
+  });
+  (transactionsResult.data ?? []).forEach((row: FinanceTransactionRow) => {
+    if (!row.task_id) return;
+    relations.financeCountByTask.set(
+      row.task_id,
+      (relations.financeCountByTask.get(row.task_id) ?? 0) + 1,
+    );
+  });
+
+  return relations;
+}
+
+async function fetchTasks(organizationId: string, taskIds?: string[]): Promise<Task[]> {
+  const supabase = getSupabaseClient();
+  let query = supabase
     .from("tasks")
     .select("*")
     .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false });
+    .is("archived_at", null)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false })
+    .range(0, 49);
 
+  if (taskIds) query = query.in("id", taskIds);
+
+  const { data, error } = await query;
   if (error) throw toMessage("Не удалось загрузить задачи", error.message);
-  return (data ?? []).map(mapTask);
+
+  const rows = data ?? [];
+  const relations = await fetchTaskRelations(
+    organizationId,
+    rows.map((row) => row.id),
+  );
+  return rows.map((row) => mapTask(row, relations));
+}
+
+export async function fetchTaskById(organizationId: string, taskId: string): Promise<Task> {
+  const tasks = await fetchTasks(organizationId, [taskId]);
+  const task = tasks[0];
+  if (!task) throw new Error("Задача не найдена.");
+  return task;
 }
 
 async function fetchTransactions(organizationId: string): Promise<Tx[]> {
@@ -306,14 +836,191 @@ async function fetchTransactions(organizationId: string): Promise<Tx[]> {
   return (data ?? []).map(mapTx);
 }
 
+export async function fetchTaskPreferences(
+  organizationId: string,
+  userId: string,
+): Promise<TaskPreferences> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("task_view_preferences")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw toMessage("Не удалось загрузить настройки задач", error.message);
+  return mapTaskPreferences(data);
+}
+
+export async function saveTaskPreferences(
+  organizationId: string,
+  userId: string,
+  preferences: TaskPreferences,
+): Promise<TaskPreferences> {
+  const supabase = getSupabaseClient();
+  const payload: TablesInsert<"task_view_preferences"> = {
+    organization_id: organizationId,
+    user_id: userId,
+    selected_view: preferences.view,
+    filters: taskFiltersToJson(preferences.filters),
+    list_columns: preferences.listColumns,
+    sort_key: preferences.sort.key,
+    sort_direction: preferences.sort.direction,
+    page_size: normalizePageSize(preferences.pageSize),
+  };
+
+  const { data, error } = await supabase
+    .from("task_view_preferences")
+    .upsert(payload, { onConflict: "organization_id,user_id" })
+    .select()
+    .single();
+
+  if (error) throw toMessage("Не удалось сохранить настройки задач", error.message);
+  return mapTaskPreferences(ensureData(data, "Supabase не вернул настройки задач."));
+}
+
+export async function fetchKanbanTasks(
+  organizationId: string,
+  filters: TaskFilters,
+  limitPerStatus = 60,
+): Promise<Task[]> {
+  const normalizedFilters = normalizeTaskFilters(filters);
+  const supabase = getSupabaseClient();
+  const today = todayIsoDate();
+  const search = sanitizePostgrestSearch(normalizedFilters.search);
+  const labelTaskIds = normalizedFilters.tag
+    ? await fetchTaskIdsForLabel(organizationId, normalizedFilters.tag)
+    : null;
+
+  if (labelTaskIds && !labelTaskIds.length) return [];
+
+  const groupedRows = await Promise.all(
+    TASK_STATUSES.map(async (status) => {
+      if (normalizedFilters.status !== "all" && normalizedFilters.status !== status) return [];
+      if (
+        normalizedFilters.overdue === "overdue" &&
+        (status === "completed" || status === "cancelled")
+      ) {
+        return [];
+      }
+
+      let query = supabase
+        .from("tasks")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .is("archived_at", null)
+        .eq("status", status)
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(0, Math.max(0, limitPerStatus - 1));
+
+      if (labelTaskIds) query = query.in("id", labelTaskIds);
+      if (normalizedFilters.projectId === "__none") query = query.is("project_id", null);
+      else if (normalizedFilters.projectId !== "all") {
+        query = query.eq("project_id", normalizedFilters.projectId);
+      }
+      if (normalizedFilters.priority !== "all") {
+        query = query.eq("priority", normalizedFilters.priority);
+      }
+      if (normalizedFilters.assigneeId === "__none") query = query.is("assignee_id", null);
+      else if (normalizedFilters.assigneeId !== "all") {
+        query = query.eq("assignee_id", normalizedFilters.assigneeId);
+      }
+      if (normalizedFilters.overdue === "overdue") query = query.lt("due_date", today);
+      if (normalizedFilters.dateFrom) query = query.gte("due_date", normalizedFilters.dateFrom);
+      if (normalizedFilters.dateTo) query = query.lte("due_date", normalizedFilters.dateTo);
+      if (search) {
+        query = query.or(
+          `title.ilike.%${search}%,description.ilike.%${search}%,note.ilike.%${search}%`,
+        );
+      }
+
+      const { data, error } = await query;
+      if (error) throw toMessage("Не удалось загрузить канбан", error.message);
+      return data ?? [];
+    }),
+  );
+
+  const rows = groupedRows.flat();
+  const relations = await fetchTaskRelations(
+    organizationId,
+    rows.map((row) => row.id),
+  );
+  return rows.map((row) => mapTask(row, relations));
+}
+
+export async function fetchTasksPage(
+  organizationId: string,
+  queryInput: TaskQuery,
+): Promise<TaskPage> {
+  const filters = normalizeTaskFilters(queryInput.filters);
+  const sort = normalizeTaskSort(queryInput.sort.key, queryInput.sort.direction);
+  const pageSize = normalizePageSize(queryInput.pageSize);
+  const page = Math.max(1, Math.round(queryInput.page));
+  const rangeFrom = (page - 1) * pageSize;
+  const rangeTo = rangeFrom + pageSize - 1;
+  const supabase = getSupabaseClient();
+  const today = todayIsoDate();
+  const search = sanitizePostgrestSearch(filters.search);
+  const labelTaskIds = filters.tag ? await fetchTaskIdsForLabel(organizationId, filters.tag) : null;
+
+  if (labelTaskIds && !labelTaskIds.length) {
+    return { tasks: [], total: 0, page, pageSize };
+  }
+
+  let query = supabase
+    .from("tasks")
+    .select("*", { count: "exact" })
+    .eq("organization_id", organizationId)
+    .is("archived_at", null);
+
+  if (labelTaskIds) query = query.in("id", labelTaskIds);
+  if (filters.status !== "all") query = query.eq("status", filters.status);
+  if (filters.projectId === "__none") query = query.is("project_id", null);
+  else if (filters.projectId !== "all") query = query.eq("project_id", filters.projectId);
+  if (filters.priority !== "all") query = query.eq("priority", filters.priority);
+  if (filters.assigneeId === "__none") query = query.is("assignee_id", null);
+  else if (filters.assigneeId !== "all") query = query.eq("assignee_id", filters.assigneeId);
+  if (filters.overdue === "overdue") {
+    query = query.neq("status", "completed").neq("status", "cancelled").lt("due_date", today);
+  }
+  if (filters.dateFrom) query = query.gte("due_date", filters.dateFrom);
+  if (filters.dateTo) query = query.lte("due_date", filters.dateTo);
+  if (search) {
+    query = query.or(
+      `title.ilike.%${search}%,description.ilike.%${search}%,note.ilike.%${search}%`,
+    );
+  }
+
+  const { data, error, count } = await query
+    .order(sortColumn(sort.key), { ascending: sort.direction === "asc", nullsFirst: false })
+    .order("id", { ascending: sort.direction === "asc" })
+    .range(rangeFrom, rangeTo);
+
+  if (error) throw toMessage("Не удалось загрузить список задач", error.message);
+  const rows = data ?? [];
+  const relations = await fetchTaskRelations(
+    organizationId,
+    rows.map((row) => row.id),
+  );
+
+  return {
+    tasks: rows.map((row) => mapTask(row, relations)),
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
 export async function loadCrmWorkspace(user: User): Promise<CrmSnapshot> {
   const organization = await ensureWorkspace(user);
   const projectRows = await fetchProjectRows(user.id, organization.id);
-  const [projectLinks, projectMembers, members, tasks, txs] = await Promise.all([
+  const [projectLinks, projectMembers, members, tasks, taskLabels, txs] = await Promise.all([
     fetchProjectLinks(organization.id),
     fetchProjectMembers(organization.id),
     fetchOrganizationMembers(organization.id),
     fetchTasks(organization.id),
+    fetchTaskLabels(organization.id),
     fetchTransactions(organization.id),
   ]);
   const linksByProject = new Map<string, string[]>();
@@ -340,6 +1047,7 @@ export async function loadCrmWorkspace(user: User): Promise<CrmSnapshot> {
       ),
     ),
     tasks,
+    taskLabels,
     txs,
   };
 }
@@ -358,17 +1066,12 @@ type NormalizedProjectInput = {
   status: Project["status"];
 };
 
-function uniqueIds(ids: Array<string | null | undefined>): string[] {
-  return [...new Set(ids.filter((id): id is string => Boolean(id)))];
-}
-
 function normalizeProjectInput(
   userId: string,
   input: ProjectInput,
   fallback?: Project,
 ): NormalizedProjectInput {
-  const hasInputValue = (key: keyof ProjectInput) =>
-    Object.prototype.hasOwnProperty.call(input, key);
+  const hasInputValue = (key: keyof ProjectInput) => hasOwn(input, key);
   const name = input.name.trim();
   if (!name) throw new Error("Название проекта обязательно.");
 
@@ -493,72 +1196,612 @@ export async function archiveProject(userId: string, project: Project): Promise<
   return updateProject(userId, project, { name: project.name, status: "archived" });
 }
 
+type NormalizedTaskInput = {
+  actualMinutes: number;
+  assigneeId: string | null;
+  assigneeIds: string[];
+  checklistTitles: string[];
+  currency: string;
+  description: string | null;
+  dueDate: string | null;
+  estimatedMinutes: number | null;
+  expectedRevenue: number | null;
+  internalCost: number | null;
+  labelIds: string[];
+  newLabelNames: string[];
+  parentTaskId: string | null;
+  priority: Priority;
+  projectId: string | null;
+  sortOrder: number;
+  startDate: string | null;
+  status: TaskStatus;
+  subtaskTitles: string[];
+  tags: string[];
+  title: string;
+  watcherIds: string[];
+};
+
+function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): NormalizedTaskInput {
+  const title = (input.title ?? fallback?.title ?? "").trim();
+  if (!title) throw new Error("Название задачи обязательно.");
+
+  const startDate = hasOwn(input, "startDate")
+    ? (input.startDate ?? null)
+    : (fallback?.startDate ?? null);
+  const dueDate = hasOwn(input, "dueDate") ? (input.dueDate ?? null) : (fallback?.dueDate ?? null);
+  if (startDate && dueDate && dueDate < startDate) {
+    throw new Error("Дедлайн не может быть раньше даты начала.");
+  }
+
+  const description = hasOwn(input, "description")
+    ? input.description?.trim() || null
+    : hasOwn(input, "note")
+      ? input.note?.trim() || null
+      : (fallback?.description ?? null);
+
+  const status = hasOwn(input, "status")
+    ? (input.status ?? "backlog")
+    : (fallback?.status ?? "backlog");
+  const priority = hasOwn(input, "priority")
+    ? (input.priority ?? "med")
+    : (fallback?.priority ?? "med");
+  const projectId = hasOwn(input, "projectId")
+    ? (input.projectId ?? null)
+    : (fallback?.projectId ?? null);
+  const parentTaskId = hasOwn(input, "parentTaskId")
+    ? (input.parentTaskId ?? null)
+    : (fallback?.parentTaskId ?? null);
+  const assigneeId = hasOwn(input, "assigneeId")
+    ? (input.assigneeId ?? null)
+    : (fallback?.assigneeId ?? null);
+  const assigneeIds = uniqueIds([
+    ...(hasOwn(input, "assigneeIds") ? (input.assigneeIds ?? []) : (fallback?.assigneeIds ?? [])),
+    assigneeId,
+  ]);
+  const watcherIds = uniqueIds(
+    hasOwn(input, "watcherIds") ? (input.watcherIds ?? []) : (fallback?.watcherIds ?? []),
+  );
+  const actualMinutes =
+    normalizeIntegerMinutes(
+      hasOwn(input, "actualMinutes") ? (input.actualMinutes ?? 0) : (fallback?.actualMinutes ?? 0),
+      "Фактически потраченное время",
+    ) ?? 0;
+  const estimatedMinutes = normalizeIntegerMinutes(
+    hasOwn(input, "estimatedMinutes")
+      ? (input.estimatedMinutes ?? null)
+      : (fallback?.estimatedMinutes ?? null),
+    "Оценка длительности",
+  );
+  const expectedRevenue = normalizeMoney(
+    hasOwn(input, "expectedRevenue")
+      ? (input.expectedRevenue ?? null)
+      : (fallback?.expectedRevenue ?? null),
+    "Ожидаемый доход",
+  );
+  const internalCost = normalizeMoney(
+    hasOwn(input, "internalCost") ? (input.internalCost ?? null) : (fallback?.internalCost ?? null),
+    "Внутренняя стоимость",
+  );
+  const currency =
+    (hasOwn(input, "currency") ? input.currency : (fallback?.currency ?? "EUR"))
+      ?.trim()
+      .toUpperCase() || "EUR";
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new Error("Валюта должна быть трёхбуквенным ISO-кодом.");
+  }
+
+  const sortOrder = normalizeSortOrder(
+    hasOwn(input, "sortOrder") ? (input.sortOrder ?? 0) : (fallback?.sortOrder ?? Date.now()),
+  );
+  const labelIds = uniqueIds(
+    hasOwn(input, "labelIds")
+      ? (input.labelIds ?? [])
+      : (fallback?.labels.map((label) => label.id) ?? []),
+  );
+  const newLabelNames = normalizeLabelNames([
+    ...(input.newLabelNames ?? []),
+    ...(input.tags ?? []),
+  ]);
+  const tags = normalizeLabelNames([
+    ...(hasOwn(input, "tags") ? (input.tags ?? []) : (fallback?.tags ?? [])),
+    ...newLabelNames,
+  ]);
+
+  return {
+    actualMinutes,
+    assigneeId,
+    assigneeIds,
+    checklistTitles: normalizeLabelNames(input.checklistTitles ?? []),
+    currency,
+    description,
+    dueDate,
+    estimatedMinutes,
+    expectedRevenue,
+    internalCost,
+    labelIds,
+    newLabelNames,
+    parentTaskId,
+    priority,
+    projectId,
+    sortOrder,
+    startDate,
+    status,
+    subtaskTitles: normalizeLabelNames(input.subtaskTitles ?? []),
+    tags,
+    title,
+    watcherIds,
+  };
+}
+
+function taskPayload(
+  userId: string,
+  organizationId: string,
+  normalized: NormalizedTaskInput,
+): TablesInsert<"tasks"> {
+  return {
+    actual_minutes: normalized.actualMinutes,
+    assignee_id: normalized.assigneeId,
+    author_id: userId,
+    created_by: userId,
+    currency: normalized.currency,
+    description: normalized.description,
+    due_date: normalized.dueDate,
+    estimated_minutes: normalized.estimatedMinutes,
+    expected_revenue: normalized.expectedRevenue,
+    internal_cost: normalized.internalCost,
+    note: normalized.description,
+    organization_id: organizationId,
+    parent_task_id: normalized.parentTaskId,
+    priority: normalized.priority,
+    project_id: normalized.projectId,
+    sort_order: normalized.sortOrder,
+    start_date: normalized.startDate,
+    status: normalized.status,
+    tags: normalized.tags,
+    title: normalized.title,
+  };
+}
+
+function taskUpdatePayload(normalized: NormalizedTaskInput): TablesUpdate<"tasks"> {
+  return {
+    actual_minutes: normalized.actualMinutes,
+    assignee_id: normalized.assigneeId,
+    currency: normalized.currency,
+    description: normalized.description,
+    due_date: normalized.dueDate,
+    estimated_minutes: normalized.estimatedMinutes,
+    expected_revenue: normalized.expectedRevenue,
+    internal_cost: normalized.internalCost,
+    note: normalized.description,
+    parent_task_id: normalized.parentTaskId,
+    priority: normalized.priority,
+    project_id: normalized.projectId,
+    sort_order: normalized.sortOrder,
+    start_date: normalized.startDate,
+    status: normalized.status,
+    tags: normalized.tags,
+    title: normalized.title,
+  };
+}
+
+async function replaceTaskAssignees(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  assigneeIds: string[],
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error: deleteError } = await supabase
+    .from("task_assignees")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("task_id", taskId);
+
+  if (deleteError) throw toMessage("Не удалось обновить исполнителей", deleteError.message);
+  if (!assigneeIds.length) return;
+
+  const payload: TablesInsert<"task_assignees">[] = assigneeIds.map((assigneeId) => ({
+    created_by: userId,
+    organization_id: organizationId,
+    task_id: taskId,
+    user_id: assigneeId,
+  }));
+  const { error } = await supabase.from("task_assignees").insert(payload);
+  if (error) throw toMessage("Не удалось сохранить исполнителей", error.message);
+}
+
+async function replaceTaskWatchers(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  watcherIds: string[],
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error: deleteError } = await supabase
+    .from("task_watchers")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("task_id", taskId);
+
+  if (deleteError) throw toMessage("Не удалось обновить наблюдателей", deleteError.message);
+  if (!watcherIds.length) return;
+
+  const payload: TablesInsert<"task_watchers">[] = watcherIds.map((watcherId) => ({
+    created_by: userId,
+    organization_id: organizationId,
+    task_id: taskId,
+    user_id: watcherId,
+  }));
+  const { error } = await supabase.from("task_watchers").insert(payload);
+  if (error) throw toMessage("Не удалось сохранить наблюдателей", error.message);
+}
+
+async function ensureTaskLabels(
+  userId: string,
+  organizationId: string,
+  labelNames: string[],
+): Promise<TaskLabel[]> {
+  const names = normalizeLabelNames(labelNames);
+  if (!names.length) return [];
+
+  const supabase = getSupabaseClient();
+  const { data: existingRows, error: existingError } = await supabase
+    .from("task_labels")
+    .select("*")
+    .eq("organization_id", organizationId);
+
+  if (existingError) throw toMessage("Не удалось проверить метки", existingError.message);
+
+  const byName = new Map(
+    (existingRows ?? []).map((row) => [row.name.trim().toLowerCase(), mapTaskLabel(row)]),
+  );
+  const missing = names.filter((name) => !byName.has(name.toLowerCase()));
+
+  if (missing.length) {
+    const payload: TablesInsert<"task_labels">[] = missing.map((name, index) => ({
+      color: PROJECT_COLORS[index % PROJECT_COLORS.length] ?? PROJECT_COLORS[0],
+      created_by: userId,
+      name,
+      organization_id: organizationId,
+    }));
+    const { data: insertedRows, error: insertError } = await supabase
+      .from("task_labels")
+      .insert(payload)
+      .select();
+
+    if (insertError) throw toMessage("Не удалось создать метки", insertError.message);
+    (insertedRows ?? []).forEach((row) => {
+      byName.set(row.name.trim().toLowerCase(), mapTaskLabel(row));
+    });
+  }
+
+  return names
+    .map((name) => byName.get(name.toLowerCase()))
+    .filter((label): label is TaskLabel => Boolean(label));
+}
+
+async function replaceTaskLabels(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  labelIds: string[],
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error: deleteError } = await supabase
+    .from("task_label_links")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("task_id", taskId);
+
+  if (deleteError) throw toMessage("Не удалось обновить метки задачи", deleteError.message);
+  if (!labelIds.length) return;
+
+  const payload: TablesInsert<"task_label_links">[] = labelIds.map((labelId) => ({
+    created_by: userId,
+    label_id: labelId,
+    organization_id: organizationId,
+    task_id: taskId,
+  }));
+  const { error } = await supabase.from("task_label_links").insert(payload);
+  if (error) throw toMessage("Не удалось сохранить метки задачи", error.message);
+}
+
+async function persistTaskRelations(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  normalized: NormalizedTaskInput,
+): Promise<void> {
+  const createdLabels = await ensureTaskLabels(userId, organizationId, normalized.newLabelNames);
+  const labelIds = uniqueIds([...normalized.labelIds, ...createdLabels.map((label) => label.id)]);
+
+  await Promise.all([
+    replaceTaskAssignees(userId, organizationId, taskId, normalized.assigneeIds),
+    replaceTaskWatchers(userId, organizationId, taskId, normalized.watcherIds),
+    replaceTaskLabels(userId, organizationId, taskId, labelIds),
+  ]);
+}
+
+async function createInitialChecklistItems(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  titles: string[],
+): Promise<void> {
+  if (!titles.length) return;
+
+  const supabase = getSupabaseClient();
+  const payload: TablesInsert<"task_checklist_items">[] = titles.map((title, index) => ({
+    created_by: userId,
+    organization_id: organizationId,
+    sort_order: index,
+    task_id: taskId,
+    title,
+  }));
+  const { error } = await supabase.from("task_checklist_items").insert(payload);
+  if (error) throw toMessage("Не удалось создать чек-лист", error.message);
+}
+
+async function createInitialSubtasks(
+  userId: string,
+  organizationId: string,
+  parentTaskId: string,
+  normalized: NormalizedTaskInput,
+): Promise<void> {
+  if (!normalized.subtaskTitles.length) return;
+
+  const supabase = getSupabaseClient();
+  const payload: TablesInsert<"tasks">[] = normalized.subtaskTitles.map((title, index) => ({
+    actual_minutes: 0,
+    assignee_id: normalized.assigneeId,
+    author_id: userId,
+    created_by: userId,
+    currency: normalized.currency,
+    description: null,
+    due_date: normalized.dueDate,
+    estimated_minutes: null,
+    expected_revenue: null,
+    internal_cost: null,
+    note: null,
+    organization_id: organizationId,
+    parent_task_id: parentTaskId,
+    priority: normalized.priority,
+    project_id: normalized.projectId,
+    sort_order: normalized.sortOrder + index + 1,
+    start_date: normalized.startDate,
+    status: "backlog",
+    tags: [],
+    title,
+  }));
+  const { error } = await supabase.from("tasks").insert(payload);
+  if (error) throw toMessage("Не удалось создать подзадачи", error.message);
+}
+
 export async function createTask(
   userId: string,
   organizationId: string,
-  defaultProjectId: string | null,
   input: TaskInput,
 ): Promise<Task> {
   const supabase = getSupabaseClient();
-  const title = input.title.trim();
-  if (!title) throw new Error("Название задачи не может быть пустым.");
+  const normalized = normalizeTaskInput(input);
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert(taskPayload(userId, organizationId, normalized))
+    .select()
+    .single();
 
-  const payload: TablesInsert<"tasks"> = {
-    organization_id: organizationId,
-    project_id: input.projectId ?? defaultProjectId,
-    title,
-    note: input.note?.trim() || null,
-    status: input.status ?? "inbox",
-    priority: input.priority ?? "med",
-    due_date: input.dueDate ?? null,
-    tags: input.tags ?? [],
-    created_by: userId,
-  };
-
-  const { data, error } = await supabase.from("tasks").insert(payload).select().single();
   if (error) throw toMessage("Не удалось создать задачу", error.message);
-  return mapTask(ensureData(data, "Supabase не вернул созданную задачу."));
+  const created = ensureData(data, "Supabase не вернул созданную задачу.");
+
+  await persistTaskRelations(userId, organizationId, created.id, normalized);
+  await createInitialChecklistItems(userId, organizationId, created.id, normalized.checklistTitles);
+  await createInitialSubtasks(userId, organizationId, created.id, normalized);
+
+  return fetchTaskById(organizationId, created.id);
 }
 
 export async function updateTask(
+  userId: string,
   organizationId: string,
   id: string,
   patch: TaskPatch,
 ): Promise<Task> {
   const supabase = getSupabaseClient();
-  const payload: TablesUpdate<"tasks"> = {};
-
-  if (patch.title !== undefined) {
-    const title = patch.title.trim();
-    if (!title) throw new Error("Название задачи не может быть пустым.");
-    payload.title = title;
-  }
-  if (patch.note !== undefined) payload.note = patch.note?.trim() || null;
-  if (patch.status !== undefined) payload.status = patch.status;
-  if (patch.priority !== undefined) payload.priority = patch.priority;
-  if (patch.projectId !== undefined) payload.project_id = patch.projectId;
-  if (patch.dueDate !== undefined) payload.due_date = patch.dueDate ?? null;
-  if (patch.tags !== undefined) payload.tags = patch.tags;
+  const current = await fetchTaskById(organizationId, id);
+  const normalized = normalizeTaskInput(patch, current);
+  if (normalized.parentTaskId === id) throw new Error("Задача не может быть родителем самой себя.");
 
   const { data, error } = await supabase
     .from("tasks")
-    .update(payload)
+    .update(taskUpdatePayload(normalized))
     .eq("organization_id", organizationId)
     .eq("id", id)
     .select()
     .single();
 
   if (error) throw toMessage("Не удалось обновить задачу", error.message);
-  return mapTask(ensureData(data, "Supabase не вернул обновлённую задачу."));
+  ensureData(data, "Supabase не вернул обновлённую задачу.");
+
+  await persistTaskRelations(userId, organizationId, id, normalized);
+  return fetchTaskById(organizationId, id);
 }
 
-export async function deleteTask(organizationId: string, id: string): Promise<void> {
+export async function bulkUpdateTasks(
+  userId: string,
+  organizationId: string,
+  ids: string[],
+  patch: TaskPatch,
+): Promise<Task[]> {
+  const uniqueTaskIds = [...new Set(ids)];
+  if (!uniqueTaskIds.length) return [];
+
+  const updated = await Promise.all(
+    uniqueTaskIds.map((id) => updateTask(userId, organizationId, id, patch)),
+  );
+  return updated;
+}
+
+export async function archiveTask(organizationId: string, id: string): Promise<Task> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("archive_task", { p_task_id: id });
+
+  if (error) throw toMessage("Не удалось архивировать задачу", error.message);
+  ensureData(data, "Supabase не вернул архивированную задачу.");
+  return fetchTaskById(organizationId, id);
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc("delete_task", { p_task_id: id });
+
+  if (!error) return;
+  if (error.message.includes("TASK_ARCHIVE_REQUIRED")) {
+    throw new TaskArchiveRequiredError(
+      "У задачи есть дочерние задачи или финансовые операции. Архивируйте её вместо удаления.",
+    );
+  }
+
+  throw toMessage("Не удалось удалить задачу", error.message);
+}
+
+export async function createChecklistItem(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  title: string,
+  sortOrder: number,
+): Promise<TaskChecklistItem> {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) throw new Error("Текст пункта чек-листа обязателен.");
+
+  const supabase = getSupabaseClient();
+  const payload: TablesInsert<"task_checklist_items"> = {
+    created_by: userId,
+    organization_id: organizationId,
+    sort_order: normalizeSortOrder(sortOrder),
+    task_id: taskId,
+    title: normalizedTitle,
+  };
+  const { data, error } = await supabase
+    .from("task_checklist_items")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) throw toMessage("Не удалось добавить пункт чек-листа", error.message);
+  return mapChecklistItem(ensureData(data, "Supabase не вернул пункт чек-листа."));
+}
+
+export async function updateChecklistItem(
+  userId: string,
+  organizationId: string,
+  itemId: string,
+  patch: { title?: string; completed?: boolean },
+): Promise<TaskChecklistItem> {
+  const payload: TablesUpdate<"task_checklist_items"> = {};
+
+  if (patch.title !== undefined) {
+    const title = patch.title.trim();
+    if (!title) throw new Error("Текст пункта чек-листа обязателен.");
+    payload.title = title;
+  }
+  if (patch.completed !== undefined) {
+    payload.completed_at = patch.completed ? new Date().toISOString() : null;
+    payload.completed_by = patch.completed ? userId : null;
+  }
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("task_checklist_items")
+    .update(payload)
+    .eq("organization_id", organizationId)
+    .eq("id", itemId)
+    .select()
+    .single();
+
+  if (error) throw toMessage("Не удалось обновить чек-лист", error.message);
+  return mapChecklistItem(ensureData(data, "Supabase не вернул пункт чек-листа."));
+}
+
+export async function deleteChecklistItem(organizationId: string, itemId: string): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase
-    .from("tasks")
+    .from("task_checklist_items")
     .delete()
     .eq("organization_id", organizationId)
-    .eq("id", id);
+    .eq("id", itemId);
 
-  if (error) throw toMessage("Не удалось удалить задачу", error.message);
+  if (error) throw toMessage("Не удалось удалить пункт чек-листа", error.message);
+}
+
+export async function createTaskComment(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  body: string,
+): Promise<TaskComment> {
+  const normalizedBody = body.trim();
+  if (!normalizedBody) throw new Error("Комментарий не может быть пустым.");
+
+  const supabase = getSupabaseClient();
+  const payload: TablesInsert<"task_comments"> = {
+    body: normalizedBody,
+    created_by: userId,
+    organization_id: organizationId,
+    task_id: taskId,
+  };
+  const { data, error } = await supabase.from("task_comments").insert(payload).select().single();
+
+  if (error) throw toMessage("Не удалось добавить комментарий", error.message);
+  return mapTaskComment(ensureData(data, "Supabase не вернул комментарий."));
+}
+
+export async function uploadTaskFile(
+  userId: string,
+  organizationId: string,
+  taskId: string,
+  file: File,
+): Promise<TaskFile> {
+  validateTaskFile(file);
+
+  const supabase = getSupabaseClient();
+  const storageName = `${crypto.randomUUID()}-${sanitizeStorageName(file.name)}`;
+  const storagePath = `${organizationId}/${taskId}/${storageName}`;
+  const { error: uploadError } = await supabase.storage
+    .from(TASK_FILE_BUCKET)
+    .upload(storagePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) throw toMessage("Не удалось загрузить файл", uploadError.message);
+
+  const payload: TablesInsert<"files"> = {
+    bucket_id: TASK_FILE_BUCKET,
+    file_name: file.name,
+    mime_type: file.type,
+    organization_id: organizationId,
+    size_bytes: file.size,
+    storage_path: storagePath,
+    task_id: taskId,
+    uploaded_by: userId,
+  };
+  const { data, error } = await supabase.from("files").insert(payload).select().single();
+
+  if (error) {
+    await supabase.storage.from(TASK_FILE_BUCKET).remove([storagePath]);
+    throw toMessage("Файл загружен, но не удалось сохранить запись вложения", error.message);
+  }
+
+  return mapTaskFile(ensureData(data, "Supabase не вернул вложение."));
+}
+
+export async function getTaskFileSignedUrl(storagePath: string): Promise<string> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.storage
+    .from(TASK_FILE_BUCKET)
+    .createSignedUrl(storagePath, 60 * 5);
+
+  if (error) throw toMessage("Не удалось открыть вложение", error.message);
+  return data.signedUrl;
 }

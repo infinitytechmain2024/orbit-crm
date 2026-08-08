@@ -50,7 +50,9 @@ function Dashboard() {
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const open = tasks.filter((t) => t.status !== "done");
+  const open = tasks.filter(
+    (t) => t.status !== "completed" && t.status !== "cancelled" && !t.archivedAt,
+  );
 
   const analyze = () => {
     if (!draft.trim() || stage === "loading") return;
@@ -77,7 +79,7 @@ function Dashboard() {
     setAdding(true);
     const results = await Promise.all(
       parsed.map((p) =>
-        addTask({ title: p.title, priority: p.priority, status: "todo", tags: ["ии"] }),
+        addTask({ title: p.title, priority: p.priority, status: "planned", tags: ["ии"] }),
       ),
     );
     if (results.every(Boolean)) {
@@ -142,7 +144,9 @@ function Dashboard() {
 
           {stage === "done" && parsed.length > 0 && (
             <div className="mt-4 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
-              <p className="text-xs text-muted-foreground">ИИ предлагает {parsed.length} задач(и):</p>
+              <p className="text-xs text-muted-foreground">
+                ИИ предлагает {parsed.length} задач(и):
+              </p>
               {parsed.map((p) => (
                 <div
                   key={p.title}
@@ -150,7 +154,9 @@ function Dashboard() {
                 >
                   <Check className="size-4 text-primary" />
                   <span className="flex-1">{p.title}</span>
-                  <span className={cn("rounded-full px-2 py-0.5 text-[11px]", prioTone[p.priority])}>
+                  <span
+                    className={cn("rounded-full px-2 py-0.5 text-[11px]", prioTone[p.priority])}
+                  >
                     {p.priority}
                   </span>
                 </div>
@@ -183,7 +189,7 @@ function Dashboard() {
             icon={<CalendarClock className="size-4" />}
             label="Открытых задач"
             value={String(open.length)}
-            delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "done").length} срочных`}
+            delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "completed" && t.status !== "cancelled" && !t.archivedAt).length} срочных`}
           />
         </section>
 
@@ -197,12 +203,19 @@ function Dashboard() {
           <div className="mt-4 divide-y divide-border">
             {open.slice(0, 5).map((t) => (
               <div key={t.id} className="flex items-center gap-3 py-3">
-                <span className={cn("size-2 rounded-full", t.priority === "high" ? "bg-acc-4" : "bg-primary")} />
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    t.priority === "high" ? "bg-acc-4" : "bg-primary",
+                  )}
+                />
                 <span className="flex-1 truncate text-sm">{t.title}</span>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
                   {STATUS_LABEL[t.status]}
                 </span>
-                <span className="w-14 text-right text-xs text-muted-foreground">{t.due ?? "—"}</span>
+                <span className="w-14 text-right text-xs text-muted-foreground">
+                  {t.due ?? "—"}
+                </span>
               </div>
             ))}
           </div>
@@ -248,7 +261,9 @@ function Metric({
   return (
     <div className="panel p-5">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="grid size-7 place-items-center rounded-lg bg-primary/12 text-primary">{icon}</span>
+        <span className="grid size-7 place-items-center rounded-lg bg-primary/12 text-primary">
+          {icon}
+        </span>
         {label}
       </div>
       <p className="mt-3 font-display text-2xl font-semibold">{value}</p>
