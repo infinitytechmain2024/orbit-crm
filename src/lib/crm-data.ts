@@ -199,7 +199,7 @@ export type ProjectInput = {
   links?: string[];
 };
 
-export type ProjectPatch = ProjectInput;
+export type ProjectPatch = Partial<ProjectInput>;
 
 export type OrganizationMember = {
   userId: string;
