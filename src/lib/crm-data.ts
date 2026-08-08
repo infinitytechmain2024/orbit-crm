@@ -274,6 +274,59 @@ export const DEFAULT_TASK_FILTERS: TaskFilters = {
   dateTo: "",
 };
 
+export function todayLocalIsoDate(): string {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
+export function filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
+  const today = todayLocalIsoDate();
+  const hasDateFilter = Boolean(filters.dateFrom) || Boolean(filters.dateTo);
+
+  return tasks.filter((task) => {
+    if (filters.search) {
+      const query = filters.search.toLowerCase();
+      const haystack = `${task.title} ${task.description ?? ""} ${task.note ?? ""}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+
+    if (filters.projectId === "__none") {
+      if (task.projectId) return false;
+    } else if (filters.projectId !== "all" && task.projectId !== filters.projectId) {
+      return false;
+    }
+
+    if (filters.status !== "all" && task.status !== filters.status) return false;
+    if (filters.priority !== "all" && task.priority !== filters.priority) return false;
+
+    if (filters.assigneeId === "__none") {
+      if (task.assigneeId) return false;
+    } else if (filters.assigneeId !== "all" && task.assigneeId !== filters.assigneeId) {
+      return false;
+    }
+
+    if (filters.tag) {
+      const labelMatch = task.labels.some((label) => label.id === filters.tag);
+      const tagMatch = task.tags.includes(filters.tag);
+      if (!labelMatch && !tagMatch) return false;
+    }
+
+    if (filters.overdue === "overdue") {
+      if (task.status === "completed" || task.status === "cancelled") return false;
+      if (!task.dueDate || task.dueDate >= today) return false;
+    }
+
+    if (hasDateFilter) {
+      if (!task.dueDate) return false;
+      if (filters.dateFrom && task.dueDate < filters.dateFrom) return false;
+      if (filters.dateTo && task.dueDate > filters.dateTo) return false;
+    }
+
+    return true;
+  });
+}
+
 export const DEFAULT_TASK_LIST_COLUMNS: TaskListColumn[] = [
   "title",
   "project",

@@ -52,6 +52,8 @@ type TaskEditorProps = {
   onClose?: () => void;
   onSaved?: (task: Task) => void;
   onDeleted?: () => void;
+  initialStartDate?: string;
+  initialDueDate?: string;
 };
 
 function memberLabel(member: OrganizationMember): string {
@@ -67,7 +69,7 @@ function moneyInputValue(value: number | null): string {
   return value === null ? "" : String(value);
 }
 
-function createDraft(task: Task | null): TaskDraft {
+function createDraft(task: Task | null, initial?: { startDate?: string; dueDate?: string }): TaskDraft {
   return {
     title: task?.title ?? "",
     description: task?.description ?? "",
@@ -75,8 +77,8 @@ function createDraft(task: Task | null): TaskDraft {
     priority: task?.priority ?? "med",
     projectId: task?.projectId ?? "",
     parentTaskId: task?.parentTaskId ?? "",
-    startDate: task?.startDate ?? "",
-    dueDate: task?.dueDate ?? "",
+    startDate: task?.startDate ?? initial?.startDate ?? "",
+    dueDate: task?.dueDate ?? initial?.dueDate ?? "",
     estimatedMinutes:
       task?.estimatedMinutes === null || task?.estimatedMinutes === undefined
         ? ""
@@ -159,7 +161,9 @@ export function TaskEditor({ task, onClose, onSaved, onDeleted }: TaskEditorProp
     isMutating,
   } = useCrm();
   const isCreating = !task;
-  const [draft, setDraft] = useState<TaskDraft>(() => createDraft(task));
+  const [draft, setDraft] = useState<TaskDraft>(() =>
+    createDraft(task, { startDate: initialStartDate, dueDate: initialDueDate }),
+  );
   const [checklistTitle, setChecklistTitle] = useState("");
   const [pendingChecklist, setPendingChecklist] = useState<string[]>([]);
   const [subtaskTitle, setSubtaskTitle] = useState("");
@@ -170,7 +174,7 @@ export function TaskEditor({ task, onClose, onSaved, onDeleted }: TaskEditorProp
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setDraft(createDraft(task));
+    setDraft(createDraft(task, { startDate: initialStartDate, dueDate: initialDueDate }));
     setChecklistTitle("");
     setPendingChecklist([]);
     setSubtaskTitle("");
