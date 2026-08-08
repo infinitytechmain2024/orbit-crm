@@ -194,6 +194,9 @@ export type ProjectInput = {
   budgetPlanned?: number | null;
   currency?: string;
   memberIds?: string[];
+  x?: number;
+  y?: number;
+  links?: string[];
 };
 
 export type ProjectPatch = ProjectInput;
@@ -306,7 +309,7 @@ export function filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
     }
 
     if (filters.overdue === "overdue") {
-      if (task.status === "completed" || task.status === "cancelled") return false;
+      if (task.status === "completed") return false;
       if (!task.dueDate || task.dueDate >= today) return false;
     }
 

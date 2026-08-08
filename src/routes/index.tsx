@@ -50,9 +50,7 @@ function Dashboard() {
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const open = tasks.filter(
-    (t) => t.status !== "completed" && t.status !== "cancelled" && !t.archivedAt,
-  );
+  const open = tasks.filter((t) => t.status !== "completed" && !t.archivedAt);
 
   const analyze = () => {
     if (!draft.trim() || stage === "loading") return;
@@ -79,7 +77,7 @@ function Dashboard() {
     setAdding(true);
     const results = await Promise.all(
       parsed.map((p) =>
-        addTask({ title: p.title, priority: p.priority, status: "planned", tags: ["ии"] }),
+        addTask({ title: p.title, priority: p.priority, status: "backlog", tags: ["ии"] }),
       ),
     );
     if (results.every(Boolean)) {
@@ -189,7 +187,7 @@ function Dashboard() {
             icon={<CalendarClock className="size-4" />}
             label="Открытых задач"
             value={String(open.length)}
-            delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "completed" && t.status !== "cancelled" && !t.archivedAt).length} срочных`}
+            delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "completed" && !t.archivedAt).length} срочных`}
           />
         </section>
 

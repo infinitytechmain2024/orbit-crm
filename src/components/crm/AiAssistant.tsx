@@ -30,9 +30,9 @@ export function AiAssistant() {
     if (lower.includes("задач") && (lower.includes("созда") || lower.includes("добав"))) {
       const title =
         q.replace(/созда(й|ть)\s*задач[уy]?:?/i, "").trim() || "Новая задача из ИИ-чата";
-      const task = await addTask({ title, status: "planned", priority: "high", tags: ["ии"] });
+      const task = await addTask({ title, status: "backlog", priority: "high", tags: ["ии"] });
       return task
-        ? `Готово — создал задачу «${title}» в колонке «К работе» с высоким приоритетом.`
+        ? `Готово — создал задачу «${title}» в колонке «Входящие» с высоким приоритетом.`
         : "Не смог сохранить задачу. Проверьте сообщение об ошибке внизу экрана.";
     }
     if (lower.includes("аналитик") || lower.includes("деньг") || lower.includes("финанс")) {
@@ -43,7 +43,7 @@ export function AiAssistant() {
     if (lower.includes("горит") || lower.includes("сегодня") || lower.includes("важн")) {
       const hot = tasks
         .filter(
-          (t) => t.priority === "high" && t.status !== "completed" && t.status !== "cancelled",
+          (t) => t.priority === "high" && t.status !== "completed",
         )
         .slice(0, 3);
       return hot.length

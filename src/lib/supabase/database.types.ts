@@ -833,8 +833,7 @@ export type Database = {
       project_priority: "low" | "medium" | "high" | "critical";
       project_status: "planned" | "active" | "paused" | "completed" | "archived";
       task_priority: "low" | "med" | "high";
-      task_status:
-        "backlog" | "planned" | "in_progress" | "review" | "blocked" | "completed" | "cancelled";
+      task_status: "backlog" | "in_progress" | "review" | "completed";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -960,15 +959,7 @@ export const Constants = {
       project_priority: ["low", "medium", "high", "critical"],
       project_status: ["planned", "active", "paused", "completed", "archived"],
       task_priority: ["low", "med", "high"],
-      task_status: [
-        "backlog",
-        "planned",
-        "in_progress",
-        "review",
-        "blocked",
-        "completed",
-        "cancelled",
-      ],
+      task_status: ["backlog", "in_progress", "review", "completed"],
     },
   },
 } as const;

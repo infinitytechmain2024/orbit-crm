@@ -899,7 +899,7 @@ export async function fetchKanbanTasks(
       if (normalizedFilters.status !== "all" && normalizedFilters.status !== status) return [];
       if (
         normalizedFilters.overdue === "overdue" &&
-        (status === "completed" || status === "cancelled")
+        status === "completed"
       ) {
         return [];
       }
@@ -982,7 +982,7 @@ export async function fetchTasksPage(
   if (filters.assigneeId === "__none") query = query.is("assignee_id", null);
   else if (filters.assigneeId !== "all") query = query.eq("assignee_id", filters.assigneeId);
   if (filters.overdue === "overdue") {
-    query = query.neq("status", "completed").neq("status", "cancelled").lt("due_date", today);
+    query = query.neq("status", "completed").lt("due_date", today);
   }
   if (filters.dateFrom) query = query.gte("due_date", filters.dateFrom);
   if (filters.dateTo) query = query.lte("due_date", filters.dateTo);
@@ -1185,9 +1185,38 @@ export async function updateProject(
   });
 
   if (error) throw toMessage("Не удалось обновить проект", error.message);
+  const updatedRow = ensureData(data, "Supabase не вернул обновлённый проект.");
+
+  let nextX = project.x;
+  let nextY = project.y;
+  if (typeof patch.x === "number" || typeof patch.y === "number") {
+    nextX = patch.x ?? project.x;
+    nextY = patch.y ?? project.y;
+    await supabase
+      .from("projects")
+      .update({ x_position: nextX, y_position: nextY })
+      .eq("id", project.id);
+  }
+
+  let nextLinks = project.links;
+  if (patch.links) {
+    nextLinks = patch.links;
+    await supabase.from("project_links").delete().eq("source_project_id", project.id);
+    if (nextLinks.length > 0) {
+      await supabase.from("project_links").insert(
+        nextLinks.map((targetId) => ({
+          organization_id: project.organizationId,
+          source_project_id: project.id,
+          target_project_id: targetId,
+          created_by: userId,
+        })),
+      );
+    }
+  }
+
   return mapProject(
-    ensureData(data, "Supabase не вернул обновлённый проект."),
-    project.links,
+    { ...updatedRow, x_position: nextX, y_position: nextY },
+    nextLinks,
     normalized.memberIds,
   );
 }
@@ -1291,7 +1320,7 @@ function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): Normali
   }
 
   const sortOrder = normalizeSortOrder(
-    hasOwn(input, "sortOrder") ? (input.sortOrder ?? 0) : (fallback?.sortOrder ?? Date.now()),
+    hasOwn(input, "sortOrder") ? (input.sortOrder ?? 0) : (fallback?.sortOrder ?? 0),
   );
   const labelIds = uniqueIds(
     hasOwn(input, "labelIds")

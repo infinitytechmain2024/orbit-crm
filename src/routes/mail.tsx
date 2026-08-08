@@ -32,7 +32,7 @@ function MailPage() {
     const task = await addTask({
       title: sel.subject,
       note: `Из письма от ${sel.from}\n\n${sel.body}`,
-      status: "planned",
+      status: "backlog",
       priority: "high",
       tags: ["почта"],
     });
