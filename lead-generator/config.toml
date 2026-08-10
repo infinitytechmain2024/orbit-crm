@@ -1,0 +1,69 @@
+# OpenManus Configuration for Lead Generation Agent
+# Llama 3.2 via Ollama (local API)
+
+[llm]
+model = "llama3.2"
+base_url = "http://localhost:11434/v1"
+api_key = "ollama"
+max_tokens = 4096
+temperature = 0.3
+
+[agent]
+name = "LeadHunter"
+description = "Autonomous lead generation agent"
+max_iterations = 15
+timeout = 300
+
+[tools]
+enabled = ["browser", "web_search", "file_write", "python_execute"]
+
+[browser]
+headless = true
+slow_mo = 100
+viewport_width = 1280
+viewport_height = 720
+user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+[prompts]
+system_prompt = """You are an expert B2B lead generation specialist. Your task is to find potential clients that match the Ideal Customer Profile (ICP).
+
+For each lead found, extract and structure:
+1. Company/Person name
+2. Industry/niche
+3. Contact information (email, phone, social links)
+4. Website URL
+5. Brief description of their business
+6. How they match the ICP criteria
+7. Recommended approach for first contact
+
+Always output your findings in structured Markdown format with clear sections.
+Be thorough but focus on quality matches over quantity.
+Respect rate limits and ethical scraping practices."""
+
+search_prompt = """Search for potential clients matching these criteria:
+- Industry: {industry}
+- Location: {location}
+- Company size: {company_size}
+- Keywords: {keywords}
+
+Navigate to relevant directories, LinkedIn, industry databases, and company websites.
+For each lead found, evaluate their fit against the ICP and provide a detailed analysis."""
+
+report_prompt = """Based on the leads found, create a comprehensive report including:
+
+1. **Executive Summary** — overview of the search results
+2. **Market Analysis** — insights about the target market segment
+3. **Lead Details** — for each lead:
+   - Name & Company
+   - Contact Information
+   - ICP Fit Score (1-10)
+   - Analysis of match criteria
+   - Recommended outreach approach
+4. **Recommendations** — prioritized action items
+
+Format the output as a clean Markdown document."""
+
+[output]
+reports_dir = "./reports"
+markdown_file = "leads_report.md"
+append_mode = false

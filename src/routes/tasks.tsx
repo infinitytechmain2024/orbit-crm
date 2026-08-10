@@ -168,7 +168,10 @@ function TasksPage() {
                       <p className="line-clamp-3 text-sm font-medium leading-snug">{task.title}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span
-                          className={cn("rounded-full px-2.5 py-0.5 font-medium text-[11px]", priorityTone[task.priority])}
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 font-medium text-[11px]",
+                            priorityTone[task.priority],
+                          )}
                         >
                           {PRIORITY_LABEL[task.priority]}
                         </span>
@@ -182,7 +185,8 @@ function TasksPage() {
                         <div className="mt-2.5 flex items-center gap-3 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
                           {task.checklistItems.length > 0 && (
                             <span>
-                              Чек-лист: {task.checklistItems.filter((item) => item.completedAt).length}/
+                              Чек-лист:{" "}
+                              {task.checklistItems.filter((item) => item.completedAt).length}/
                               {task.checklistItems.length}
                             </span>
                           )}
@@ -346,7 +350,9 @@ function ProjectGraph({
   const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Node positions in percentage (0 to 100) within canvas container
-  const [localPositions, setLocalPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [localPositions, setLocalPositions] = useState<Record<string, { x: number; y: number }>>(
+    {},
+  );
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -651,8 +657,7 @@ function ProjectGraph({
             connectingFromId && "cursor-crosshair",
           )}
           style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
             backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
             backgroundPosition: `${pan.x}px ${pan.y}px`,
           }}
@@ -712,7 +717,10 @@ function ProjectGraph({
                       const isHighlighted = sel === project.id || sel === targetId;
 
                       return (
-                        <g key={`link-${project.id}-${targetId}`} className="group pointer-events-auto">
+                        <g
+                          key={`link-${project.id}-${targetId}`}
+                          className="group pointer-events-auto"
+                        >
                           {/* Outer glow stroke */}
                           <path
                             d={`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`}
@@ -765,7 +773,13 @@ function ProjectGraph({
                         className="animate-pulse"
                         filter="url(#glow)"
                       />
-                      <circle cx={x2} cy={y2} r="6" fill="var(--primary)" className="animate-ping" />
+                      <circle
+                        cx={x2}
+                        cy={y2}
+                        r="6"
+                        fill="var(--primary)"
+                        className="animate-ping"
+                      />
                     </g>
                   );
                 })()}
@@ -775,14 +789,13 @@ function ProjectGraph({
             {activeProjects.map((project) => {
               const pos = localPositions[project.id] || { x: project.x || 50, y: project.y || 50 };
               const activeCount = tasks.filter(
-                (task) =>
-                  task.projectId === project.id &&
-                  task.status !== "completed",
+                (task) => task.projectId === project.id && task.status !== "completed",
               ).length;
 
               const isSelected = sel === project.id;
               const isSource = connectingFromId === project.id;
-              const isTargetHovered = connectingFromId && connectingFromId !== project.id && hoveredNodeId === project.id;
+              const isTargetHovered =
+                connectingFromId && connectingFromId !== project.id && hoveredNodeId === project.id;
 
               return (
                 <div

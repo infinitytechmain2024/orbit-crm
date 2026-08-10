@@ -243,12 +243,7 @@ export const STATUS_LABEL: Record<TaskStatus, string> = {
   completed: "Завершено",
 };
 
-export const TASK_STATUSES: TaskStatus[] = [
-  "backlog",
-  "in_progress",
-  "review",
-  "completed",
-];
+export const TASK_STATUSES: TaskStatus[] = ["backlog", "in_progress", "review", "completed"];
 
 export const PRIORITY_LABEL: Record<Priority, string> = {
   low: "Низкий",

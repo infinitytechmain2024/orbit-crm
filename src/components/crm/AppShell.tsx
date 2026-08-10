@@ -15,6 +15,7 @@ import {
   Users,
   ClipboardList,
   FolderKanban,
+  Bot,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -31,6 +32,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/calendar", label: "Календарь", icon: Calendar },
   { to: "/clients", label: "Клиенты", icon: Users },
   { to: "/requests", label: "Заявки и записи", icon: ClipboardList },
+  { to: "/lead-search", label: "AI Поиск лидов", icon: Bot },
   { to: "/mail", label: "Почта", icon: Mail },
   { to: "/finance", label: "Финансы", icon: Wallet },
 ];

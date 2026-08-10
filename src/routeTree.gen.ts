@@ -14,6 +14,7 @@ import { Route as BookRouteImport } from './routes/book'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as LeadSearchRouteImport } from './routes/lead-search'
 import { Route as MailRouteImport } from './routes/mail'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as RequestsRouteImport } from './routes/requests'
@@ -43,6 +44,11 @@ const ClientsRoute = ClientsRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadSearchRoute = LeadSearchRouteImport.update({
+  id: '/lead-search',
+  path: '/lead-search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MailRoute = MailRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
+    | '/lead-search'
     | '/mail'
     | '/projects'
     | '/requests'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
+    | '/lead-search'
     | '/mail'
     | '/projects'
     | '/requests'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
+    | '/lead-search'
     | '/mail'
     | '/projects'
     | '/requests'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   ClientsRoute: typeof ClientsRoute
   FinanceRoute: typeof FinanceRoute
+  LeadSearchRoute: typeof LeadSearchRoute
   MailRoute: typeof MailRoute
   ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lead-search': {
+      id: '/lead-search'
+      path: '/lead-search'
+      fullPath: '/lead-search'
+      preLoaderRoute: typeof LeadSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mail': {
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   ClientsRoute: ClientsRoute,
   FinanceRoute: FinanceRoute,
+  LeadSearchRoute: LeadSearchRoute,
   MailRoute: MailRoute,
   ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,

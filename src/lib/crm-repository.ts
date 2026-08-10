@@ -897,10 +897,7 @@ export async function fetchKanbanTasks(
   const groupedRows = await Promise.all(
     TASK_STATUSES.map(async (status) => {
       if (normalizedFilters.status !== "all" && normalizedFilters.status !== status) return [];
-      if (
-        normalizedFilters.overdue === "overdue" &&
-        status === "completed"
-      ) {
+      if (normalizedFilters.overdue === "overdue" && status === "completed") {
         return [];
       }
 

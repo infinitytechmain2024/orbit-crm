@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
+import { VoiceRecorder } from "@/components/crm/VoiceRecorder";
 import { STATUS_LABEL, type Priority } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 
@@ -115,6 +116,7 @@ function Dashboard() {
             className="mt-4 w-full resize-none rounded-xl border border-border bg-surface-2/60 p-4 text-sm outline-none transition focus:border-primary/60"
           />
           <div className="mt-3 flex flex-wrap items-center gap-3">
+            <VoiceRecorder onError={(e) => console.error(e)} />
             <button
               onClick={analyze}
               disabled={stage === "loading"}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bot, Send, Sparkles, X } from "lucide-react";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
+import { VoiceRecorder } from "./VoiceRecorder";
 
 type Msg = { id: string; role: "user" | "ai"; text: string };
 
@@ -42,9 +43,7 @@ export function AiAssistant() {
     }
     if (lower.includes("горит") || lower.includes("сегодня") || lower.includes("важн")) {
       const hot = tasks
-        .filter(
-          (t) => t.priority === "high" && t.status !== "completed",
-        )
+        .filter((t) => t.priority === "high" && t.status !== "completed")
         .slice(0, 3);
       return hot.length
         ? `Приоритет на сегодня:\n${hot.map((t, i) => `${i + 1}. ${t.title}`).join("\n")}`
@@ -143,6 +142,7 @@ export function AiAssistant() {
           }}
           className="flex items-center gap-2 border-t border-border p-3"
         >
+          <VoiceRecorder onError={(e) => console.error(e)} className="flex-shrink-0" />
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}

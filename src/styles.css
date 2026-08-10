@@ -11,8 +11,8 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Montserrat", "Open Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Montserrat", "Open Sans", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -139,6 +139,107 @@
   h3 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     Custom bullet styles for unordered lists
+     ═══════════════════════════════════════════════════════ */
+  ul {
+    list-style: none;
+    padding-left: 0;
+    margin-left: 0;
+  }
+  ul li {
+    position: relative;
+    padding-left: 1.75rem; /* отступ от маркера до текста */
+    margin-bottom: 0.625rem; /* расстояние между пунктами */
+    line-height: 1.65;
+  }
+  ul li::before {
+    content: "";
+    position: absolute;
+    left: 0.25rem;
+    top: 0.65em;
+    width: 0.55rem; /* чуть крупнее стандартного */
+    height: 0.55rem;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    box-shadow:
+      0 0 0 2px color-mix(in oklab, var(--color-primary) 25%, transparent),
+      0 0 8px color-mix(in oklab, var(--color-primary) 40%, transparent);
+    transform: translateY(-50%);
+  }
+
+  /* Alternative marker variants ---------------------------------- */
+
+  /* Square bullets */
+  ul.square-bullets li::before {
+    border-radius: 25%;
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+
+  /* Checkmark bullets */
+  ul.check-bullets li::before {
+    content: "✓";
+    width: auto;
+    height: auto;
+    background: none;
+    box-shadow: none;
+    color: var(--color-primary);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1;
+    top: 0.55em;
+    left: 0.1rem;
+    transform: translateY(-50%);
+  }
+
+  /* Diamond bullets */
+  ul.diamond-bullets li::before {
+    border-radius: 2px;
+    width: 0.45rem;
+    height: 0.45rem;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     Ordered lists — numbered badges
+     ═══════════════════════════════════════════════════════ */
+  ol {
+    list-style: none;
+    padding-left: 0;
+    margin-left: 0;
+    counter-reset: list-counter;
+  }
+  ol li {
+    position: relative;
+    padding-left: 2.25rem;
+    margin-bottom: 0.625rem;
+    line-height: 1.65;
+  }
+  ol li::before {
+    content: counter(list-counter);
+    counter-increment: list-counter;
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(
+      135deg,
+      var(--color-primary),
+      color-mix(in oklab, var(--color-primary) 70%, var(--color-acc-2))
+    );
+    color: var(--color-primary-foreground);
+    border-radius: 50%;
+    font-size: 0.725rem;
+    font-weight: 700;
+    font-family: var(--font-sans);
+    box-shadow: 0 2px 6px color-mix(in oklab, var(--color-primary) 35%, transparent);
   }
 }
 
