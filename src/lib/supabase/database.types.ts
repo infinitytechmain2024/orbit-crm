@@ -6,6 +6,72 @@ export type Database = {
   };
   public: {
     Tables: {
+      lead_clients: {
+        Row: {
+          ai_offer_script: Json | null;
+          business_name: string;
+          category: string;
+          city_location: string;
+          contact_phone: string | null;
+          country: string;
+          country_flag: string;
+          created_at: string;
+          email: string;
+          google_maps_url: string | null;
+          id: string;
+          priority: Database["public"]["Enums"]["lead_client_priority"];
+          source_query: string | null;
+          status: Database["public"]["Enums"]["lead_client_status"];
+          updated_at: string;
+          user_id: string;
+          website_status_type: Database["public"]["Enums"]["lead_website_status"] | null;
+          website_url: string;
+          whatsapp_status: string;
+        };
+        Insert: {
+          ai_offer_script?: Json | null;
+          business_name: string;
+          category: string;
+          city_location: string;
+          contact_phone?: string | null;
+          country?: string;
+          country_flag?: string;
+          created_at?: string;
+          email?: string;
+          google_maps_url?: string | null;
+          id?: string;
+          priority?: Database["public"]["Enums"]["lead_client_priority"];
+          source_query?: string | null;
+          status?: Database["public"]["Enums"]["lead_client_status"];
+          updated_at?: string;
+          user_id: string;
+          website_status_type?: Database["public"]["Enums"]["lead_website_status"] | null;
+          website_url?: string;
+          whatsapp_status?: string;
+        };
+        Update: {
+          ai_offer_script?: Json | null;
+          business_name?: string;
+          category?: string;
+          city_location?: string;
+          contact_phone?: string | null;
+          country?: string;
+          country_flag?: string;
+          created_at?: string;
+          email?: string;
+          google_maps_url?: string | null;
+          id?: string;
+          priority?: Database["public"]["Enums"]["lead_client_priority"];
+          source_query?: string | null;
+          status?: Database["public"]["Enums"]["lead_client_status"];
+          updated_at?: string;
+          user_id?: string;
+          website_status_type?: Database["public"]["Enums"]["lead_website_status"] | null;
+          website_url?: string;
+          whatsapp_status?: string;
+        };
+        Relationships: [];
+      };
       finance_transactions: {
         Row: {
           amount: number;
@@ -829,6 +895,9 @@ export type Database = {
     };
     Enums: {
       finance_transaction_type: "income" | "expense";
+      lead_client_priority: "High" | "Middle" | "Low";
+      lead_client_status: "Lead" | "New" | "In Progress" | "Rejected" | "Archived";
+      lead_website_status: "no_website" | "needs_upgrade" | "good";
       organization_role: "owner" | "admin" | "manager" | "member" | "accountant";
       project_priority: "low" | "medium" | "high" | "critical";
       project_status: "planned" | "active" | "paused" | "completed" | "archived";
@@ -955,6 +1024,9 @@ export const Constants = {
   public: {
     Enums: {
       finance_transaction_type: ["income", "expense"],
+      lead_client_priority: ["High", "Middle", "Low"],
+      lead_client_status: ["Lead", "New", "In Progress", "Rejected", "Archived"],
+      lead_website_status: ["no_website", "needs_upgrade", "good"],
       organization_role: ["owner", "admin", "manager", "member", "accountant"],
       project_priority: ["low", "medium", "high", "critical"],
       project_status: ["planned", "active", "paused", "completed", "archived"],

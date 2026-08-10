@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
-import { VoiceRecorder } from "@/components/crm/VoiceRecorder";
+import { QuickInputTextarea } from "@/components/crm/QuickInputTextarea";
 import { STATUS_LABEL, type Priority } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 
@@ -108,15 +108,14 @@ function Dashboard() {
           <h2 className="mt-2 text-2xl">
             Выгрузите мысли — <span className="text-gradient">ИИ разложит по полкам</span>
           </h2>
-          <textarea
+          <QuickInputTextarea
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={setDraft}
             rows={3}
             placeholder="Например: позвонить Анне по договору, выставить счёт Nordwind, подготовить отчёт за июль"
-            className="mt-4 w-full resize-none rounded-xl border border-border bg-surface-2/60 p-4 text-sm outline-none transition focus:border-primary/60"
+            className="mt-4"
           />
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <VoiceRecorder onError={(e) => console.error(e)} />
             <button
               onClick={analyze}
               disabled={stage === "loading"}

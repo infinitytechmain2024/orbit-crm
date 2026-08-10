@@ -1,0 +1,1 @@
+export { SkyscannerSearchPanel } from "./SkyscannerSearchPanel";

@@ -179,10 +179,10 @@ async function executeWebSearchLeads(
   const { data: lead, error } = await supabase
     .from("leads")
     .insert({
-      requested_service_text: `Поиск контактов компании: ${companyName}`,
-      source_key: "voice_search",
+      company_name: companyName,
+      source_query: `Поиск контактов компании: ${companyName}`,
       responsible_user_id: userId,
-      stage: "new_enquiry",
+      status: "new",
     })
     .select()
     .single();

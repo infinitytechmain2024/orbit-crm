@@ -103,90 +103,78 @@ export const aiLearnFn = createServerFn({ method: "POST" }).handler(async ({ req
   }
 });
 
-export const getAiMemoryFn = createServerFn({ method: "POST" }).handler(
-  async ({ request }) => {
-    const body = await request.json();
-    const { transcript } = body;
+export const getAiMemoryFn = createServerFn({ method: "POST" }).handler(async ({ request }) => {
+  const body = await request.json();
+  const { transcript } = body;
 
-    const supabase = getSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const supabase = getSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .single();
+  const { data: profile } = await supabase.from("profiles").select("id").eq("id", user.id).single();
 
-    if (!profile) {
-      return new Response(JSON.stringify({ memory: {} }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const memory = await getMemoryForIntent(user.id, transcript);
-
-    return new Response(JSON.stringify({ memory }), {
+  if (!profile) {
+    return new Response(JSON.stringify({ memory: {} }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  },
-);
+  }
 
-export const executeIntentFn = createServerFn({ method: "POST" }).handler(
-  async ({ request }) => {
-    const body = await request.json();
-    const { intent } = body;
+  const memory = await getMemoryForIntent(user.id, transcript);
 
-    const supabase = getSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  return new Response(JSON.stringify({ memory }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});
 
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+export const executeIntentFn = createServerFn({ method: "POST" }).handler(async ({ request }) => {
+  const body = await request.json();
+  const { intent } = body;
+
+  const supabase = getSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const { data: profile } = await supabase.from("profiles").select("id").eq("id", user.id).single();
+
+  if (!profile) {
+    return new Response(JSON.stringify({ error: "No profile found" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const result = await executeIntent(user.id, intent);
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Intent execution error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Execution failed" }),
+      {
+        status: 500,
         headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile) {
-      return new Response(JSON.stringify({ error: "No profile found" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    try {
-      const result = await executeIntent(user.id, intent);
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      console.error("Intent execution error:", error);
-      return new Response(
-        JSON.stringify({ error: error instanceof Error ? error.message : "Execution failed" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-  },
-);
+      },
+    );
+  }
+});

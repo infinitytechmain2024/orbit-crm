@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Send, Sparkles, X } from "lucide-react";
+import { Bot, Send, Sparkles, X, Mic, MicOff, Loader2 } from "lucide-react";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
-import { VoiceRecorder } from "./VoiceRecorder";
+import { processVoiceNoteFn } from "@/lib/voice/server-functions";
 
 type Msg = { id: string; role: "user" | "ai"; text: string };
 
@@ -21,6 +21,10 @@ export function AiAssistant() {
     },
   ]);
   const endRef = useRef<HTMLDivElement>(null);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,6 +68,56 @@ export function AiAssistant() {
     ]);
     setMsgs((m) => [...m, { id: Math.random().toString(36), role: "ai", text: answer }]);
     setThinking(false);
+  };
+
+  const toggleRecording = async () => {
+    if (recording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm;codecs=opus",
+      });
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        setTranscribing(true);
+
+        try {
+          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+          const formData = new FormData();
+          formData.append("audio", blob, "voice-note.webm");
+          const response = await processVoiceNoteFn({
+            request: new Request("", { method: "POST", body: formData }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.transcript) {
+              void send(data.transcript);
+            }
+          }
+        } catch (err) {
+          console.error("Voice transcription error:", err);
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start(100);
+      setRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+    }
   };
 
   return (
@@ -142,7 +196,28 @@ export function AiAssistant() {
           }}
           className="flex items-center gap-2 border-t border-border p-3"
         >
-          <VoiceRecorder onError={(e) => console.error(e)} className="flex-shrink-0" />
+          <button
+            type="button"
+            onClick={() => void toggleRecording()}
+            disabled={transcribing || thinking}
+            className={cn(
+              "grid size-8 place-items-center rounded-lg transition-all flex-shrink-0",
+              recording
+                ? "bg-red-500/20 text-red-500 animate-pulse"
+                : transcribing
+                  ? "bg-primary/20 text-primary"
+                  : "text-muted-foreground hover:bg-surface-3 hover:text-foreground",
+            )}
+            aria-label={recording ? "Остановить запись" : "Голосовой ввод"}
+          >
+            {transcribing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : recording ? (
+              <MicOff className="size-4" />
+            ) : (
+              <Mic className="size-4" />
+            )}
+          </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}

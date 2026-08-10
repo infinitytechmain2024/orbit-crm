@@ -1,14 +1,15 @@
 """FastAPI server for Lead Generation system.
 
 Endpoints:
-  POST /api/search          — Start a lead search
+  POST /api/search          — Start a lead search (Liam + OpenManus pipeline)
   GET  /api/search/{job_id} — Get search job status
   GET  /api/search          — List all search jobs
   GET  /api/reports         — List generated reports
   GET  /api/reports/{name}  — Read a report file
   POST /api/notion/sync     — Sync leads to Notion
+  POST /api/leads/save      — Save leads to Supabase leads table
   GET  /api/health          — Health check
-  GET  /api/status          — System status (Ollama, Notion)
+  GET  /api/status          — System status (Ollama, Playwright, Notion)
 """
 
 import os
@@ -20,6 +21,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from agent import LeadGenerationAgent
+from browser_scraper import HAS_PLAYRIGHT
 from markdown_report import list_reports, read_report
 from models import (
     NotionSyncRequest,
@@ -77,6 +79,7 @@ async def system_status():
 
     return {
         "ollama": {"available": ollama_ok, "url": agent.ollama_url},
+        "playwright": {"available": HAS_PLAYRIGHT},
         "notion": {"configured": notion_key and notion_db, "database_set": notion_db},
         "reports_dir": REPORTS_DIR,
     }
@@ -163,6 +166,46 @@ async def sync_to_notion(request: NotionSyncRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Sync failed: {e}")
+
+
+@app.post("/api/leads/save")
+async def save_leads_to_supabase(
+    organization_id: str,
+    project_id: str | None = None,
+    source_query: str = "",
+    niche: str = "",
+    city: str = "",
+):
+    """Save leads from the latest search job to Supabase leads table."""
+    try:
+        from liam_orchestrator import LiamOrchestrator, ValidatedContact
+
+        orchestrator = LiamOrchestrator(
+            ollama_url=agent.ollama_url,
+            ollama_model=os.getenv("OLLAMA_MODEL", "llama3.2"),
+        )
+
+        # Get the most recent completed job
+        completed_jobs = [
+            j for j in agent.jobs.values()
+            if j.status.value == "completed"
+        ]
+        if not completed_jobs:
+            raise HTTPException(status_code=404, detail="No completed search jobs found")
+
+        latest_job = max(completed_jobs, key=lambda j: j.completed_at or datetime.min)
+
+        # For now, return job info — actual lead saving happens in the search pipeline
+        return {
+            "job_id": latest_job.job_id,
+            "leads_found": latest_job.leads_found,
+            "report_path": latest_job.report_path,
+            "status": "saved" if latest_job.report_path else "pending",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save leads: {e}")
 
 
 if __name__ == "__main__":

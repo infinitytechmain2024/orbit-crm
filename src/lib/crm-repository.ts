@@ -1831,3 +1831,219 @@ export async function getTaskFileSignedUrl(storagePath: string): Promise<string>
   if (error) throw toMessage("Не удалось открыть вложение", error.message);
   return data.signedUrl;
 }
+
+// ========================================
+// Lead Clients (CRM)
+// ========================================
+
+type LeadClientRow = Tables<"lead_clients">;
+
+export type { LeadClient, LeadClientInput, LeadClientPatch, CityGroupedClients } from "@/types/lead";
+import type { LeadClient, LeadClientInput, LeadClientPatch, CityGroupedClients } from "@/types/lead";
+
+function mapLeadClient(row: LeadClientRow): LeadClient {
+  return {
+    id: row.id,
+    businessName: row.business_name,
+    category: row.category,
+    cityLocation: row.city_location,
+    country: row.country,
+    countryFlag: row.country_flag,
+    contactPhone: row.contact_phone,
+    email: row.email,
+    websiteUrl: row.website_url,
+    whatsappStatus: row.whatsapp_status,
+    googleMapsUrl: row.google_maps_url,
+    priority: row.priority,
+    status: row.status,
+    websiteStatusType: row.website_status_type,
+    aiOfferScript: row.ai_offer_script,
+    sourceQuery: row.source_query,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function leadClientInputToRow(input: LeadClientInput): TablesInsert<"lead_clients"> {
+  const row: TablesInsert<"lead_clients"> = {
+    business_name: input.businessName,
+    category: input.category,
+    city_location: input.cityLocation,
+    user_id: "", // Will be set by the caller
+  };
+  if (input.country !== undefined) row.country = input.country;
+  if (input.countryFlag !== undefined) row.country_flag = input.countryFlag;
+  if (input.contactPhone !== undefined) row.contact_phone = input.contactPhone;
+  if (input.email !== undefined) row.email = input.email;
+  if (input.websiteUrl !== undefined) row.website_url = input.websiteUrl;
+  if (input.whatsappStatus !== undefined) row.whatsapp_status = input.whatsappStatus;
+  if (input.googleMapsUrl !== undefined) row.google_maps_url = input.googleMapsUrl;
+  if (input.priority !== undefined) row.priority = input.priority;
+  if (input.status !== undefined) row.status = input.status;
+  if (input.websiteStatusType !== undefined) row.website_status_type = input.websiteStatusType;
+  if (input.aiOfferScript !== undefined) row.ai_offer_script = input.aiOfferScript;
+  if (input.sourceQuery !== undefined) row.source_query = input.sourceQuery;
+  return row;
+}
+
+export async function fetchLeadClients(
+  userId: string,
+  options?: { status?: string; city?: string },
+): Promise<LeadClient[]> {
+  const supabase = getSupabaseClient();
+  let query = supabase
+    .from("lead_clients")
+    .select("*")
+    .eq("user_id", userId)
+    .order("city_location")
+    .order("priority")
+    .order("business_name");
+
+  if (options?.status) {
+    query = query.eq("status", options.status);
+  }
+  if (options?.city) {
+    query = query.eq("city_location", options.city);
+  }
+
+  const { data, error } = await query;
+  if (error) throw toMessage("Не удалось загрузить клиентов", error.message);
+  return (data || []).map(mapLeadClient);
+}
+
+export async function fetchLeadClientsGroupedByCity(
+  userId: string,
+  status?: string,
+): Promise<CityGroupedClients[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("get_lead_clients_by_city", {
+    p_user_id: userId,
+    p_status: status || null,
+  });
+
+  if (error) throw toMessage("Не удалось загрузить клиентов по городам", error.message);
+
+  interface CityGroupResponse {
+    city_location: string;
+    clients: Array<{
+      id: string;
+      business_name: string;
+      category: string;
+      contact_phone: string | null;
+      email: string;
+      website_url: string;
+      whatsapp_status: string;
+      google_maps_url: string | null;
+      priority: string;
+      status: string;
+      website_status_type: string | null;
+      ai_offer_script: Json | null;
+      created_at: string;
+    }> | null;
+    client_count: number;
+  }
+
+  return ((data as CityGroupResponse[]) || []).map((item) => ({
+    cityLocation: item.city_location,
+    clients: (item.clients || []).map((c) => ({
+      id: c.id,
+      businessName: c.business_name,
+      category: c.category,
+      cityLocation: item.city_location,
+      country: "United States",
+      countryFlag: "🇺🇸",
+      contactPhone: c.contact_phone,
+      email: c.email,
+      websiteUrl: c.website_url,
+      whatsappStatus: c.whatsapp_status,
+      googleMapsUrl: c.google_maps_url,
+      priority: c.priority as "High" | "Middle" | "Low",
+      status: c.status as "Lead" | "New" | "In Progress" | "Rejected" | "Archived",
+      websiteStatusType: c.website_status_type as "no_website" | "needs_upgrade" | "good" | null,
+      aiOfferScript: c.ai_offer_script,
+      sourceQuery: null,
+      createdAt: c.created_at,
+      updatedAt: c.created_at,
+    })),
+    clientCount: Number(item.client_count),
+  }));
+}
+
+export async function createLeadClient(
+  userId: string,
+  input: LeadClientInput,
+): Promise<LeadClient> {
+  const supabase = getSupabaseClient();
+  const row = leadClientInputToRow(input);
+  row.user_id = userId;
+
+  const { data, error } = await supabase.from("lead_clients").insert(row).select().single();
+
+  if (error) throw toMessage("Не удалось создать клиента", error.message);
+  return mapLeadClient(ensureData(data, "Supabase не вернул клиента."));
+}
+
+export async function updateLeadClient(
+  userId: string,
+  clientId: string,
+  patch: LeadClientPatch,
+): Promise<LeadClient> {
+  const supabase = getSupabaseClient();
+  const updateData: TablesUpdate<"lead_clients"> = {};
+
+  if (patch.businessName !== undefined) updateData.business_name = patch.businessName;
+  if (patch.category !== undefined) updateData.category = patch.category;
+  if (patch.cityLocation !== undefined) updateData.city_location = patch.cityLocation;
+  if (patch.country !== undefined) updateData.country = patch.country;
+  if (patch.countryFlag !== undefined) updateData.country_flag = patch.countryFlag;
+  if (patch.contactPhone !== undefined) updateData.contact_phone = patch.contactPhone;
+  if (patch.email !== undefined) updateData.email = patch.email;
+  if (patch.websiteUrl !== undefined) updateData.website_url = patch.websiteUrl;
+  if (patch.whatsappStatus !== undefined) updateData.whatsapp_status = patch.whatsappStatus;
+  if (patch.googleMapsUrl !== undefined) updateData.google_maps_url = patch.googleMapsUrl;
+  if (patch.priority !== undefined) updateData.priority = patch.priority;
+  if (patch.status !== undefined) updateData.status = patch.status;
+  if (patch.websiteStatusType !== undefined)
+    updateData.website_status_type = patch.websiteStatusType;
+  if (patch.aiOfferScript !== undefined) updateData.ai_offer_script = patch.aiOfferScript;
+  if (patch.sourceQuery !== undefined) updateData.source_query = patch.sourceQuery;
+
+  const { data, error } = await supabase
+    .from("lead_clients")
+    .update(updateData)
+    .eq("id", clientId)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) throw toMessage("Не удалось обновить клиента", error.message);
+  return mapLeadClient(ensureData(data, "Supabase не вернул клиента."));
+}
+
+export async function deleteLeadClient(userId: string, clientId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("lead_clients")
+    .delete()
+    .eq("id", clientId)
+    .eq("user_id", userId);
+
+  if (error) throw toMessage("Не удалось удалить клиента", error.message);
+}
+
+export async function bulkCreateLeadClients(
+  userId: string,
+  inputs: LeadClientInput[],
+): Promise<LeadClient[]> {
+  const supabase = getSupabaseClient();
+  const rows = inputs.map((input) => {
+    const row = leadClientInputToRow(input);
+    row.user_id = userId;
+    return row;
+  });
+
+  const { data, error } = await supabase.from("lead_clients").insert(rows).select();
+
+  if (error) throw toMessage("Не удалось массово создать клиентов", error.message);
+  return (data || []).map(mapLeadClient);
+}
