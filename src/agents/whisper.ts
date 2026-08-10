@@ -1,6 +1,10 @@
 import type { TranscriptionResult } from "../types/voice";
 
-const BACKEND_API = "http://localhost:8000";
+const BACKEND_API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+const COMMON_HEADERS = {
+  "ngrok-skip-browser-warning": "true",
+};
 
 export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
   const formData = new FormData();
@@ -8,6 +12,7 @@ export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionRes
 
   const response = await fetch(`${BACKEND_API}/api/voice/stt`, {
     method: "POST",
+    headers: COMMON_HEADERS,
     body: formData,
   });
 
@@ -30,7 +35,9 @@ export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionRes
 
 export async function checkWhisperHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${BACKEND_API}/api/health`);
+    const response = await fetch(`${BACKEND_API}/api/health`, {
+      headers: COMMON_HEADERS,
+    });
     if (!response.ok) return false;
     const data = (await response.json()) as { status: string };
     return data.status === "ok";

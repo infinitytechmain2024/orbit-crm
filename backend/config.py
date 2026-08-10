@@ -49,10 +49,16 @@ class Settings(BaseSettings):
     NOTION_API_KEY: str = Field(default="", validation_alias="NOTION_API_KEY")
     NOTION_DATABASE_ID: str = Field(default="", validation_alias="NOTION_DATABASE_ID")
 
-    # CORS
+    # CORS — allow Vercel deployments, ngrok, cloudflare tunnels, and local dev
     CORS_ORIGINS: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173"],
-        validation_alias="CORS_ORIGINS"
+        default=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ],
+        validation_alias="CORS_ORIGINS",
     )
 
     class Config:

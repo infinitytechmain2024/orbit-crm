@@ -18,7 +18,11 @@ export interface VoiceProcessResult {
   suggestedActions: string[];
 }
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+const COMMON_HEADERS: Record<string, string> = {
+  "ngrok-skip-browser-warning": "true",
+};
 
 const SYSTEM_PROMPT = `Ты — ИИ-ассистент Orbit CRM. Твоя задача — анализировать голосовые команды пользователя и классифицировать их намерения (Intent).
 
@@ -53,6 +57,7 @@ async function tryBackendTranscribe(audioBlob: Blob): Promise<string | null> {
     formData.append("audio", audioBlob, "audio.webm");
     const response = await fetch(`${BACKEND_URL}/api/voice/transcribe`, {
       method: "POST",
+      headers: COMMON_HEADERS,
       body: formData,
     });
     if (response.ok) {
@@ -71,6 +76,7 @@ async function tryBackendProcess(audioBlob: Blob): Promise<VoiceProcessResult | 
     formData.append("audio", audioBlob, "audio.webm");
     const response = await fetch(`${BACKEND_URL}/api/voice/process`, {
       method: "POST",
+      headers: COMMON_HEADERS,
       body: formData,
     });
     if (response.ok) {
@@ -131,7 +137,7 @@ export async function classifyIntent(transcript: string, userId?: string): Promi
   try {
     const response = await fetch(`${BACKEND_URL}/api/voice/transcribe`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...COMMON_HEADERS },
       body: JSON.stringify({ transcript, memory_context: memoryContext }),
     });
     // Backend doesn't have a classify-only endpoint yet, so fall through

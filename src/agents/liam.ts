@@ -2,8 +2,14 @@ import type { SearchFilters } from "../types/search";
 import type { VoiceIntent } from "../types/voice";
 import type { LiamCommand, LiamResponse } from "../types/agent";
 
-const OLLAMA_URL = "http://localhost:11434/v1";
+const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434/v1";
 const OPENAI_URL = "https://api.openai.com/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+const COMMON_HEADERS: Record<string, string> = {
+  "Content-Type": "application/json",
+  "ngrok-skip-browser-warning": "true",
+};
 
 type LlmProvider = "ollama" | "openai";
 
@@ -30,7 +36,7 @@ async function callLlm(prompt: string): Promise<string> {
   const model = config.provider === "openai" ? "gpt-4o-mini" : config.model;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...COMMON_HEADERS,
   };
 
   if (config.provider === "openai" && config.openaiApiKey) {

@@ -1,8 +1,14 @@
 import type { SearchFilters } from "../types/search";
 import type { ScrapingResult, ManusJobStatus } from "../types/agent";
 
-const LEAD_GEN_API = "http://localhost:8090";
-const BACKEND_API = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const LEAD_GEN_API = import.meta.env.VITE_LEAD_GEN_URL || API_URL;
+const BACKEND_API = API_URL;
+
+const COMMON_HEADERS: Record<string, string> = {
+  "Content-Type": "application/json",
+  "ngrok-skip-browser-warning": "true",
+};
 
 interface SearchRequestPayload {
   city: string;
@@ -43,7 +49,7 @@ async function apiFetch<T>(
   const url = `${base}${path}`;
   const response = await fetch(url, {
     headers: {
-      "Content-Type": "application/json",
+      ...COMMON_HEADERS,
       ...options?.headers,
     },
     ...options,

@@ -1,18 +1,22 @@
 """Orbit CRM Backend — FastAPI application.
 
 Endpoints:
-  POST /api/voice/transcribe  — Transcribe audio via Faster-Whisper
-  POST /api/voice/process     — Full pipeline: transcribe + classify intent
-  POST /api/leads/search      — Start a lead search job (OpenManus)
-  GET  /api/leads/search/:id  — Get search job status
-  GET  /api/health            — Health check
+  POST /api/voice/stt           — Transcribe audio via Faster-Whisper
+  POST /api/voice/process       — Full pipeline: transcribe + classify intent
+  POST /api/voice/execute       — Execute a classified intent
+  POST /api/agent/process       — Process text/voice commands via Liam agent
+  GET  /api/clients             — Get clients from Supabase
+  POST /api/clients             — Create a client in Supabase
+  POST /api/leads/search        — Start a lead search job
+  GET  /api/leads/search/:id    — Get search job status
+  GET  /api/health              — Health check
 """
 
+import io
 import logging
-import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -25,15 +29,24 @@ from backend.services.intent_executor import execute_intent, ExecutionResult
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Dynamically build CORS origins — include Vercel preview URLs and tunnel domains
+CORS_ORIGINS = list(settings.CORS_ORIGINS) + [
+    "https://*.vercel.app",
+    "https://*.trycloudflare.com",
+    "https://*.ngrok-free.app",
+    "https://*.ngrok.io",
+]
+
 app = FastAPI(
     title="Orbit CRM Backend",
-    description="AI-powered voice processing and lead generation backend",
+    description="AI-powered voice processing, lead generation, and CRM backend",
     version="1.0.0",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.(vercel\.app|trycloudflare\.com|ngrok-free\.app|ngrok\.io)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,9 +68,35 @@ class IntentExecuteRequest(BaseModel):
     intent: dict
 
 
+class AgentProcessRequest(BaseModel):
+    text: Optional[str] = None
+    audio_base64: Optional[str] = None
+    user_id: str = "default"
+
+
+class AgentProcessResponse(BaseModel):
+    success: bool
+    reply: str
+    leads: list[dict] = []
+    action_taken: str = ""
+    error: Optional[str] = None
+
+
+class ClientCreateRequest(BaseModel):
+    name: str
+    phone: str = ""
+    email: str = ""
+    website: str = ""
+    address: str = ""
+    category: str = ""
+    notes: str = ""
+    source: str = "manual"
+    status: str = "new"
+
+
 class LeadSearchRequest(BaseModel):
     user_id: str
-    organization_id: str
+    organization_id: str = ""
     city: str
     niche: str
     max_results: int = 20
@@ -75,11 +114,12 @@ class LeadSearchResponse(BaseModel):
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "service": "orbit-crm-backend"}
+    """Health check endpoint."""
+    return {"status": "ok", "service": "orbit-crm-backend", "version": settings.APP_VERSION}
 
 
-@app.post("/api/voice/transcribe")
-async def transcribe_audio(
+@app.post("/api/voice/stt")
+async def speech_to_text(
     audio: UploadFile = File(...),
     language: str = Form(default="ru"),
 ):
@@ -89,12 +129,10 @@ async def transcribe_audio(
         if len(content) == 0:
             raise HTTPException(status_code=400, detail="Empty audio file")
 
-        import io
         transcript = await stt_service.transcribe(
             io.BytesIO(content),
             filename=audio.filename or "audio.webm",
         )
-
         return {"transcript": transcript, "language": language}
     except HTTPException:
         raise
@@ -104,16 +142,13 @@ async def transcribe_audio(
 
 
 @app.post("/api/voice/process", response_model=VoiceProcessResponse)
-async def process_voice(
-    audio: UploadFile = File(...),
-):
+async def process_voice(audio: UploadFile = File(...)):
     """Full voice pipeline: transcribe audio -> classify intent -> return suggestions."""
     try:
         content = await audio.read()
         if len(content) == 0:
             raise HTTPException(status_code=400, detail="Empty audio file")
 
-        import io
         transcript = await stt_service.transcribe(
             io.BytesIO(content),
             filename=audio.filename or "audio.webm",
@@ -168,13 +203,87 @@ async def execute_voice_intent(request: IntentExecuteRequest):
         raise HTTPException(status_code=500, detail=f"Execution failed: {str(e)}")
 
 
+@app.post("/api/agent/process", response_model=AgentProcessResponse)
+async def agent_process(request: AgentProcessRequest):
+    """Process text command via Liam AI agent."""
+    try:
+        text = request.text
+        if not text:
+            raise HTTPException(status_code=400, detail="Text is required")
+
+        from backend.agents.liam_agent import liam_agent
+        result = await liam_agent.process(text, user_id=request.user_id)
+
+        return AgentProcessResponse(
+            success=result.success,
+            reply=result.reply,
+            leads=result.leads,
+            action_taken=result.action_taken,
+            error=result.error,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Agent processing failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Agent processing failed: {str(e)}")
+
+
+@app.get("/api/clients")
+async def get_clients(
+    limit: int = Query(default=50, ge=1, le=200),
+    status: Optional[str] = Query(default=None),
+    source: Optional[str] = Query(default=None),
+):
+    """Get clients from Supabase."""
+    try:
+        from backend.services.supabase_client import supabase_service
+
+        query = supabase_service.client.table("clients").select("*")
+
+        if status:
+            query = query.eq("status", status)
+        if source:
+            query = query.eq("source", source)
+
+        result = query.order("created_at", desc=True).limit(limit).execute()
+        return {"clients": result.data or [], "count": len(result.data or [])}
+    except Exception as e:
+        logger.error(f"Failed to get clients: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/clients")
+async def create_client(request: ClientCreateRequest):
+    """Create a new client in Supabase."""
+    try:
+        from backend.services.supabase_client import supabase_service
+
+        result = supabase_service.client.table("clients").insert({
+            "name": request.name,
+            "phone": request.phone,
+            "email": request.email,
+            "website": request.website,
+            "address": request.address,
+            "category": request.category,
+            "notes": request.notes,
+            "source": request.source,
+            "status": request.status,
+        }).execute()
+
+        if result.data:
+            return {"client": result.data[0], "success": True}
+        raise Exception("No data returned")
+    except Exception as e:
+        logger.error(f"Failed to create client: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/leads/search", response_model=LeadSearchResponse)
 async def start_lead_search(request: LeadSearchRequest):
     """Start a lead search job using OpenManus browser agent."""
     try:
         from backend.services.supabase_client import supabase_service
 
-        # Create job record in Supabase
         result = supabase_service.client.table("lead_search_jobs").insert({
             "user_id": request.user_id,
             "organization_id": request.organization_id,
