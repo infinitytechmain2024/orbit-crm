@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/llama3.2",
+  "provider": {
+    "ollama": {
+      "options": {
+        "apiUrl": "http://localhost:11434/v1"
+      }
+    }
+  }
+}
