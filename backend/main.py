@@ -7,19 +7,26 @@ Endpoints:
   POST /api/agent/process       — Process text/voice commands via Liam agent
   GET  /api/clients             — Get clients from Supabase
   POST /api/clients             — Create a client in Supabase
+  GET  /api/appointments        — Get appointments from Supabase
+  POST /api/appointments        — Create an appointment in Supabase
   POST /api/leads/search        — Start a lead search job
   GET  /api/leads/search/:id    — Get search job status
-  GET  /api/health              — Health check
+  GET  /api/system/health       — Health check (Ollama, Supabase)
 """
 
+import asyncio
 import io
 import logging
+import subprocess
+import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import List
 
 from backend.config import settings
 from backend.services.stt import stt_service
@@ -37,10 +44,79 @@ CORS_ORIGINS = list(settings.CORS_ORIGINS) + [
     "https://*.ngrok.io",
 ]
 
+# ============================
+# Ollama Auto-Start
+# ============================
+
+async def ensure_ollama_running():
+    """Check if Ollama is running, start if not."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.get(f"{settings.OLLAMA_BASE_URL.replace('/v1', '')}/api/tags")
+            if response.status_code == 200:
+                logger.info("Ollama is already running")
+                return True
+    except Exception:
+        logger.info("Ollama not responding, attempting to start...")
+
+    try:
+        # Start ollama serve in background
+        if sys.platform == "win32":
+            subprocess.Popen(
+                ["ollama", "serve"],
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        logger.info("Started ollama serve in background")
+
+        # Wait for Ollama to be ready
+        for _ in range(30):
+            await asyncio.sleep(1)
+            try:
+                async with httpx.AsyncClient(timeout=2.0) as client:
+                    response = await client.get(f"{settings.OLLAMA_BASE_URL.replace('/v1', '')}/api/tags")
+                    if response.status_code == 200:
+                        logger.info("Ollama started successfully")
+                        return True
+            except Exception:
+                continue
+        logger.warning("Ollama did not start within 30 seconds")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to start Ollama: {e}")
+        return False
+
+# ============================
+# Lifespan
+# ============================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting Orbit CRM Backend...")
+    await ensure_ollama_running()
+    yield
+    # Shutdown
+    logger.info("Shutting down Orbit CRM Backend...")
+
+# ============================
+# FastAPI App
+# ============================
+
 app = FastAPI(
     title="Orbit CRM Backend",
     description="AI-powered voice processing, lead generation, and CRM backend",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -106,6 +182,35 @@ class LeadSearchResponse(BaseModel):
     job_id: str
     status: str
     message: str
+
+
+class HealthResponse(BaseModel):
+    status: str
+    ollama: dict
+    supabase: dict
+    version: str
+
+
+class AppointmentCreateRequest(BaseModel):
+    title: str
+    client_name: str
+    start_time: str  # ISO format
+    end_time: str    # ISO format
+    status: str = "new"
+    notes: str = ""
+    client_id: Optional[str] = None
+
+
+class AppointmentResponse(BaseModel):
+    id: str
+    title: str
+    client_name: str
+    start_time: str
+    end_time: str
+    status: str
+    notes: str
+    client_id: Optional[str] = None
+    created_at: str
 
 
 # ============================
