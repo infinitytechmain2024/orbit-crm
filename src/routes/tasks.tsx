@@ -551,13 +551,13 @@ function ProjectGraph({
         isSidebarOpen ? "lg:grid-cols-[1fr_300px]" : "grid-cols-1",
       )}
     >
-      <div className="panel relative flex flex-col min-h-[34rem] overflow-hidden select-none bg-surface-2/20 border border-border/70">
+      <div className="panel relative flex flex-col min-h-[34rem] overflow-hidden select-none border border-border/70" style={{ background: "#0f172a" }}>
         {/* Canvas Toolbar Header */}
-        <div className="z-10 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-surface/80 p-3 backdrop-blur-md">
+        <div className="z-10 flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-[#0f172a]/90 p-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90">
               <Network className="size-4 text-primary" />
-              Карта проектов
+              Карта связей
             </span>
             {connectingFromId && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary animate-pulse">
@@ -582,28 +582,47 @@ function ProjectGraph({
               type="button"
               onClick={autoDistributeNodes}
               title="Автоматически распределить блоки"
-              className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-medium hover:bg-surface-2 transition text-foreground"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium hover:bg-white/[0.08] transition text-slate-300"
             >
-              <LayoutGrid className="size-3.5 text-muted-foreground" />
+              <LayoutGrid className="size-3.5 text-slate-400" />
               Распределить
             </button>
-            <div className="h-4 w-px bg-border/60 mx-1" />
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedProject) {
+                  if (connectingFromId === selectedProject.id) {
+                    setConnectingFromId(null);
+                    setMousePos(null);
+                  } else {
+                    setConnectingFromId(selectedProject.id);
+                  }
+                }
+              }}
+              disabled={!selectedProject}
+              title="Связать проекты"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium hover:bg-white/[0.08] transition text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Link2 className="size-3.5 text-slate-400" />
+              Связать
+            </button>
+            <div className="h-4 w-px bg-white/[0.08] mx-1" />
             <button
               type="button"
               onClick={() => setZoom((z) => Math.min(1.6, z + 0.15))}
               title="Увеличить"
-              className="rounded-lg p-1.5 hover:bg-surface-2 transition text-muted-foreground hover:text-foreground"
+              className="rounded-lg p-1.5 hover:bg-white/[0.08] transition text-slate-400 hover:text-white/90"
             >
               <ZoomIn className="size-4" />
             </button>
-            <span className="text-[11px] font-mono w-9 text-center text-muted-foreground">
+            <span className="text-[11px] font-mono w-9 text-center text-slate-400">
               {Math.round(zoom * 100)}%
             </span>
             <button
               type="button"
               onClick={() => setZoom((z) => Math.max(0.6, z - 0.15))}
               title="Уменьшить"
-              className="rounded-lg p-1.5 hover:bg-surface-2 transition text-muted-foreground hover:text-foreground"
+              className="rounded-lg p-1.5 hover:bg-white/[0.08] transition text-slate-400 hover:text-white/90"
             >
               <ZoomOut className="size-4" />
             </button>
@@ -614,21 +633,21 @@ function ProjectGraph({
                 setPan({ x: 0, y: 0 });
               }}
               title="Сбросить масштаб"
-              className="rounded-lg p-1.5 hover:bg-surface-2 transition text-muted-foreground hover:text-foreground"
+              className="rounded-lg p-1.5 hover:bg-white/[0.08] transition text-slate-400 hover:text-white/90"
             >
               <RotateCcw className="size-3.5" />
             </button>
 
-            <div className="h-4 w-px bg-border/60 mx-1" />
+            <div className="h-4 w-px bg-white/[0.08] mx-1" />
             <button
               type="button"
               onClick={() => setIsSidebarOpen((v) => !v)}
-              title={isSidebarOpen ? "Скрыть панель задач" : "Показать панель задач"}
+              title={isSidebarOpen ? "Скрыть панель" : "Показать панель"}
               className={cn(
-                "inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium transition",
+                "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition",
                 isSidebarOpen
-                  ? "bg-surface-2 text-foreground"
-                  : "bg-primary/10 border-primary/40 text-primary hover:bg-primary/20",
+                  ? "border-white/[0.08] bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
+                  : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20",
               )}
             >
               {isSidebarOpen ? (
@@ -639,7 +658,7 @@ function ProjectGraph({
               ) : (
                 <>
                   <PanelRightOpen className="size-3.5" />
-                  <span>Панель задач</span>
+                  <span>Панель</span>
                 </>
               )}
             </button>
@@ -657,8 +676,8 @@ function ProjectGraph({
             connectingFromId && "cursor-crosshair",
           )}
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+            backgroundImage: "radial-gradient(circle, rgba(148,163,184,0.12) 1px, transparent 1px)",
+            backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
             backgroundPosition: `${pan.x}px ${pan.y}px`,
           }}
         >
@@ -681,9 +700,15 @@ function ProjectGraph({
                 >
                   <polygon points="0 0, 10 4, 0 8" fill="var(--primary)" />
                 </marker>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
+                <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
                   <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="glow-strong" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feFlood floodColor="var(--primary)" floodOpacity="0.3" result="color" />
+                  <feComposite in="color" in2="blur" operator="in" result="colorBlur" />
+                  <feComposite in="SourceGraphic" in2="colorBlur" operator="over" />
                 </filter>
               </defs>
 
@@ -724,22 +749,22 @@ function ProjectGraph({
                           {/* Outer glow stroke */}
                           <path
                             d={`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`}
-                            stroke={project.color || "var(--primary)"}
-                            strokeWidth={isHighlighted ? "5" : "3"}
-                            strokeOpacity={isHighlighted ? "0.4" : "0.2"}
+                            stroke={isHighlighted ? "var(--primary)" : (project.color || "var(--primary)")}
+                            strokeWidth={isHighlighted ? "6" : "4"}
+                            strokeOpacity={isHighlighted ? "0.25" : "0.12"}
                             fill="none"
                             className="transition-all"
+                            filter={isHighlighted ? "url(#glow-strong)" : undefined}
                           />
                           {/* Main line */}
                           <path
                             d={`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`}
-                            stroke={project.color || "var(--primary)"}
-                            strokeWidth={isHighlighted ? "3.5" : "2.5"}
-                            strokeOpacity={isHighlighted ? "1" : "0.75"}
-                            strokeDasharray={isHighlighted ? "none" : "none"}
+                            stroke={isHighlighted ? "var(--primary)" : (project.color || "var(--primary)")}
+                            strokeWidth={isHighlighted ? "2" : "1.5"}
+                            strokeOpacity={isHighlighted ? "1" : "0.6"}
                             fill="none"
                             markerEnd="url(#arrowhead)"
-                            className="transition-all group-hover:stroke-primary group-hover:stroke-4"
+                            className="transition-all"
                           />
                         </g>
                       );
@@ -813,20 +838,21 @@ function ProjectGraph({
                   }}
                   style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                   className={cn(
-                    "absolute -translate-x-1/2 -translate-y-1/2 group min-w-[12rem] max-w-[15rem] rounded-2xl border bg-surface/95 p-3 shadow-xl backdrop-blur-md transition-all cursor-grab active:cursor-grabbing hover:z-20",
-                    isSelected && "ring-2 ring-primary border-primary shadow-primary/10",
+                    "absolute -translate-x-1/2 -translate-y-1/2 group min-w-[11rem] max-w-[14rem] rounded-xl border bg-[#1e293b]/95 p-3 shadow-lg backdrop-blur-md transition-all cursor-grab active:cursor-grabbing hover:z-20",
+                    "border-white/[0.08]",
+                    isSelected && "ring-2 ring-primary border-primary/80 shadow-[0_0_20px_rgba(16,185,129,0.15)]",
                     isSource && "ring-2 ring-primary animate-pulse border-primary",
-                    isTargetHovered && "ring-2 ring-emerald-500 border-emerald-500 scale-105",
+                    isTargetHovered && "ring-2 ring-emerald-400 border-emerald-400 scale-105 shadow-[0_0_20px_rgba(52,211,153,0.2)]",
                     draggingNodeId === project.id && "z-30 scale-105 shadow-2xl opacity-90",
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2 mb-2">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2 mb-2">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <span
-                        className="size-3 rounded-full shrink-0 shadow-sm"
-                        style={{ backgroundColor: project.color || "var(--primary)" }}
+                        className="size-2.5 rounded-full shrink-0 shadow-[0_0_6px_currentColor]"
+                        style={{ backgroundColor: project.color || "var(--primary)", color: project.color || "var(--primary)" }}
                       />
-                      <span className="font-semibold text-xs sm:text-sm truncate text-foreground">
+                      <span className="font-semibold text-xs sm:text-sm truncate text-white/90">
                         {project.name}
                       </span>
                     </div>
@@ -836,7 +862,7 @@ function ProjectGraph({
                       onClick={(e) => handleStartLinking(e, project.id)}
                       title={isSource ? "Отмена соединения" : "Соединить с другим проектом"}
                       className={cn(
-                        "rounded-lg p-1.5 transition text-muted-foreground hover:text-primary hover:bg-surface-2",
+                        "rounded-md p-1 transition text-slate-400 hover:text-primary hover:bg-white/[0.06]",
                         isSource && "bg-primary/20 text-primary",
                       )}
                     >
@@ -844,7 +870,7 @@ function ProjectGraph({
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>{activeCount} активных задач</span>
                     {project.links.length > 0 && (
                       <span className="flex items-center gap-1 text-[11px] font-medium text-primary">
@@ -862,9 +888,10 @@ function ProjectGraph({
 
       {/* Sidebar Task List & Links Inspector */}
       {isSidebarOpen && (
-        <div className="panel p-4 sm:p-5 flex flex-col justify-between h-full animate-in fade-in slide-in-from-right-2 duration-200">
-          <div>
-            <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <div className="panel p-0 flex flex-col h-full animate-in fade-in slide-in-from-right-2 duration-200 overflow-hidden">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-border/60">
+            <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm sm:text-base font-semibold text-foreground truncate">
                   {selectedProject?.name ?? "Выберите проект"}
@@ -890,81 +917,130 @@ function ProjectGraph({
                 </button>
               </div>
             </div>
+          </div>
 
-            {/* Connected Projects Badges */}
-            {selectedProject && selectedProject.links.length > 0 && (
-              <div className="mt-3">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground block mb-1.5">
-                  Связанные проекты:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedProject.links.map((linkId) => {
-                    const target = activeProjectMap[linkId];
-                    if (!target) return null;
-                    return (
-                      <span
-                        key={linkId}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2/60 px-2 py-1 text-xs text-foreground max-w-full"
-                      >
-                        <span
-                          className="size-2 rounded-full shrink-0"
-                          style={{ backgroundColor: target.color }}
-                        />
-                        <span className="truncate">{target.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveLink(selectedProject.id, linkId)}
-                          title="Удалить связь"
-                          className="ml-0.5 hover:text-destructive shrink-0"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </span>
-                    );
-                  })}
+          {/* Sidebar Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Connected Projects */}
+            {selectedProject && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Связи
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground bg-surface-2/60 px-1.5 py-0.5 rounded">
+                    {selectedProject.links.length}
+                  </span>
                 </div>
+                {selectedProject.links.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {selectedProject.links.map((linkId) => {
+                      const target = activeProjectMap[linkId];
+                      if (!target) return null;
+                      return (
+                        <div
+                          key={linkId}
+                          className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-2/30 px-2.5 py-2 text-xs"
+                        >
+                          <span
+                            className="size-2 rounded-full shrink-0"
+                            style={{ backgroundColor: target.color }}
+                          />
+                          <span className="flex-1 truncate text-foreground">{target.name}</span>
+                          <Link2 className="size-3 text-muted-foreground" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLink(selectedProject.id, linkId)}
+                            title="Удалить связь"
+                            className="text-muted-foreground hover:text-destructive transition"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border/60 rounded-lg">
+                    Нет связей
+                  </p>
+                )}
               </div>
             )}
 
             {/* Project Tasks */}
-            <div className="mt-4">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground block mb-2">
-                Задачи проекта ({relatedTasks.length}):
-              </span>
-              <div className="space-y-2 max-h-[22rem] overflow-y-auto pr-1">
-                {relatedTasks.map((task) => (
-                  <button
-                    key={task.id}
-                    type="button"
-                    onClick={() => onSelectTask(task)}
-                    className="block w-full rounded-xl border border-border/80 bg-surface-2/40 hover:bg-surface-2 px-3 py-2 text-left text-sm transition hover:border-primary/50 group"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-foreground group-hover:text-primary transition truncate text-xs sm:text-sm">
-                        {task.title}
+            {selectedProject && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Задачи
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground bg-surface-2/60 px-1.5 py-0.5 rounded">
+                    {relatedTasks.length}
+                  </span>
+                </div>
+                <div className="space-y-1.5 max-h-[18rem] overflow-y-auto pr-1">
+                  {relatedTasks.map((task) => (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => onSelectTask(task)}
+                      className="block w-full rounded-lg border border-border/60 bg-surface-2/30 hover:bg-surface-2/60 px-2.5 py-2 text-left text-xs transition hover:border-primary/50 group"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-foreground group-hover:text-primary transition truncate">
+                          {task.title}
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider shrink-0",
+                            priorityTone[task.priority],
+                          )}
+                        >
+                          {PRIORITY_LABEL[task.priority]}
+                        </span>
+                      </div>
+                      <span className="block text-[10px] text-muted-foreground mt-1">
+                        {STATUS_LABEL[task.status]}
                       </span>
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider shrink-0",
-                          priorityTone[task.priority],
-                        )}
-                      >
-                        {PRIORITY_LABEL[task.priority]}
-                      </span>
-                    </div>
-                    <span className="block text-[11px] text-muted-foreground mt-1">
-                      {STATUS_LABEL[task.status]}
-                    </span>
-                  </button>
-                ))}
-                {!relatedTasks.length && (
-                  <p className="text-xs text-muted-foreground py-4 text-center">
-                    В этом проекте пока нет задач.
-                  </p>
-                )}
+                    </button>
+                  ))}
+                  {!relatedTasks.length && (
+                    <p className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border/60 rounded-lg">
+                      В этом проекте пока нет задач.
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
+
+          {/* Sidebar Footer - Create Link Button */}
+          {selectedProject && (
+            <div className="p-4 border-t border-border/60">
+              <button
+                type="button"
+                onClick={() => {
+                  if (connectingFromId === selectedProject.id) {
+                    setConnectingFromId(null);
+                    setMousePos(null);
+                  } else {
+                    setConnectingFromId(selectedProject.id);
+                    setSel(selectedProject.id);
+                  }
+                }}
+                className={cn(
+                  "w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all",
+                  connectingFromId === selectedProject.id
+                    ? "bg-surface-2 border border-border text-foreground hover:bg-surface-2/80"
+                    : "bg-primary text-primary-foreground hover:opacity-90 shadow-[0_0_16px_rgba(16,185,129,0.2)]",
+                )}
+              >
+                <Link2 className="size-4" />
+                {connectingFromId === selectedProject.id ? "Отменить" : "Создать связь"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

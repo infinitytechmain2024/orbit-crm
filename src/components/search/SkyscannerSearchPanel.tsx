@@ -198,240 +198,234 @@ export function SkyscannerSearchPanel({
 
   return (
     <div className="rounded-2xl border border-border bg-surface-2/60 p-6 shadow-lg">
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column: Country + State + City */}
-        <div className="space-y-5">
-          {/* Country Selector */}
-          <div ref={countryRef}>
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+        {/* Country Selector */}
+        <div ref={countryRef}>
+          <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Globe className="size-3.5" />
+            Country
+          </label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+              className="flex h-11 w-full items-center justify-between rounded-xl border border-border bg-surface-2/60 px-4 py-0 text-sm outline-none transition focus:border-primary/60"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{currentCountry.flag}</span>
+                <span className="font-medium">{currentCountry.name}</span>
+              </div>
+              <ChevronDown className="size-4 text-muted-foreground" />
+            </button>
+
+            {showCountryDropdown && (
+              <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
+                {COUNTRIES.map((country) => (
+                  <button
+                    key={country.code}
+                    onClick={() => handleCountrySelect(country)}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                      filters.country === country.name && "bg-primary/5",
+                    )}
+                  >
+                    <span className="text-lg">{country.flag}</span>
+                    <span className="font-medium">{country.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Niche Selector */}
+        <div ref={nicheRef}>
+          <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Building2 className="size-3.5" />
+            Industry / Niche
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={nicheSearch || filters.niche}
+              onChange={(e) => {
+                setNicheSearch(e.target.value);
+                setShowNicheDropdown(true);
+                setFilters((prev) => ({ ...prev, niche: e.target.value }));
+              }}
+              onFocus={() => setShowNicheDropdown(true)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Dental, Cleaning, Auto Repair..."
+              className="h-11 w-full rounded-xl border border-border bg-surface-2/60 px-4 py-0 pr-10 text-sm outline-none transition focus:border-primary/60"
+            />
+            <ChevronDown className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
+            {showNicheDropdown && filteredNiches.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
+                {filteredNiches.map((niche) => (
+                  <button
+                    key={niche}
+                    onClick={() => handleNicheSelect(niche)}
+                    className={cn(
+                      "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                      filters.niche === niche && "bg-primary/5",
+                    )}
+                  >
+                    <span className="font-medium">{niche}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* State Selector (US only) */}
+        {filters.country === "United States" && (
+          <div ref={stateRef}>
             <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Globe className="size-3.5" />
-              Country
+              <MapPin className="size-3.5" />
+              State
             </label>
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                className="flex w-full items-center justify-between rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
+                onClick={() => setShowStateDropdown(!showStateDropdown)}
+                className="flex h-11 w-full items-center justify-between rounded-xl border border-border bg-surface-2/60 px-4 py-0 text-sm outline-none transition focus:border-primary/60"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{currentCountry.flag}</span>
-                  <span className="font-medium">{currentCountry.name}</span>
-                </div>
+                <span className={cn("font-medium", !filters.state && "text-muted-foreground")}>
+                  {filters.state || "Select state..."}
+                </span>
                 <ChevronDown className="size-4 text-muted-foreground" />
               </button>
 
-              {showCountryDropdown && (
+              {showStateDropdown && (
                 <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
-                  {COUNTRIES.map((country) => (
+                  <button
+                    onClick={() => handleStateSelect("")}
+                    className={cn(
+                      "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                      !filters.state && "bg-primary/5",
+                    )}
+                  >
+                    <span className="text-muted-foreground">All states</span>
+                  </button>
+                  {availableStates.map((state) => (
                     <button
-                      key={country.code}
-                      onClick={() => handleCountrySelect(country)}
+                      key={state}
+                      onClick={() => handleStateSelect(state)}
                       className={cn(
-                        "flex w-full items-center gap-2 px-4 py-2.5 text-sm transition hover:bg-primary/10",
-                        filters.country === country.name && "bg-primary/5",
+                        "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                        filters.state === state && "bg-primary/5",
                       )}
                     >
-                      <span className="text-lg">{country.flag}</span>
-                      <span className="font-medium">{country.name}</span>
+                      <span className="font-medium">{state}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
           </div>
+        )}
 
-          {/* State Selector (US only) */}
-          {filters.country === "United States" && (
-            <div ref={stateRef}>
-              <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <MapPin className="size-3.5" />
-                State
-              </label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowStateDropdown(!showStateDropdown)}
-                  className="flex w-full items-center justify-between rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
-                >
-                  <span className={cn("font-medium", !filters.state && "text-muted-foreground")}>
-                    {filters.state || "Select state..."}
-                  </span>
-                  <ChevronDown className="size-4 text-muted-foreground" />
-                </button>
-
-                {showStateDropdown && (
-                  <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
-                    <button
-                      onClick={() => handleStateSelect("")}
-                      className={cn(
-                        "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
-                        !filters.state && "bg-primary/5",
-                      )}
-                    >
-                      <span className="text-muted-foreground">All states</span>
-                    </button>
-                    {availableStates.map((state) => (
-                      <button
-                        key={state}
-                        onClick={() => handleStateSelect(state)}
-                        className={cn(
-                          "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
-                          filters.state === state && "bg-primary/5",
-                        )}
-                      >
-                        <span className="font-medium">{state}</span>
-                      </button>
-                    ))}
-                  </div>
+        {/* Website Status */}
+        <div>
+          <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            Website Status
+          </label>
+          <div className="flex gap-2">
+            {WEBSITE_STATUS_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setFilters((prev) => ({ ...prev, websiteStatus: opt.value }))}
+                className={cn(
+                  "flex h-11 flex-1 items-center justify-center rounded-xl px-3 text-xs font-medium transition",
+                  filters.websiteStatus === opt.value
+                    ? opt.priority
+                      ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
+                      : "bg-primary text-primary-foreground"
+                    : "border border-border bg-surface-2/40 text-muted-foreground hover:text-foreground",
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* City Autocomplete */}
-          <div ref={cityRef}>
-            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <MapPin className="size-3.5" />
-              City / Location
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                value={citySearch}
-                onChange={(e) => {
-                  setCitySearch(e.target.value);
-                  setShowCityDropdown(true);
-                  setFilters((prev) => ({ ...prev, city: e.target.value }));
-                }}
-                onFocus={() => setShowCityDropdown(true)}
-                onKeyDown={handleKeyDown}
-                placeholder="Search any US city, town, or county..."
-                className="w-full rounded-xl border border-border bg-surface-2/60 py-3 pl-10 pr-10 text-sm outline-none transition focus:border-primary/60"
-              />
-              {filters.city && (
-                <button
-                  onClick={() => {
-                    setFilters((prev) => ({ ...prev, city: "" }));
-                    setCitySearch("");
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-4" />
-                </button>
-              )}
-
-              {showCityDropdown && filteredCities.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
-                  {filteredCities.map((city, idx) => (
-                    <button
-                      key={`${city.name}-${city.state}-${idx}`}
-                      onClick={() => handleCitySelect(city)}
-                      className={cn(
-                        "flex w-full items-center justify-between px-4 py-2.5 text-sm transition hover:bg-primary/10",
-                        filters.city === `${city.name}, ${city.state}` && "bg-primary/5",
-                      )}
-                    >
-                      <span className="font-medium">{city.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {city.state} · {(city.population / 1000).toFixed(0)}k
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Right Column: Niche + Website Status + Lead Limit */}
-        <div className="space-y-5">
-          {/* Niche Selector */}
-          <div ref={nicheRef}>
-            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Building2 className="size-3.5" />
-              Industry / Niche
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={nicheSearch || filters.niche}
-                onChange={(e) => {
-                  setNicheSearch(e.target.value);
-                  setShowNicheDropdown(true);
-                  setFilters((prev) => ({ ...prev, niche: e.target.value }));
-                }}
-                onFocus={() => setShowNicheDropdown(true)}
-                onKeyDown={handleKeyDown}
-                placeholder="e.g. Dental, Cleaning, Auto Repair..."
-                className="w-full rounded-xl border border-border bg-surface-2/60 px-4 py-3 pr-10 text-sm outline-none transition focus:border-primary/60"
-              />
-              <ChevronDown className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-
-              {showNicheDropdown && filteredNiches.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
-                  {filteredNiches.map((niche) => (
-                    <button
-                      key={niche}
-                      onClick={() => handleNicheSelect(niche)}
-                      className={cn(
-                        "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
-                        filters.niche === niche && "bg-primary/5",
-                      )}
-                    >
-                      <span className="font-medium">{niche}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Website Status */}
-          <div>
-            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              Website Status
-            </label>
-            <div className="flex gap-2">
-              {WEBSITE_STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setFilters((prev) => ({ ...prev, websiteStatus: opt.value }))}
-                  className={cn(
-                    "flex-1 rounded-xl px-3 py-2.5 text-xs font-medium transition",
-                    filters.websiteStatus === opt.value
-                      ? opt.priority
-                        ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
-                        : "bg-primary text-primary-foreground"
-                      : "border border-border bg-surface-2/40 text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Lead Limit */}
-          <div>
-            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Hash className="size-3.5" />
-              Lead Limit
-            </label>
+        {/* City Autocomplete */}
+        <div ref={cityRef}>
+          <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <MapPin className="size-3.5" />
+            City / Location
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              type="number"
-              value={filters.leadLimit}
-              onChange={(e) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  leadLimit: Math.max(1, Math.min(100, Number(e.target.value))),
-                }))
-              }
-              min={1}
-              max={100}
-              className="w-full rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
+              type="text"
+              value={citySearch}
+              onChange={(e) => {
+                setCitySearch(e.target.value);
+                setShowCityDropdown(true);
+                setFilters((prev) => ({ ...prev, city: e.target.value }));
+              }}
+              onFocus={() => setShowCityDropdown(true)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search any US city, town, or county..."
+              className="h-11 w-full rounded-xl border border-border bg-surface-2/60 py-0 pl-10 pr-10 text-sm outline-none transition focus:border-primary/60"
             />
+            {filters.city && (
+              <button
+                onClick={() => {
+                  setFilters((prev) => ({ ...prev, city: "" }));
+                  setCitySearch("");
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+
+            {showCityDropdown && filteredCities.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
+                {filteredCities.map((city, idx) => (
+                  <button
+                    key={`${city.name}-${city.state}-${idx}`}
+                    onClick={() => handleCitySelect(city)}
+                    className={cn(
+                      "flex w-full items-center justify-between px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                      filters.city === `${city.name}, ${city.state}` && "bg-primary/5",
+                    )}
+                  >
+                    <span className="font-medium">{city.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {city.state} · {(city.population / 1000).toFixed(0)}k
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Lead Limit */}
+        <div>
+          <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Hash className="size-3.5" />
+            Lead Limit
+          </label>
+          <input
+            type="number"
+            value={filters.leadLimit}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                leadLimit: Math.max(1, Math.min(100, Number(e.target.value))),
+              }))
+            }
+            min={1}
+            max={100}
+            className="h-11 w-full rounded-xl border border-border bg-surface-2/60 px-4 py-0 text-sm outline-none transition focus:border-primary/60"
+          />
         </div>
       </div>
 
