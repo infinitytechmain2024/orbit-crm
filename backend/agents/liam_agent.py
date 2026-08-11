@@ -237,25 +237,36 @@ class LiamAgent:
                 error=str(e),
             )
 
-    async def _save_leads_to_supabase(self, leads: list[dict]) -> int:
-        """Save leads to Supabase clients table."""
+    async def _save_leads_to_supabase(self, leads: list[dict], user_id: str = "default") -> int:
+        """Save leads to Supabase lead_clients table."""
         try:
             from backend.services.supabase_client import supabase_service
 
             saved = 0
             for lead in leads:
                 try:
-                    supabase_service.client.table("clients").insert({
-                        "name": lead.get("title", ""),
-                        "phone": lead.get("phone", ""),
-                        "email": lead.get("emails", "").split(",")[0] if lead.get("emails") else "",
-                        "website": lead.get("website", ""),
-                        "address": lead.get("address", ""),
+                    emails = lead.get("emails", "")
+                    first_email = emails.split(",")[0].strip() if emails else "-"
+                    website = lead.get("website", "").strip() or "-"
+                    phone = lead.get("phone", "").strip() or None
+
+                    supabase_service.client.table("lead_clients").insert({
+                        "user_id": user_id,
+                        "business_name": lead.get("title", "Unknown"),
                         "category": lead.get("category", ""),
-                        "rating": float(lead.get("review_rating", 0) or 0),
-                        "review_count": int(lead.get("review_count", 0) or 0),
+                        "city_location": "",
+                        "country": "United States",
+                        "country_flag": "🇺🇸",
+                        "contact_phone": phone,
+                        "email": first_email,
+                        "website_url": website,
+                        "whatsapp_status": "Unverified",
+                        "google_maps_url": None,
+                        "priority": "Middle",
+                        "status": "Lead",
+                        "website_status_type": "good" if website != "-" else "no_website",
                         "source": "google_maps",
-                        "status": "new",
+                        "source_query": f"{lead.get('title', '')} via Google Maps",
                     }).execute()
                     saved += 1
                 except Exception as e:

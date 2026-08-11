@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Search, MapPin, Building2, Globe, Hash, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { US_CITIES, NICHE_CATEGORIES, type UsCity } from "@/lib/us-cities";
@@ -9,6 +9,69 @@ interface SkyscannerSearchPanelProps {
   isSearching: boolean;
   initialFilters?: SearchFilters | undefined;
 }
+
+const COUNTRIES = [
+  { name: "United States", flag: "🇺🇸", code: "US" },
+  { name: "Ukraine", flag: "🇺🇦", code: "UA" },
+  { name: "United Kingdom", flag: "🇬🇧", code: "GB" },
+  { name: "Germany", flag: "🇩🇪", code: "DE" },
+  { name: "France", flag: "🇫🇷", code: "FR" },
+  { name: "Canada", flag: "🇨🇦", code: "CA" },
+  { name: "Australia", flag: "🇦🇺", code: "AU" },
+];
+
+const US_STATES = [
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+];
 
 const WEBSITE_STATUS_OPTIONS = [
   { value: "no_website" as const, label: "No Website", priority: true },
@@ -24,6 +87,7 @@ export function SkyscannerSearchPanel({
   const [filters, setFilters] = useState<SearchFilters>({
     country: initialFilters?.country ?? "United States",
     countryFlag: initialFilters?.countryFlag ?? "🇺🇸",
+    state: initialFilters?.state ?? "",
     city: initialFilters?.city ?? "",
     niche: initialFilters?.niche ?? "",
     websiteStatus: initialFilters?.websiteStatus ?? "no_website",
@@ -35,21 +99,37 @@ export function SkyscannerSearchPanel({
   const [filteredCities, setFilteredCities] = useState<UsCity[]>([]);
   const [nicheSearch, setNicheSearch] = useState(initialFilters?.niche ?? "");
   const [showNicheDropdown, setShowNicheDropdown] = useState(false);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [showStateDropdown, setShowStateDropdown] = useState(false);
   const cityRef = useRef<HTMLDivElement>(null);
   const nicheRef = useRef<HTMLDivElement>(null);
+  const countryRef = useRef<HTMLDivElement>(null);
+  const stateRef = useRef<HTMLDivElement>(null);
+
+  const availableStates = useMemo(() => {
+    if (filters.country !== "United States") return [];
+    const states = [...new Set(US_CITIES.map((c) => c.state))].sort();
+    return states;
+  }, [filters.country]);
 
   useEffect(() => {
+    let cities = US_CITIES;
+    if (filters.state) {
+      cities = cities.filter((c) => c.state === filters.state);
+    }
     if (citySearch.length === 0) {
-      setFilteredCities(US_CITIES.slice(0, 20));
+      setFilteredCities(cities.slice(0, 20));
     } else {
       const search = citySearch.toLowerCase();
-      const filtered = US_CITIES.filter(
-        (city) =>
-          city.name.toLowerCase().includes(search) || city.state.toLowerCase().includes(search),
-      ).slice(0, 20);
+      const filtered = cities
+        .filter(
+          (city) =>
+            city.name.toLowerCase().includes(search) || city.state.toLowerCase().includes(search),
+        )
+        .slice(0, 20);
       setFilteredCities(filtered);
     }
-  }, [citySearch]);
+  }, [citySearch, filters.state]);
 
   const filteredNiches = NICHE_CATEGORIES.filter((niche) =>
     niche.toLowerCase().includes(nicheSearch.toLowerCase()),
@@ -63,9 +143,33 @@ export function SkyscannerSearchPanel({
       if (nicheRef.current && !nicheRef.current.contains(event.target as Node)) {
         setShowNicheDropdown(false);
       }
+      if (countryRef.current && !countryRef.current.contains(event.target as Node)) {
+        setShowCountryDropdown(false);
+      }
+      if (stateRef.current && !stateRef.current.contains(event.target as Node)) {
+        setShowStateDropdown(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleCountrySelect = useCallback((country: (typeof COUNTRIES)[number]) => {
+    setFilters((prev) => ({
+      ...prev,
+      country: country.name,
+      countryFlag: country.flag,
+      state: "",
+      city: "",
+    }));
+    setCitySearch("");
+    setShowCountryDropdown(false);
+  }, []);
+
+  const handleStateSelect = useCallback((state: string) => {
+    setFilters((prev) => ({ ...prev, state, city: "" }));
+    setCitySearch("");
+    setShowStateDropdown(false);
   }, []);
 
   const handleCitySelect = useCallback((city: UsCity) => {
@@ -90,22 +194,99 @@ export function SkyscannerSearchPanel({
     }
   };
 
+  const currentCountry = COUNTRIES.find((c) => c.name === filters.country) ?? COUNTRIES[0]!;
+
   return (
     <div className="rounded-2xl border border-border bg-surface-2/60 p-6 shadow-lg">
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column: Country + City */}
+        {/* Left Column: Country + State + City */}
         <div className="space-y-5">
           {/* Country Selector */}
-          <div>
+          <div ref={countryRef}>
             <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Globe className="size-3.5" />
               Country
             </label>
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-4 py-3">
-              <span className="text-lg">{filters.countryFlag}</span>
-              <span className="text-sm font-medium">{filters.country}</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                className="flex w-full items-center justify-between rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{currentCountry.flag}</span>
+                  <span className="font-medium">{currentCountry.name}</span>
+                </div>
+                <ChevronDown className="size-4 text-muted-foreground" />
+              </button>
+
+              {showCountryDropdown && (
+                <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
+                  {COUNTRIES.map((country) => (
+                    <button
+                      key={country.code}
+                      onClick={() => handleCountrySelect(country)}
+                      className={cn(
+                        "flex w-full items-center gap-2 px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                        filters.country === country.name && "bg-primary/5",
+                      )}
+                    >
+                      <span className="text-lg">{country.flag}</span>
+                      <span className="font-medium">{country.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* State Selector (US only) */}
+          {filters.country === "United States" && (
+            <div ref={stateRef}>
+              <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <MapPin className="size-3.5" />
+                State
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowStateDropdown(!showStateDropdown)}
+                  className="flex w-full items-center justify-between rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
+                >
+                  <span className={cn("font-medium", !filters.state && "text-muted-foreground")}>
+                    {filters.state || "Select state..."}
+                  </span>
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                </button>
+
+                {showStateDropdown && (
+                  <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
+                    <button
+                      onClick={() => handleStateSelect("")}
+                      className={cn(
+                        "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                        !filters.state && "bg-primary/5",
+                      )}
+                    >
+                      <span className="text-muted-foreground">All states</span>
+                    </button>
+                    {availableStates.map((state) => (
+                      <button
+                        key={state}
+                        onClick={() => handleStateSelect(state)}
+                        className={cn(
+                          "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                          filters.state === state && "bg-primary/5",
+                        )}
+                      >
+                        <span className="font-medium">{state}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* City Autocomplete */}
           <div ref={cityRef}>
