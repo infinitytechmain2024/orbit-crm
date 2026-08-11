@@ -875,6 +875,17 @@ export type Database = {
         };
         Returns: undefined;
       };
+      get_lead_clients_by_city: {
+        Args: {
+          p_user_id: string;
+          p_status?: string | null;
+        };
+        Returns: {
+          city_location: string;
+          clients: Json;
+          client_count: number;
+        }[];
+      };
       update_project: {
         Args: {
           p_budget_planned: number | null;

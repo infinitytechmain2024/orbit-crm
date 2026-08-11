@@ -339,11 +339,11 @@ async def get_clients(
     status: Optional[str] = Query(default=None),
     source: Optional[str] = Query(default=None),
 ):
-    """Get clients from Supabase."""
+    """Get lead clients from Supabase."""
     try:
         from backend.services.supabase_client import supabase_service
 
-        query = supabase_service.client.table("clients").select("*")
+        query = supabase_service.client.table("lead_clients").select("*")
 
         if status:
             query = query.eq("status", status)
@@ -359,20 +359,25 @@ async def get_clients(
 
 @app.post("/api/clients")
 async def create_client(request: ClientCreateRequest):
-    """Create a new client in Supabase."""
+    """Create a new lead client in Supabase."""
     try:
         from backend.services.supabase_client import supabase_service
 
-        result = supabase_service.client.table("clients").insert({
-            "name": request.name,
-            "phone": request.phone,
-            "email": request.email,
-            "website": request.website,
-            "address": request.address,
+        result = supabase_service.client.table("lead_clients").insert({
+            "user_id": "00000000-0000-0000-0000-000000000000",  # placeholder, should come from auth
+            "business_name": request.name,
             "category": request.category,
-            "notes": request.notes,
+            "city_location": request.address,
+            "country": "United States",
+            "country_flag": "🇺🇸",
+            "contact_phone": request.phone or None,
+            "email": request.email or "-",
+            "website_url": request.website or "-",
+            "whatsapp_status": "Unverified",
+            "priority": "Middle",
+            "status": "Lead",
             "source": request.source,
-            "status": request.status,
+            "source_query": request.notes,
         }).execute()
 
         if result.data:
@@ -385,7 +390,7 @@ async def create_client(request: ClientCreateRequest):
 
 @app.post("/api/leads/search", response_model=LeadSearchResponse)
 async def start_lead_search(request: LeadSearchRequest):
-    """Start a lead search job using OpenManus browser agent."""
+    """Start a lead search job using GMaps scraper + OpenManus."""
     try:
         from backend.services.supabase_client import supabase_service
 
@@ -396,13 +401,24 @@ async def start_lead_search(request: LeadSearchRequest):
             "niche": request.niche,
             "max_results": request.max_results,
             "status": "queued",
-            "raw_request": f"Поиск лидов: {request.niche} в {request.city}",
+            "raw_request": f"Search: {request.niche} in {request.city}",
         }).execute()
 
         if result.data:
             job = result.data[0]
+            job_id = job["id"]
+
+            # Launch background search task
+            asyncio.create_task(_execute_lead_search(
+                job_id=job_id,
+                user_id=request.user_id,
+                city=request.city,
+                niche=request.niche,
+                max_results=request.max_results,
+            ))
+
             return LeadSearchResponse(
-                job_id=job["id"],
+                job_id=job_id,
                 status="queued",
                 message=f"Search queued: {request.niche} in {request.city}",
             )
@@ -410,6 +426,90 @@ async def start_lead_search(request: LeadSearchRequest):
     except Exception as e:
         logger.error(f"Lead search failed: {e}")
         raise HTTPException(status_code=500, detail=f"Lead search failed: {str(e)}")
+
+
+async def _execute_lead_search(
+    job_id: str,
+    user_id: str,
+    city: str,
+    niche: str,
+    max_results: int,
+):
+    """Background task: execute the actual lead search via GMaps + Manus."""
+    from backend.services.supabase_client import supabase_service
+
+    try:
+        # Mark as running
+        supabase_service.client.table("lead_search_jobs").update({
+            "status": "running",
+            "started_at": "now()",
+        }).eq("id", job_id).execute()
+
+        # Run GMaps search
+        from backend.tools.gmaps_tool import gmaps_tool
+        result = await gmaps_tool.execute(
+            keywords=niche,
+            location=city,
+            limit=max_results,
+        )
+
+        if not result.success:
+            supabase_service.client.table("lead_search_jobs").update({
+                "status": "failed",
+                "error": result.error,
+                "completed_at": "now()",
+            }).eq("id", job_id).execute()
+            return
+
+        # Save leads to lead_clients table
+        saved = 0
+        for lead in result.leads:
+            try:
+                emails = lead.get("emails", "")
+                first_email = emails.split(",")[0].strip() if emails else "-"
+                website = lead.get("website", "").strip() or "-"
+                phone = lead.get("phone", "").strip() or None
+
+                supabase_service.client.table("lead_clients").insert({
+                    "user_id": user_id,
+                    "business_name": lead.get("title", "Unknown"),
+                    "category": lead.get("category", ""),
+                    "city_location": city,
+                    "country": "United States",
+                    "country_flag": "🇺🇸",
+                    "contact_phone": phone,
+                    "email": first_email,
+                    "website_url": website,
+                    "whatsapp_status": "Unverified",
+                    "priority": "Middle",
+                    "status": "Lead",
+                    "website_status_type": "good" if website != "-" else "no_website",
+                    "source": "google_maps",
+                    "source_query": f"{niche} in {city}",
+                }).execute()
+                saved += 1
+            except Exception as e:
+                logger.warning(f"Failed to save lead '{lead.get('title')}': {e}")
+
+        # Mark as completed
+        supabase_service.client.table("lead_search_jobs").update({
+            "status": "completed",
+            "leads_found": saved,
+            "completed_at": "now()",
+        }).eq("id", job_id).execute()
+
+        logger.info(f"Lead search {job_id} completed: {saved} leads saved")
+
+    except Exception as e:
+        logger.error(f"Lead search {job_id} failed: {e}")
+        try:
+            supabase_service.client.table("lead_search_jobs").update({
+                "status": "failed",
+                "error": str(e),
+                "completed_at": "now()",
+            }).eq("id", job_id).execute()
+        except Exception:
+            pass
 
 
 @app.get("/api/leads/search/{job_id}")

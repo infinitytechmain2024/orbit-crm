@@ -122,16 +122,16 @@ class LiamAgent:
         )
 
         if is_local_search and self._tools["gmaps"]:
-            return await self._search_google_maps(text)
+            return await self._search_google_maps(text, user_id)
         elif self._tools["manus"]:
             return await self._deep_web_search(text)
         else:
             return await self._llm_only_response(text)
 
-    async def _search_google_maps(self, text: str) -> LiamResponse:
+    async def _search_google_maps(self, text: str, user_id: str = "default") -> LiamResponse:
         """Use GMaps tool to find local businesses."""
         try:
-            result = self._tools["gmaps"].execute(
+            result = await self._tools["gmaps"].execute(
                 keywords=text,
                 location="Miami FL",  # Default, will be parsed from text
                 limit=20,
@@ -139,7 +139,7 @@ class LiamAgent:
 
             if result.success:
                 # Save leads to Supabase
-                saved_count = await self._save_leads_to_supabase(result.leads)
+                saved_count = await self._save_leads_to_supabase(result.leads, user_id)
 
                 # Generate sales pitch for first lead
                 pitch = ""

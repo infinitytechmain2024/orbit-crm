@@ -77,10 +77,21 @@ async def system_status():
     notion_key = bool(os.getenv("NOTION_API_KEY"))
     notion_db = bool(os.getenv("NOTION_DATABASE_ID"))
 
+    # Check GMaps scraper availability
+    gmaps_ok = False
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get("http://localhost:8080/api/v1/jobs")
+            gmaps_ok = resp.status_code == 200
+    except Exception:
+        pass
+
     return {
         "ollama": {"available": ollama_ok, "url": agent.ollama_url},
         "playwright": {"available": HAS_PLAYRIGHT},
         "notion": {"configured": notion_key and notion_db, "database_set": notion_db},
+        "gmaps": {"available": gmaps_ok},
         "reports_dir": REPORTS_DIR,
     }
 

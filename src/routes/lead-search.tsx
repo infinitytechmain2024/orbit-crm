@@ -35,7 +35,7 @@ export const Route = createFileRoute("/lead-search")({
   component: LeadSearchPage,
 });
 
-const LEAD_GEN_API = "http://localhost:8090";
+const LEAD_GEN_API = import.meta.env.VITE_LEAD_GEN_URL || "http://localhost:8090";
 
 interface SearchJob {
   job_id: string;
@@ -58,6 +58,7 @@ interface LeadResult {
 interface SystemStatus {
   ollama: { available: boolean; url: string };
   notion: { configured: boolean; database_set: boolean };
+  gmaps: { available: boolean };
 }
 
 function LeadSearchPage() {
@@ -212,6 +213,17 @@ function LeadSearchPage() {
             ) : (
               <span className="flex items-center gap-1 rounded-full bg-yellow-400/12 px-2 py-0.5 text-xs text-yellow-400">
                 <Database className="size-3" /> Notion not configured
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {systemStatus?.gmaps?.available ? (
+              <span className="flex items-center gap-1 rounded-full bg-green-400/12 px-2 py-0.5 text-xs text-green-400">
+                <CheckCircle className="size-3" /> Google Maps
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 rounded-full bg-yellow-400/12 px-2 py-0.5 text-xs text-yellow-400">
+                <AlertCircle className="size-3" /> GMaps offline
               </span>
             )}
           </div>
