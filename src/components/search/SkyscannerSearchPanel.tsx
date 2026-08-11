@@ -7,7 +7,7 @@ import type { SearchFilters } from "@/types/search";
 interface SkyscannerSearchPanelProps {
   onSearch: (filters: SearchFilters) => void;
   isSearching: boolean;
-  initialFilters?: Partial<SearchFilters>;
+  initialFilters?: SearchFilters | undefined;
 }
 
 const WEBSITE_STATUS_OPTIONS = [
@@ -92,158 +92,166 @@ export function SkyscannerSearchPanel({
 
   return (
     <div className="rounded-2xl border border-border bg-surface-2/60 p-6 shadow-lg">
-      {/* Country Selector */}
-      <div className="mb-4">
-        <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Globe className="size-3.5" />
-          Country
-        </label>
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-4 py-3">
-          <span className="text-lg">{filters.countryFlag}</span>
-          <span className="text-sm font-medium">{filters.country}</span>
-        </div>
-      </div>
-
-      {/* City Autocomplete */}
-      <div className="mb-4" ref={cityRef}>
-        <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <MapPin className="size-3.5" />
-          City / Location
-        </label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={citySearch}
-            onChange={(e) => {
-              setCitySearch(e.target.value);
-              setShowCityDropdown(true);
-              setFilters((prev) => ({ ...prev, city: e.target.value }));
-            }}
-            onFocus={() => setShowCityDropdown(true)}
-            onKeyDown={handleKeyDown}
-            placeholder="Search any US city, town, or county..."
-            className="w-full rounded-xl border border-border bg-surface-2/60 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-primary/60"
-          />
-          {filters.city && (
-            <button
-              onClick={() => {
-                setFilters((prev) => ({ ...prev, city: "" }));
-                setCitySearch("");
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-
-          {showCityDropdown && filteredCities.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
-              {filteredCities.map((city, idx) => (
-                <button
-                  key={`${city.name}-${city.state}-${idx}`}
-                  onClick={() => handleCitySelect(city)}
-                  className={cn(
-                    "flex w-full items-center justify-between px-4 py-2.5 text-sm transition hover:bg-primary/10",
-                    filters.city === `${city.name}, ${city.state}` && "bg-primary/5",
-                  )}
-                >
-                  <span className="font-medium">{city.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {city.state} · {(city.population / 1000).toFixed(0)}k
-                  </span>
-                </button>
-              ))}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Left Column: Country + City */}
+        <div className="space-y-5">
+          {/* Country Selector */}
+          <div>
+            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Globe className="size-3.5" />
+              Country
+            </label>
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-4 py-3">
+              <span className="text-lg">{filters.countryFlag}</span>
+              <span className="text-sm font-medium">{filters.country}</span>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Niche Selector */}
-      <div className="mb-4" ref={nicheRef}>
-        <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Building2 className="size-3.5" />
-          Industry / Niche
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={nicheSearch || filters.niche}
-            onChange={(e) => {
-              setNicheSearch(e.target.value);
-              setShowNicheDropdown(true);
-              setFilters((prev) => ({ ...prev, niche: e.target.value }));
-            }}
-            onFocus={() => setShowNicheDropdown(true)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g. Dental, Cleaning, Auto Repair..."
-            className="w-full rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
-          />
-          <ChevronDown className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-
-          {showNicheDropdown && filteredNiches.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
-              {filteredNiches.map((niche) => (
+          {/* City Autocomplete */}
+          <div ref={cityRef}>
+            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <MapPin className="size-3.5" />
+              City / Location
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={citySearch}
+                onChange={(e) => {
+                  setCitySearch(e.target.value);
+                  setShowCityDropdown(true);
+                  setFilters((prev) => ({ ...prev, city: e.target.value }));
+                }}
+                onFocus={() => setShowCityDropdown(true)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search any US city, town, or county..."
+                className="w-full rounded-xl border border-border bg-surface-2/60 py-3 pl-10 pr-10 text-sm outline-none transition focus:border-primary/60"
+              />
+              {filters.city && (
                 <button
-                  key={niche}
-                  onClick={() => handleNicheSelect(niche)}
-                  className={cn(
-                    "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
-                    filters.niche === niche && "bg-primary/5",
-                  )}
+                  onClick={() => {
+                    setFilters((prev) => ({ ...prev, city: "" }));
+                    setCitySearch("");
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  <span className="font-medium">{niche}</span>
+                  <X className="size-4" />
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Website Status */}
-      <div className="mb-4">
-        <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          Website Status
-        </label>
-        <div className="flex gap-2">
-          {WEBSITE_STATUS_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setFilters((prev) => ({ ...prev, websiteStatus: opt.value }))}
-              className={cn(
-                "flex-1 rounded-xl px-3 py-2.5 text-xs font-medium transition",
-                filters.websiteStatus === opt.value
-                  ? opt.priority
-                    ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
-                    : "bg-primary text-primary-foreground"
-                  : "border border-border bg-surface-2/40 text-muted-foreground hover:text-foreground",
               )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {/* Lead Limit */}
-      <div className="mb-6">
-        <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Hash className="size-3.5" />
-          Lead Limit
-        </label>
-        <input
-          type="number"
-          value={filters.leadLimit}
-          onChange={(e) =>
-            setFilters((prev) => ({
-              ...prev,
-              leadLimit: Math.max(1, Math.min(100, Number(e.target.value))),
-            }))
-          }
-          min={1}
-          max={100}
-          className="w-full rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
-        />
+              {showCityDropdown && filteredCities.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
+                  {filteredCities.map((city, idx) => (
+                    <button
+                      key={`${city.name}-${city.state}-${idx}`}
+                      onClick={() => handleCitySelect(city)}
+                      className={cn(
+                        "flex w-full items-center justify-between px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                        filters.city === `${city.name}, ${city.state}` && "bg-primary/5",
+                      )}
+                    >
+                      <span className="font-medium">{city.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {city.state} · {(city.population / 1000).toFixed(0)}k
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Niche + Website Status + Lead Limit */}
+        <div className="space-y-5">
+          {/* Niche Selector */}
+          <div ref={nicheRef}>
+            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Building2 className="size-3.5" />
+              Industry / Niche
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={nicheSearch || filters.niche}
+                onChange={(e) => {
+                  setNicheSearch(e.target.value);
+                  setShowNicheDropdown(true);
+                  setFilters((prev) => ({ ...prev, niche: e.target.value }));
+                }}
+                onFocus={() => setShowNicheDropdown(true)}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. Dental, Cleaning, Auto Repair..."
+                className="w-full rounded-xl border border-border bg-surface-2/60 px-4 py-3 pr-10 text-sm outline-none transition focus:border-primary/60"
+              />
+              <ChevronDown className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
+              {showNicheDropdown && filteredNiches.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface-2 shadow-lg">
+                  {filteredNiches.map((niche) => (
+                    <button
+                      key={niche}
+                      onClick={() => handleNicheSelect(niche)}
+                      className={cn(
+                        "flex w-full items-center px-4 py-2.5 text-sm transition hover:bg-primary/10",
+                        filters.niche === niche && "bg-primary/5",
+                      )}
+                    >
+                      <span className="font-medium">{niche}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Website Status */}
+          <div>
+            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              Website Status
+            </label>
+            <div className="flex gap-2">
+              {WEBSITE_STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFilters((prev) => ({ ...prev, websiteStatus: opt.value }))}
+                  className={cn(
+                    "flex-1 rounded-xl px-3 py-2.5 text-xs font-medium transition",
+                    filters.websiteStatus === opt.value
+                      ? opt.priority
+                        ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
+                        : "bg-primary text-primary-foreground"
+                      : "border border-border bg-surface-2/40 text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Lead Limit */}
+          <div>
+            <label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Hash className="size-3.5" />
+              Lead Limit
+            </label>
+            <input
+              type="number"
+              value={filters.leadLimit}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  leadLimit: Math.max(1, Math.min(100, Number(e.target.value))),
+                }))
+              }
+              min={1}
+              max={100}
+              className="w-full rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm outline-none transition focus:border-primary/60"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Search Button */}
@@ -251,7 +259,7 @@ export function SkyscannerSearchPanel({
         onClick={handleSearch}
         disabled={isSearching || !filters.city || !filters.niche}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-semibold transition",
+          "mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-semibold transition",
           isSearching || !filters.city || !filters.niche
             ? "bg-primary/50 text-primary-foreground cursor-not-allowed"
             : "bg-primary text-primary-foreground hover:bg-primary/90",
