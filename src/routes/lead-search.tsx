@@ -477,12 +477,6 @@ function LeadSearchPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface-2/20 p-12 text-center">
                   <Bot className="mb-4 size-12 text-muted-foreground/40" />
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Configure filters and click "Find Leads"
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground/60">
-                    AI agent will find potential clients and generate detailed analysis
-                  </p>
                 </div>
               )}
             </div>
