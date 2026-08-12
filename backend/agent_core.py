@@ -1,4 +1,4 @@
-import requests
+import httpx
 from typing import List, Dict, Any
 
 from backend.config import settings
@@ -47,7 +47,12 @@ class MasterAgent:
         if "gemma" in chosen_model or "reasoning" in chosen_model:
             payload["chat_template_kwargs"] = {"enable_thinking": True}
 
-        response = requests.post(self.nvidia_url, headers=headers, json=payload)
+        response = httpx.post(
+            self.nvidia_url,
+            headers=headers,
+            json=payload,
+            timeout=60.0,
+        )
 
         if response.status_code == 200:
             result = response.json()
