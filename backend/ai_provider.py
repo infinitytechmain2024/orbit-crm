@@ -1,6 +1,5 @@
 import os
 from openai import OpenAI
-import requests
 from typing import List, Dict, Any, Optional
 
 
@@ -8,9 +7,15 @@ class NVIDIAUnifiedProvider:
     def __init__(self):
         self.api_key = os.getenv("NVIDIA_API_KEY")
         self.client = OpenAI(
-            base_url="https://integrate.api.nvidia.com/v1",
-            api_key=self.api_key or "missing-nvidia-api-key"
+            base_url=os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
+            api_key=self.api_key or "missing-nvidia-api-key",
+            timeout=75.0,
+            max_retries=0,
         )
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self.api_key)
 
     def chat_completion(
         self,
@@ -23,6 +28,9 @@ class NVIDIAUnifiedProvider:
         """
         Универсальный метод для всех текстовых и reasoning моделей из списка
         """
+        if not self.is_configured:
+            return {"success": False, "error": "NVIDIA_API_KEY is not configured"}
+
         params: Dict[str, Any] = {
             "model": model_name,
             "messages": messages,

@@ -129,6 +129,145 @@ export type Database = {
           },
         ];
       };
+      graph_node_positions: {
+        Row: {
+          node_id: string;
+          node_type: Database["public"]["Enums"]["graph_object_type"];
+          organization_id: string;
+          updated_at: string;
+          user_id: string;
+          x_position: number;
+          y_position: number;
+        };
+        Insert: {
+          node_id: string;
+          node_type: Database["public"]["Enums"]["graph_object_type"];
+          organization_id: string;
+          updated_at?: string;
+          user_id: string;
+          x_position: number;
+          y_position: number;
+        };
+        Update: {
+          node_id?: string;
+          node_type?: Database["public"]["Enums"]["graph_object_type"];
+          organization_id?: string;
+          updated_at?: string;
+          user_id?: string;
+          x_position?: number;
+          y_position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "graph_node_positions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      graph_relations: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          relation_type: Database["public"]["Enums"]["graph_relation_type"];
+          source_id: string;
+          source_type: Database["public"]["Enums"]["graph_object_type"];
+          target_id: string;
+          target_type: Database["public"]["Enums"]["graph_object_type"];
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          relation_type: Database["public"]["Enums"]["graph_relation_type"];
+          source_id: string;
+          source_type: Database["public"]["Enums"]["graph_object_type"];
+          target_id: string;
+          target_type: Database["public"]["Enums"]["graph_object_type"];
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          relation_type?: Database["public"]["Enums"]["graph_relation_type"];
+          source_id?: string;
+          source_type?: Database["public"]["Enums"]["graph_object_type"];
+          target_id?: string;
+          target_type?: Database["public"]["Enums"]["graph_object_type"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "graph_relations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      leads: {
+        Row: {
+          company_name: string;
+          contacts: Json;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          project_id: string | null;
+          responsible_user_id: string | null;
+          source_query: string;
+          status: "new" | "processed" | "rejected";
+          updated_at: string;
+          website: string | null;
+        };
+        Insert: {
+          company_name?: string;
+          contacts?: Json;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          project_id?: string | null;
+          responsible_user_id?: string | null;
+          source_query?: string;
+          status?: "new" | "processed" | "rejected";
+          updated_at?: string;
+          website?: string | null;
+        };
+        Update: {
+          company_name?: string;
+          contacts?: Json;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          project_id?: string | null;
+          responsible_user_id?: string | null;
+          source_query?: string;
+          status?: "new" | "processed" | "rejected";
+          updated_at?: string;
+          website?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leads_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leads_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       organization_members: {
         Row: {
           created_at: string;
@@ -906,6 +1045,39 @@ export type Database = {
     };
     Enums: {
       finance_transaction_type: "income" | "expense";
+      graph_object_type:
+        | "project"
+        | "task"
+        | "person"
+        | "client"
+        | "site"
+        | "page"
+        | "document"
+        | "note"
+        | "prompt"
+        | "generation"
+        | "image"
+        | "file"
+        | "comment"
+        | "email"
+        | "decision"
+        | "approval"
+        | "finance_transaction"
+        | "request"
+        | "task_label"
+        | "checklist_item";
+      graph_relation_type:
+        | "belongs_to"
+        | "contains"
+        | "assigned_to"
+        | "created_from"
+        | "uses"
+        | "used_in"
+        | "related_to"
+        | "requires_approval"
+        | "blocks"
+        | "depends_on"
+        | "generated_from_prompt";
       lead_client_priority: "High" | "Middle" | "Low";
       lead_client_status: "Lead" | "New" | "In Progress" | "Rejected" | "Archived";
       lead_website_status: "no_website" | "needs_upgrade" | "good";
@@ -1035,6 +1207,41 @@ export const Constants = {
   public: {
     Enums: {
       finance_transaction_type: ["income", "expense"],
+      graph_object_type: [
+        "project",
+        "task",
+        "person",
+        "client",
+        "site",
+        "page",
+        "document",
+        "note",
+        "prompt",
+        "generation",
+        "image",
+        "file",
+        "comment",
+        "email",
+        "decision",
+        "approval",
+        "finance_transaction",
+        "request",
+        "task_label",
+        "checklist_item",
+      ],
+      graph_relation_type: [
+        "belongs_to",
+        "contains",
+        "assigned_to",
+        "created_from",
+        "uses",
+        "used_in",
+        "related_to",
+        "requires_approval",
+        "blocks",
+        "depends_on",
+        "generated_from_prompt",
+      ],
       lead_client_priority: ["High", "Middle", "Low"],
       lead_client_status: ["Lead", "New", "In Progress", "Rejected", "Archived"],
       lead_website_status: ["no_website", "needs_upgrade", "good"],

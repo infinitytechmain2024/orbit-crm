@@ -22,6 +22,17 @@ class Settings(BaseSettings):
 
     # AI provider API keys (all optional — app must not crash if any are missing)
     NVIDIA_API_KEY: Optional[str] = Field(default=None, validation_alias="NVIDIA_API_KEY")
+    NVIDIA_MODEL: str = Field(default="", validation_alias="NVIDIA_MODEL")
+    NVIDIA_BASE_URL: str = Field(
+        default="https://integrate.api.nvidia.com/v1",
+        validation_alias="NVIDIA_BASE_URL",
+    )
+    AI_MODEL_CONFIGS_JSON: str = Field(default="", validation_alias="AI_MODEL_CONFIGS_JSON")
+    AI_WORKFLOW_AUTORUN: bool = Field(default=True, validation_alias="AI_WORKFLOW_AUTORUN")
+    AI_WORKFLOW_TEST_FAIL_MODEL: str = Field(
+        default="",
+        validation_alias="AI_WORKFLOW_TEST_FAIL_MODEL",
+    )
     GEMINI_API_KEY: Optional[str] = Field(default=None, validation_alias="GEMINI_API_KEY")
     GROQ_API_KEY: Optional[str] = Field(default=None, validation_alias="GROQ_API_KEY")
 
