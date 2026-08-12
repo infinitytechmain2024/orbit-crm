@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -24,15 +24,15 @@ def verify_internal_token(authorization: str = Header(None)):
 
 class TaskRequest(BaseModel):
     messages: List[Dict[str, str]]
-    task_hint: str = ""
+    task_hint: Optional[str] = ""
+    model_name: Optional[str] = None  # Новое поле: можно передать имя модели с фронта
 
 
 @router.post("/process")
-def process_agent_task(
-    payload: TaskRequest,
-    auth: str = Depends(verify_internal_token),
-):
-    result = agent.run_task(payload.messages, payload.task_hint)
-    if not result["success"]:
-        raise HTTPException(status_code=500, detail=result["error"])
+async def process_agent_task(payload: TaskRequest, token: str = Depends(verify_internal_token)):
+    result = agent.run_task(
+        messages=payload.messages,
+        task_type_hint=payload.task_hint,
+        model_name=payload.model_name
+    )
     return result

@@ -1,18 +1,16 @@
-import httpx
-from typing import List, Dict, Any
-
-from backend.config import settings
+from backend.ai_provider import NVIDIAUnifiedProvider
 
 
 class MasterAgent:
     def __init__(self):
-        self.nvidia_api_key = settings.NVIDIA_API_KEY
-        self.nvidia_url = "https://integrate.api.nvidia.com/v1/chat/completions"
+        # Инициализируем наш единый провайдер вместо прямого httpx
+        self.provider = NVIDIAUnifiedProvider()
 
+        # Словарь моделей под разные задачи
         self.models = {
             "reasoning": "google/gemma-4-31b-it",
             "default": "meta/llama-3.3-70b-instruct",
-            "nemotron": "meta/llama-3.1-nemotron-nano-8b-v1",
+            "nemotron": "nvidia/nemotron-3.5-lightning-30b-a3b"
         }
 
     def select_model_for_task(self, task_description: str) -> str:
@@ -23,47 +21,39 @@ class MasterAgent:
             return self.models["nemotron"]
         return self.models["default"]
 
-    def run_task(
-        self,
-        messages: List[Dict[str, str]],
-        task_type_hint: str = "",
-    ) -> Dict[str, Any]:
-        last_message = messages[-1]["content"] if messages else ""
-        chosen_model = self.select_model_for_task(last_message or task_type_hint)
-
-        headers = {
-            "Authorization": f"Bearer {self.nvidia_api_key}",
-            "Accept": "application/json",
-        }
-
-        payload = {
-            "messages": messages,
-            "model": chosen_model,
-            "max_tokens": 4096,
-            "stream": False,
-            "temperature": 0.7,
-        }
-
-        if "gemma" in chosen_model or "reasoning" in chosen_model:
-            payload["chat_template_kwargs"] = {"enable_thinking": True}
-
-        response = httpx.post(
-            self.nvidia_url,
-            headers=headers,
-            json=payload,
-            timeout=60.0,
+    def run_task(self, messages: list, task_type_hint: str = "", model_name: str = None) -> dict:
+        # Если модель явно передана с фронтенда — используем её, иначе выбираем умным агентом
+        chosen_model = model_name if model_name else self.select_model_for_task(
+            messages[-1]["content"] if messages else task_type_hint
         )
 
-        if response.status_code == 200:
-            result = response.json()
+        # Определяем, нужен ли режим мышления (thinking)
+        enable_thinking = "gemma" in chosen_model or "nemotron" in chosen_model or "gpt-oss" in chosen_model
+
+        # Вызываем наш единый провайдер
+        result = self.provider.chat_completion(
+            model_name=chosen_model,
+            messages=messages,
+            temperature=0.7,
+            max_tokens=4096
+        )
+
+        if result.get("success"):
+            # Если есть блок reasoning (мыслей) и content, объединяем их для удобства
+            content = result.get("content", "")
+            reasoning = result.get("reasoning")
+
+            final_response = content
+            if reasoning:
+                final_response = f"[Мысли модели]:\n{reasoning}\n\n[Ответ]:\n{content}"
+
             return {
                 "success": True,
                 "model_used": chosen_model,
-                "response": result.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", ""),
+                "response": final_response
             }
-        return {
-            "success": False,
-            "error": response.text,
-        }
+        else:
+            return {
+                "success": False,
+                "error": result.get("error", "Unknown error")
+            }
