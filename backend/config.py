@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    # Supabase
-    SUPABASE_URL: str = Field(validation_alias="SUPABASE_URL")
-    SUPABASE_SERVICE_ROLE_KEY: str = Field(validation_alias="SUPABASE_SERVICE_ROLE_KEY")
-    SUPABASE_PUBLISHABLE_KEY: str = Field(validation_alias="SUPABASE_PUBLISHABLE_KEY")
+    # Supabase (optional at import time so the app boots even if not yet configured)
+    SUPABASE_URL: str = Field(default="", validation_alias="SUPABASE_URL")
+    SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", validation_alias="SUPABASE_SERVICE_ROLE_KEY")
+    SUPABASE_PUBLISHABLE_KEY: str = Field(default="", validation_alias="SUPABASE_PUBLISHABLE_KEY")
     SUPABASE_STORAGE_BUCKET: str = "orbit-projects"
 
     # AI provider API keys (all optional — app must not crash if any are missing)
