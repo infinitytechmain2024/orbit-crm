@@ -142,8 +142,14 @@ async def transcribe_speech(audio: UploadFile = File(...)) -> TranscriptionRespo
     except HTTPException:
         raise
     except Exception as exc:
+        # Surface the real reason so the frontend can show it instead of
+        # failing silently. Common causes: model not downloaded yet, or the
+        # audio codec can't be decoded (missing ffmpeg libraries).
         logger.exception("Audio transcription failed")
-        raise HTTPException(status_code=500, detail="Audio transcription failed") from exc
+        raise HTTPException(
+            status_code=500,
+            detail=f"Audio transcription failed: {exc}",
+        ) from exc
     finally:
         if temporary_path is not None:
             try:

@@ -282,6 +282,90 @@ grant select, insert, update, delete on table public.task_events to service_role
 grant select, insert, update, delete on table public.approval_requests to service_role;
 grant select, insert, update, delete on table public.artifacts to service_role;
 
+create or replace function public.resolve_ai_approval(
+  p_organization_id uuid,
+  p_task_id uuid,
+  p_decision text,
+  p_comment text default null
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  approval public.approval_requests%rowtype;
+  next_status text;
+begin
+  if p_decision not in ('approved', 'rejected') then
+    raise exception 'Unsupported approval decision';
+  end if;
+
+  select request.*
+  into approval
+  from public.approval_requests request
+  where request.organization_id = p_organization_id
+    and request.task_id = p_task_id
+    and request.status = 'pending'
+  order by request.created_at
+  limit 1
+  for update;
+
+  if not found then
+    raise exception 'Pending approval request not found';
+  end if;
+
+  next_status := case when p_decision = 'approved' then 'done' else 'revisions_requested' end;
+
+  update public.approval_requests
+  set status = p_decision,
+      decision_comment = nullif(trim(p_comment), ''),
+      resolved_at = now()
+  where id = approval.id;
+
+  update public.ai_tasks
+  set status = next_status
+  where organization_id = p_organization_id
+    and id = p_task_id;
+
+  insert into public.task_events (
+    organization_id,
+    task_id,
+    project_id,
+    agent_id,
+    event_type,
+    message,
+    metadata
+  )
+  select
+    task.organization_id,
+    task.id,
+    task.project_id,
+    task.agent_id,
+    case when p_decision = 'approved' then 'approved' else 'rejected' end,
+    case
+      when p_decision = 'approved' then 'CEO утвердил результат задачи.'
+      else 'CEO вернул задачу исполнителю на правки.'
+    end,
+    jsonb_build_object('decision_comment', nullif(trim(p_comment), ''))
+  from public.ai_tasks task
+  where task.organization_id = p_organization_id
+    and task.id = p_task_id;
+
+  return jsonb_build_object(
+    'approval_id', approval.id,
+    'task_id', p_task_id,
+    'status', p_decision,
+    'task_status', next_status
+  );
+end;
+$$;
+
+revoke execute on function public.resolve_ai_approval(uuid, uuid, text, text)
+  from public, anon, authenticated;
+grant execute on function public.resolve_ai_approval(uuid, uuid, text, text)
+  to service_role;
+
 -- Seed the three required CRM projects without duplicating an existing project.
 insert into public.projects (
   organization_id,

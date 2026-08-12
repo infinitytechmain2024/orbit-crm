@@ -6,6 +6,42 @@ const COMMON_HEADERS = {
   "ngrok-skip-browser-warning": "true",
 };
 
+type RawTranscription = {
+  text?: string;
+  transcript?: string;
+  success?: boolean;
+  language?: string;
+};
+
+async function tryTranscribeEndpoint(
+  url: string,
+  audioBlob: Blob,
+  controller: AbortController,
+): Promise<RawTranscription | null> {
+  const formData = new FormData();
+  formData.append("audio", audioBlob, "recording.webm");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: COMMON_HEADERS,
+    body: formData,
+    signal: controller.signal,
+  });
+
+  console.log(`[whisper] ${url} -> status ${response.status}`);
+
+  if (!response.ok) {
+    // Surface the reason instead of swallowing it silently.
+    const errorBody = await response.text().catch(() => "Unknown error");
+    console.error(`[whisper] ${url} HTTP error`, response.status, errorBody);
+    throw new Error(`Transcription failed (${response.status}): ${errorBody}`);
+  }
+
+  const data = (await response.json()) as RawTranscription;
+  console.log(`[whisper] ${url} parsed response`, data);
+  return data;
+}
+
 export async function transcribeAudio(
   audioBlob: Blob,
   timeoutMs = 60000,
@@ -19,52 +55,40 @@ export async function transcribeAudio(
     throw new Error("Cannot transcribe: audio blob is empty");
   }
 
-  const formData = new FormData();
-  formData.append("audio", audioBlob, "recording.webm");
+  // The repo ships TWO Whisper backends with different paths/response shapes:
+  //   backend/main.py (router)  -> /api/speech/transcribe -> { text, success, language }
+  //   whisper/main.py           -> /api/voice/stt         -> { transcript, language }
+  // Try the primary first, then fall back so the feature works regardless of
+  // which backend is actually running.
+  const endpoints = [`${BACKEND_API}/api/speech/transcribe`, `${BACKEND_API}/api/voice/stt`];
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(`${BACKEND_API}/api/speech/transcribe`, {
-      method: "POST",
-      headers: COMMON_HEADERS,
-      body: formData,
-      signal: controller.signal,
-    });
-
-    console.log("[whisper] response status", response.status);
-
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "Unknown error");
-      console.error("[whisper] HTTP error", response.status, errorBody);
-      throw new Error(`Transcription failed (${response.status}): ${errorBody}`);
+    let lastError: unknown = null;
+    for (const url of endpoints) {
+      try {
+        const data = await tryTranscribeEndpoint(url, audioBlob, controller);
+        const text = (data?.text ?? data?.transcript ?? "").trim();
+        if (!text) {
+          console.warn(`[whisper] ${url} returned an empty transcript`);
+          continue; // try next endpoint
+        }
+        return { text, language: data?.language };
+      } catch (err) {
+        lastError = err;
+        // Abort means the whole operation timed out — stop trying.
+        if (controller.signal.aborted) break;
+      }
     }
 
-    const data = (await response.json()) as {
-      text?: string;
-      transcript?: string;
-      success?: boolean;
-      language?: string;
-    };
-
-    console.log("[whisper] parsed response", data);
-
-    const text = (data.text ?? data.transcript ?? "").trim();
-    if (!text) {
-      throw new Error("Whisper returned an empty transcript");
-    }
-
-    return {
-      text,
-      language: data.language,
-    };
-  } catch (err) {
     if (controller.signal.aborted) {
       console.error("[whisper] request timed out after", timeoutMs, "ms");
       throw new Error("Transcription timed out — the model may be overloaded");
     }
-    throw err;
+    if (lastError) throw lastError;
+    throw new Error("Whisper returned an empty transcript from all endpoints");
   } finally {
     clearTimeout(timer);
   }

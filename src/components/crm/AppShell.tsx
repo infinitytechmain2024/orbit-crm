@@ -16,6 +16,7 @@ import {
   ClipboardList,
   FolderKanban,
   Bot,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -29,6 +30,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Дашборд", icon: LayoutDashboard },
   { to: "/tasks", label: "Задачи и проекты", icon: ListChecks },
   { to: "/projects", label: "Проекты", icon: FolderKanban },
+  { to: "/graph", label: "Граф", icon: Network },
   { to: "/calendar", label: "Календарь", icon: Calendar },
   { to: "/clients", label: "Клиенты", icon: Users },
   { to: "/requests", label: "Заявки и записи", icon: ClipboardList },
@@ -41,10 +43,12 @@ export function AppShell({
   title,
   subtitle,
   children,
+  mainClassName,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
+  mainClassName?: string;
 }) {
   const { theme, toggleTheme, emails, error, flash, clearError, clearFlash } = useCrm();
   const { user, signOut } = useAuth();
@@ -182,7 +186,7 @@ export function AppShell({
           </nav>
         </header>
 
-        <main className="px-5 py-6 sm:px-8 sm:py-8">{children}</main>
+        <main className={cn("px-5 py-6 sm:px-8 sm:py-8", mainClassName)}>{children}</main>
       </div>
 
       <AiAssistant />

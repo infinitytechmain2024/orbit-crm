@@ -24,6 +24,7 @@ export function QuickInputTextarea({
 }: QuickInputTextareaProps) {
   const [recorderState, setRecorderState] = useState<RecorderState>("idle");
   const [audioLevel, setAudioLevel] = useState(0);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -90,22 +91,33 @@ export function QuickInputTextarea({
 
       mediaRecorder.onstop = async () => {
         setRecorderState("processing");
+        setVoiceError(null);
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        console.log("[QuickInput] recording stopped", {
+          chunks: audioChunksRef.current.length,
+          blobSize: audioBlob.size,
+        });
         cleanup();
 
         try {
           const result = await transcribeAudio(audioBlob);
           if (result.text) {
+            console.log("[QuickInput] transcript received, updating input:", result.text);
             onChange(result.text);
+          } else {
+            console.warn("[QuickInput] empty transcript — nothing to insert");
+            setVoiceError("Не удалось распознать речь. Попробуйте ещё раз.");
           }
         } catch (err) {
-          console.error("Voice transcription error:", err);
+          console.error("[QuickInput] voice transcription failed:", err);
+          setVoiceError(err instanceof Error ? err.message : "Ошибка распознавания голоса");
         } finally {
           setRecorderState("idle");
         }
       };
 
       mediaRecorder.start(100);
+      setVoiceError(null);
       setRecorderState("recording");
     } catch (err) {
       console.error("Microphone access denied:", err);
@@ -174,6 +186,13 @@ export function QuickInputTextarea({
           </div>
           <span className="text-[10px] text-red-500 font-medium">запись</span>
         </div>
+      )}
+
+      {/* Voice error feedback — previously the failure was swallowed silently */}
+      {voiceError && !isRecording && (
+        <p className="absolute -bottom-5 left-0 right-0 text-[11px] text-destructive">
+          {voiceError}
+        </p>
       )}
     </div>
   );
