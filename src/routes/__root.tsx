@@ -7,13 +7,14 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CrmProvider } from "../lib/crm-store";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { AuthScreen } from "../components/crm/AuthScreen";
+import { GRAPH_PREVIEW_SNAPSHOT } from "../lib/graph-preview-data";
 
 function NotFoundComponent() {
   return (
@@ -159,6 +160,21 @@ function RootComponent() {
 
 function ProtectedApp() {
   const { status } = useAuth();
+  const [graphPreview, setGraphPreview] = useState(false);
+
+  useEffect(() => {
+    setGraphPreview(
+      import.meta.env.DEV && new URLSearchParams(window.location.search).has("graphPreview"),
+    );
+  }, []);
+
+  if (graphPreview) {
+    return (
+      <CrmProvider previewSnapshot={GRAPH_PREVIEW_SNAPSHOT}>
+        <Outlet />
+      </CrmProvider>
+    );
+  }
 
   if (status === "loading") {
     return (
