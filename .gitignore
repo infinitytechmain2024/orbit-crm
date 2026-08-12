@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 venv/
 .venv/
+__pycache__/
+*.py[cod]
 dist
 dist-ssr
 .output

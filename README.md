@@ -95,7 +95,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-# AI Workflow
+## AI Workflow
 
 Маршрут `/ai-workflow` — общий центр работы AI-команды. Он использует Supabase
 для организации данных, RLS и Realtime, FastAPI для защищённых API и уже
@@ -117,6 +117,9 @@ npm run dev
   `reasoning`, `fast`, `long_context`, `writing`, `vision`, `analysis`),
   `priority` и `max_retries`. Новая модель добавляется здесь или строкой в
   `ai_model_configs`; приоритет/модель агента меняются в `ai_agents`.
+- Новый агент добавляется строкой в `ai_agents` с существующим
+  `department_id`, уникальной ролью, capability tags и моделью по умолчанию;
+  bootstrap пропускает уже существующие роли и не создаёт дубликаты.
 - `AI_WORKFLOW_AUTORUN=true` запускает выполнение после назначения.
 - `AI_WORKFLOW_TEST_FAIL_MODEL` — только для QA fallback; укажите часть имени
   первой модели и проверьте события `model_failure`/`model_fallback`.

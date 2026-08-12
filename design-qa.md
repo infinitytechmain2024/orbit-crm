@@ -63,3 +63,54 @@ Post-fix evidence is the current `design-qa-implementation.png` and `design-qa-c
 - [P3] Real project data may produce less visually balanced clusters than the curated reference. Saved manual positions and lazy expansion provide the intended correction path without inventing production records.
 
 final result: passed
+
+# Design QA — AI Workflow
+
+- Source visual truth: `/Users/dmytrolishchyna/Desktop/ORBIT CRM/design-qa-ai-workflow-reference.png`
+- Source dimensions: 1672 × 941 px
+- Desktop implementation: `/Users/dmytrolishchyna/Desktop/ORBIT CRM/design-qa-ai-workflow-desktop.png`
+- Mobile implementation: `/Users/dmytrolishchyna/Desktop/ORBIT CRM/design-qa-ai-workflow-mobile.png`
+- Combined comparison: `/Users/dmytrolishchyna/Desktop/ORBIT CRM/design-qa-ai-workflow-comparison.png`
+- Browser/CSS viewport: 1672 × 941 desktop and 390 × 844 mobile
+- Density normalization: the reference and desktop implementation were captured at identical pixel dimensions and assembled vertically in one comparison artifact.
+- State: dark theme, all projects, one pending CEO approval, active department work, populated timeline/artifacts/summary.
+
+## Full-view and focused evidence
+
+The implementation preserves the reference hierarchy and density: existing Orbit sidebar, compact header controls, a centered CEO approval card, three independent glowing connector branches, Developer/Marketer/HR department cards, a working task queue below, and a sticky three-block right rail. The palette, fine borders, restrained glass, turquoise glow, tiny operational labels, and dark navy depth align with the supplied target without copying its sample data.
+
+The desktop comparison keeps the task queue visible in the first viewport and the right rail unobstructed. A focused mobile capture confirms that controls wrap in a usable order, the sidebar becomes an overlay, CEO actions remain reachable, and department/agent content reflows without horizontal overflow.
+
+## Interaction and runtime verification
+
+- Created a task through the modal, verified the project payload and immediate optimistic insertion.
+- Verified capability routing independently for Frontend and SEO and verified the local preview assigns an interface task to Frontend.
+- Changed a queued task to in-progress without reload.
+- Approved the pending CEO request and verified the task moved to done while the approval card advanced/closed.
+- Opened an agent profile with queue/in-progress/done counts, model, event history, artifacts, and manual assignment.
+- Selected a department and verified the table reduced to that department's tasks.
+- Opened the voice dialog without granting microphone access and verified the manual-task fallback.
+- Opened the mobile overlay navigation and confirmed AI Workflow remains immediately after Projects.
+- Browser console errors/warnings: none after the verified fresh load.
+
+## Comparison history
+
+### Iteration 1 — actionable
+
+- [P2] The initial agent cards made the Marketer department too tall, pushing the working task table below the reference's first viewport.
+- [P2] A global list reset removed timeline padding, allowing status dots to overlap the first letter of agent names.
+- [P2] The assistant bubble overlapped the lower right summary card.
+- [P2] The Realtime label consumed vertical space above the team map and appeared unfinished in preview mode.
+
+Fixes made: compacted agent cards while retaining status, task count, and current work; restored timeline padding; disabled the unrelated assistant only on AI Workflow; moved Realtime state to the right rail; shortened the CEO card and connector track; and tightened department layout.
+
+### Iteration 2 — passed
+
+The final same-size comparison shows matching visual hierarchy, density, palette, and operational emphasis. The desktop task table now enters the initial viewport, mobile controls remain usable, and no actionable P0/P1/P2 difference remains.
+
+## Follow-up polish
+
+- [P3] The existing Orbit shell includes the Graph destination and account controls absent from the older visual reference. They are intentionally preserved so the new route does not regress current CRM navigation.
+- [P3] Production row counts and card heights will vary with live tasks; the compact card treatment and scrollable task/right-rail regions keep the layout stable.
+
+final result: passed

@@ -169,7 +169,10 @@ function AIWorkflowPage() {
         organization_id: organizationId,
         ...input,
       });
-      workflow.prependTask(response.task, "AI Router назначил исполнителя и поставил задачу в очередь.");
+      workflow.prependTask(
+        response.task,
+        "AI Router назначил исполнителя и поставил задачу в очередь.",
+      );
       await workflow.refresh(true);
     }, "Задача создана и передана AI Router");
   }
