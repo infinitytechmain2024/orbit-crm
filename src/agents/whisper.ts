@@ -1,7 +1,7 @@
 import type { TranscriptionResult } from "../types/voice";
 
-const CONFIGURED_BACKEND_API = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
-const LOCAL_BACKEND_API = "http://localhost:8000";
+const TRANSCRIPTION_ENDPOINT = "/api/backend/api/speech/transcribe";
+const HEALTH_ENDPOINT = "/api/backend/api/health";
 
 const COMMON_HEADERS = {
   "ngrok-skip-browser-warning": "true",
@@ -29,34 +29,6 @@ function audioFileName(mimeType: string): string {
   if (mimeType.includes("mp4")) return "recording.mp4";
   if (mimeType.includes("wav")) return "recording.wav";
   return "recording.webm";
-}
-
-function transcriptionEndpoints(): string[] {
-  const endpoints: string[] = [];
-
-  if (CONFIGURED_BACKEND_API) {
-    endpoints.push(
-      `${CONFIGURED_BACKEND_API}/api/speech/transcribe`,
-      `${CONFIGURED_BACKEND_API}/api/voice/stt`,
-    );
-  }
-
-  // In production this same-origin route proxies to RENDER_BACKEND_URL and
-  // keeps the backend URL/token out of the browser. It also avoids CORS.
-  endpoints.push(
-    "/api/backend/api/speech/transcribe",
-    "/api/backend/api/voice/stt",
-  );
-
-  // Keep the bundled local Faster-Whisper service convenient during Vite dev.
-  if (import.meta.env.DEV && CONFIGURED_BACKEND_API !== LOCAL_BACKEND_API) {
-    endpoints.push(
-      `${LOCAL_BACKEND_API}/api/speech/transcribe`,
-      `${LOCAL_BACKEND_API}/api/voice/stt`,
-    );
-  }
-
-  return [...new Set(endpoints)];
 }
 
 async function responseError(response: Response): Promise<string> {
@@ -119,7 +91,8 @@ async function tryTranscribeEndpoint(
 
 export async function transcribeAudio(
   audioBlob: Blob,
-  timeoutMs = 60000,
+  // The first local request may also download/load the configured model.
+  timeoutMs = 120000,
 ): Promise<TranscriptionResult> {
   console.log("[whisper] transcribe start", {
     size: audioBlob.size,
@@ -130,62 +103,31 @@ export async function transcribeAudio(
     throw new Error("Cannot transcribe: audio blob is empty");
   }
 
-  const endpoints = transcriptionEndpoints();
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    let lastError: unknown = null;
-    for (const url of endpoints) {
-      try {
-        const data = await tryTranscribeEndpoint(url, audioBlob, controller);
-        const text = (data?.text ?? data?.transcript ?? "").trim();
-        if (!text) {
-          console.warn(`[whisper] ${url} returned an empty transcript`);
-          continue; // try next endpoint
-        }
-        return { text, language: data?.language };
-      } catch (err) {
-        lastError = err;
-        // Abort means the whole operation timed out — stop trying.
-        if (controller.signal.aborted) break;
-        // These statuses mean the server received this audio and rejected the
-        // payload itself. Retrying a duplicate route only wastes model time.
-        if (
-          err instanceof TranscriptionHttpError &&
-          [400, 413, 415, 422].includes(err.status)
-        ) {
-          throw err;
-        }
-      }
-    }
+    const data = await tryTranscribeEndpoint(TRANSCRIPTION_ENDPOINT, audioBlob, controller);
+    const text = (data?.text ?? data?.transcript ?? "").trim();
+    if (!text) throw new Error("Whisper returned an empty transcript");
 
-    if (controller.signal.aborted) {
-      console.error("[whisper] request timed out after", timeoutMs, "ms");
-      throw new Error("Transcription timed out — the model may be overloaded");
-    }
-    if (lastError) throw lastError;
-    throw new Error("Whisper returned an empty transcript from all endpoints");
+    return { text, language: data?.language };
+  } catch (error) {
+    if (!controller.signal.aborted) throw error;
+    console.error("[whisper] request timed out after", timeoutMs, "ms");
+    throw new Error("Transcription timed out — the model may be starting up");
   } finally {
     clearTimeout(timer);
   }
 }
 
 export async function checkWhisperHealth(): Promise<boolean> {
-  const healthEndpoints = CONFIGURED_BACKEND_API
-    ? [`${CONFIGURED_BACKEND_API}/api/health`, "/api/backend/api/health"]
-    : ["/api/backend/api/health", ...(import.meta.env.DEV ? [`${LOCAL_BACKEND_API}/api/health`] : [])];
-
-  for (const url of healthEndpoints) {
-    try {
-      const response = await fetch(url, { headers: COMMON_HEADERS });
-      if (!response.ok) continue;
-      const data = (await response.json()) as { status: string };
-      if (data.status === "ok") return true;
-    } catch {
-      // Try the next configured backend.
-    }
+  try {
+    const response = await fetch(HEALTH_ENDPOINT, { headers: COMMON_HEADERS });
+    if (!response.ok) return false;
+    const data = (await response.json()) as { status: string };
+    return data.status === "ok";
+  } catch {
+    return false;
   }
-  return false;
 }

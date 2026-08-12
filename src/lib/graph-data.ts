@@ -335,7 +335,9 @@ export function buildGraphModel(input: {
         dueDate: project.dueDate,
         taskCount: projectTasks.length,
         completedTasks,
-        progress: projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : 0,
+        progress: projectTasks.length
+          ? Math.round((completedTasks / projectTasks.length) * 100)
+          : 0,
       },
     });
 
@@ -471,10 +473,7 @@ export function buildGraphModel(input: {
         createdBy: null,
       });
     }
-    if (
-      lead.responsible_user_id &&
-      entities.has(graphNodeId("person", lead.responsible_user_id))
-    ) {
+    if (lead.responsible_user_id && entities.has(graphNodeId("person", lead.responsible_user_id))) {
       addRelation(relations, {
         sourceType: "client",
         sourceId: lead.id,
@@ -493,13 +492,12 @@ export function buildGraphModel(input: {
 export function dedupeRelations(relations: GraphRelation[]): GraphRelation[] {
   const seen = new Set<string>();
   return relations.filter((relation) => {
-    const key = [
-      relation.sourceType,
-      relation.sourceId,
-      relation.targetType,
-      relation.targetId,
-      relation.relationType,
-    ].join(":");
+    const endpoints = [
+      `${relation.sourceType}:${relation.sourceId}`,
+      `${relation.targetType}:${relation.targetId}`,
+    ];
+    if (relation.relationType === "related_to") endpoints.sort();
+    const key = `${endpoints.join(":")}:${relation.relationType}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

@@ -9,7 +9,8 @@ async function workflowRequest<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set("authorization", `Bearer ${accessToken}`);
-  if (init.body && !(init.body instanceof FormData)) headers.set("content-type", "application/json");
+  if (init.body && !(init.body instanceof FormData))
+    headers.set("content-type", "application/json");
   const response = await fetch(`/api/ai-workflow/${path.replace(/^\//, "")}`, {
     ...init,
     headers,
@@ -37,10 +38,14 @@ export function fetchWorkflowOverview(
 }
 
 export function createWorkflowTask(accessToken: string, input: NewWorkflowTask) {
-  return workflowRequest<{ task: WorkflowTask; queued_for_execution: boolean }>(accessToken, "tasks", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return workflowRequest<{ task: WorkflowTask; queued_for_execution: boolean }>(
+    accessToken,
+    "tasks",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function patchWorkflowTask(
@@ -96,11 +101,7 @@ export function assignWorkflowTask(
   });
 }
 
-export function transcribeWorkflowVoice(
-  accessToken: string,
-  organizationId: string,
-  audio: Blob,
-) {
+export function transcribeWorkflowVoice(accessToken: string, organizationId: string, audio: Blob) {
   const formData = new FormData();
   formData.append("organization_id", organizationId);
   formData.append("audio", audio, "workflow-task.webm");
@@ -109,4 +110,3 @@ export function transcribeWorkflowVoice(
     body: formData,
   });
 }
-

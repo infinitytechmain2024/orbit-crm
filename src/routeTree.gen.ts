@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AiWorkflowRouteImport } from './routes/ai-workflow'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ClientsRouteImport } from './routes/clients'
@@ -28,6 +29,11 @@ import { Route as ApiBackendSplatRouteImport } from './routes/api/backend/$'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiWorkflowRoute = AiWorkflowRouteImport.update({
+  id: '/ai-workflow',
+  path: '/ai-workflow',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookRoute = BookRouteImport.update({
@@ -103,6 +109,7 @@ const ApiBackendSplatRoute = ApiBackendSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-workflow': typeof AiWorkflowRoute
   '/book': typeof BookRoute
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-workflow': typeof AiWorkflowRoute
   '/book': typeof BookRoute
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai-workflow': typeof AiWorkflowRoute
   '/book': typeof BookRoute
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ai-workflow'
     | '/book'
     | '/calendar'
     | '/clients'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ai-workflow'
     | '/book'
     | '/calendar'
     | '/clients'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/ai-workflow'
     | '/book'
     | '/calendar'
     | '/clients'
@@ -209,6 +221,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiWorkflowRoute: typeof AiWorkflowRoute
   BookRoute: typeof BookRoute
   CalendarRoute: typeof CalendarRoute
   ClientsRoute: typeof ClientsRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-workflow': {
+      id: '/ai-workflow'
+      path: '/ai-workflow'
+      fullPath: '/ai-workflow'
+      preLoaderRoute: typeof AiWorkflowRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book': {
@@ -346,6 +366,7 @@ const TasksRouteWithChildren = TasksRoute._addFileChildren(TasksRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiWorkflowRoute: AiWorkflowRoute,
   BookRoute: BookRoute,
   CalendarRoute: CalendarRoute,
   ClientsRoute: ClientsRoute,

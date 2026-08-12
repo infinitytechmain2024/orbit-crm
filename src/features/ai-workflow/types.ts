@@ -138,4 +138,3 @@ export type NewWorkflowTask = {
   auto_assign: boolean;
   requires_approval?: boolean;
 };
-

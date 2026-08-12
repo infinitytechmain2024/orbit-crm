@@ -19,11 +19,15 @@ async function proxyRequest(
 ): Promise<Response> {
   const base =
     process.env.RENDER_BACKEND_URL ||
-    process.env.VITE_API_URL ||
     (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
   if (!base) {
+    return Response.json({ error: "Backend URL is not configured on the server" }, { status: 503 });
+  }
+
+  const token = process.env.INTERNAL_API_TOKEN;
+  if (!token) {
     return Response.json(
-      { error: "Backend URL is not configured on the server" },
+      { error: "Backend proxy authentication is not configured" },
       { status: 503 },
     );
   }
@@ -35,11 +39,8 @@ async function proxyRequest(
   headers.delete("host");
   headers.delete("content-length");
   headers.delete("connection");
-
-  const token = process.env.INTERNAL_API_TOKEN;
-  if (token) {
-    headers.set("authorization", `Bearer ${token}`);
-  }
+  headers.delete("authorization");
+  headers.set("authorization", `Bearer ${token}`);
 
   try {
     const upstream = await fetch(target, {
@@ -61,8 +62,9 @@ async function proxyRequest(
     });
   } catch (error) {
     console.error("[backend proxy] upstream request failed", {
-      target,
-      error,
+      method,
+      path: path ?? "",
+      reason: error instanceof Error ? error.message : "Unknown upstream error",
     });
     return Response.json({ error: "Backend is unavailable" }, { status: 502 });
   }

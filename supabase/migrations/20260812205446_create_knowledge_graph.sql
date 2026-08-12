@@ -109,6 +109,7 @@ set search_path = ''
 as $$
 begin
   if target_user_id is null
+    or target_user_id is distinct from (select auth.uid())
     or not private.is_organization_member(target_organization_id, target_user_id) then
     return false;
   end if;

@@ -1,21 +1,30 @@
 services:
-- type: web
-  name: aura-crm-backend
-  runtime: python
-  region: ohio
-  plan: free
-  buildCommand: pip install -r backend/requirements.txt
-  startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
-  envVars:
-  - key: PYTHON_VERSION
-    value: "3.12.11"
-  - key: NVIDIA_API_KEY
-    sync: false
-  - key: SUPABASE_URL
-    sync: false
-  - key: SUPABASE_SERVICE_ROLE_KEY
-    sync: false
-  - key: SUPABASE_PUBLISHABLE_KEY
-    sync: false
-  - key: INTERNAL_API_TOKEN
-    sync: false
+  - type: web
+    name: aura-crm-backend
+    runtime: python
+    region: ohio
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.11"
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: INTERNAL_API_TOKEN
+        sync: false
+      - key: WHISPER_MODEL
+        value: base
+      - key: WHISPER_DEVICE
+        value: cpu
+      - key: WHISPER_COMPUTE_TYPE
+        value: int8
+      - key: WHISPER_LANGUAGE
+        value: ru

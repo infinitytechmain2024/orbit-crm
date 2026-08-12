@@ -16,16 +16,13 @@ async function proxyWorkflowRequest(
   method: string,
 ): Promise<Response> {
   const base =
-    process.env.RENDER_BACKEND_URL ??
-    process.env.VITE_API_URL ??
-    (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
+    process.env["RENDER_BACKEND_URL"] ??
+    process.env["VITE_API_URL"] ??
+    (process.env["NODE_ENV"] === "development" ? "http://127.0.0.1:8000" : "");
   if (!base) {
-    return Response.json(
-      { error: "AI Workflow backend URL is not configured" },
-      { status: 503 },
-    );
+    return Response.json({ error: "AI Workflow backend URL is not configured" }, { status: 503 });
   }
-  const internalToken = process.env.INTERNAL_API_TOKEN;
+  const internalToken = process.env["INTERNAL_API_TOKEN"];
   if (!internalToken) {
     return Response.json(
       { error: "AI Workflow server authentication is not configured" },
@@ -43,12 +40,13 @@ async function proxyWorkflowRequest(
   if (userAuthorization) headers.set("x-supabase-authorization", userAuthorization);
   headers.set("authorization", `Bearer ${internalToken}`);
 
-  const upstream = await fetch(target, {
+  const requestInit: RequestInit = {
     method,
     headers,
-    body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
     redirect: "manual",
-  });
+  };
+  if (method !== "GET" && method !== "HEAD") requestInit.body = await request.arrayBuffer();
+  const upstream = await fetch(target, requestInit);
 
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-length");

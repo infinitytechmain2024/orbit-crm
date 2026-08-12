@@ -185,6 +185,7 @@ function KnowledgeGraphRoute() {
       title="Граф знаний"
       subtitle="Структура проектов, материалов и связей"
       mainClassName="overflow-hidden p-3 sm:p-4"
+      hideAssistant
     >
       <ReactFlowProvider>
         <KnowledgeGraphWorkspace />
@@ -194,9 +195,8 @@ function KnowledgeGraphRoute() {
 }
 
 function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
-  const size = data.entity.type === "project" ? 34 : data.entity.type === "task" ? 19 : 13;
+  const size = data.entity.type === "project" ? 32 : data.entity.type === "task" ? 16 : 12;
   const color = GRAPH_TYPE_COLORS[data.entity.type];
-  const Icon = NODE_ICON[data.entity.type];
 
   return (
     <div
@@ -213,7 +213,7 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
         style={{ left: size / 2, width: 2, height: 2 }}
       />
       <div
-        className="relative grid shrink-0 place-items-center rounded-full border"
+        className="relative shrink-0 rounded-full border"
         style={{
           width: size,
           height: size,
@@ -226,9 +226,6 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
               : `0 0 10px ${color}45`,
         }}
       >
-        {Icon && size >= 19 ? (
-          <Icon className={cn("text-[#062825]", size > 24 ? "size-4" : "size-2.5")} />
-        ) : null}
         {data.selected ? (
           <span className="absolute -right-1 -top-1 size-2.5 rounded-full border-2 border-background bg-white" />
         ) : null}
@@ -243,15 +240,15 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
         <div className="pointer-events-none max-w-[190px] whitespace-nowrap">
           <p
             className={cn(
-              "truncate text-[12px] font-medium text-foreground drop-shadow-[0_2px_8px_rgba(0,0,0,.9)]",
-              data.entity.type === "project" && "text-[14px] font-semibold",
+              "truncate text-[12px] font-medium text-[#f5f7fa] drop-shadow-[0_2px_8px_rgba(0,0,0,1)]",
+              data.entity.type === "project" && "text-[14px] font-semibold text-white",
             )}
           >
             {data.entity.title}
           </p>
           {data.selected && data.entity.type !== "project" ? (
             <p className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
-              {GRAPH_OBJECT_LABELS[data.entity.type]} · {data.relationCount} связей
+              {GRAPH_OBJECT_LABELS[data.entity.type]} · {formatConnectionCount(data.relationCount)}
             </p>
           ) : null}
         </div>
@@ -263,6 +260,7 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
 const nodeTypes = { knowledge: KnowledgeNodeView };
 
 function KnowledgeGraphWorkspace() {
+  const { fitView: fitGraphView } = useReactFlow<KnowledgeNode, Edge>();
   const { user } = useAuth();
   const { organization, members, projects, tasks, txs, isLoading } = useCrm();
   const [leads, setLeads] = useState<GraphLead[]>([]);
@@ -289,6 +287,7 @@ function KnowledgeGraphWorkspace() {
   const [creatingLink, setCreatingLink] = useState(false);
   const initializedOrganization = useRef<string | null>(null);
   const fetchedManualNodes = useRef(new Set<string>());
+  const fittedNodeCount = useRef(0);
 
   const model = useMemo(
     () => buildGraphModel({ projects, tasks, members, txs, leads }),
@@ -300,7 +299,7 @@ function KnowledgeGraphWorkspace() {
     [manualRelations, model.relations],
   );
 
-  const selectedEntity = selectedNodeId ? model.entities.get(selectedNodeId) ?? null : null;
+  const selectedEntity = selectedNodeId ? (model.entities.get(selectedNodeId) ?? null) : null;
 
   useEffect(() => {
     if (!organization || !user || initializedOrganization.current === organization.id) return;
@@ -349,9 +348,7 @@ function KnowledgeGraphWorkspace() {
 
   const distances = useMemo(
     () =>
-      selectedNodeId
-        ? getGraphDistances(selectedNodeId, relations, 3)
-        : new Map<string, number>(),
+      selectedNodeId ? getGraphDistances(selectedNodeId, relations, 3) : new Map<string, number>(),
     [relations, selectedNodeId],
   );
 
@@ -377,7 +374,14 @@ function KnowledgeGraphWorkspace() {
   }, [depth, relations, revealNeighborhood, selectedNodeId]);
 
   useEffect(() => {
-    if (!selectedEntity || !organization || fetchedManualNodes.current.has(selectedNodeId!)) return;
+    if (
+      !selectedEntity ||
+      !organization ||
+      !user ||
+      fetchedManualNodes.current.has(selectedNodeId!)
+    ) {
+      return;
+    }
     const lookupId = selectedNodeId!;
     fetchedManualNodes.current.add(lookupId);
     fetchGraphRelationsForNode(organization.id, selectedEntity.type, selectedEntity.id)
@@ -389,7 +393,7 @@ function KnowledgeGraphWorkspace() {
           );
         }
       });
-  }, [organization, schemaWarning, selectedEntity, selectedNodeId]);
+  }, [organization, schemaWarning, selectedEntity, selectedNodeId, user]);
 
   const positionedNodes = useMemo(() => {
     const allowedVisible = [...visibleNodeIds].filter((nodeId) => {
@@ -407,7 +411,8 @@ function KnowledgeGraphWorkspace() {
           id,
           type: "knowledge" as const,
           position:
-            persistedPositions.get(id) ?? calculateEntityPosition(entity, model, persistedPositions),
+            persistedPositions.get(id) ??
+            calculateEntityPosition(entity, model, persistedPositions),
           data: {
             entity,
             selected: id === selectedNodeId,
@@ -437,6 +442,15 @@ function KnowledgeGraphWorkspace() {
   ]);
 
   useEffect(() => setNodes(positionedNodes), [positionedNodes]);
+
+  useEffect(() => {
+    if (!positionedNodes.length || fittedNodeCount.current === positionedNodes.length) return;
+    fittedNodeCount.current = positionedNodes.length;
+    const timer = window.setTimeout(() => {
+      void fitGraphView({ duration: 280, padding: 0.2, maxZoom: 1.05 });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [fitGraphView, positionedNodes.length]);
 
   const edges = useMemo<Edge[]>(() => {
     const visible = new Set(positionedNodes.map((node) => node.id));
@@ -595,7 +609,7 @@ function KnowledgeGraphWorkspace() {
 
   if (isLoading) {
     return (
-      <div className="grid h-[calc(100vh-8.75rem)] min-h-[620px] place-items-center rounded-2xl border border-border bg-surface/45">
+      <div className="grid h-[calc(100vh-8.75rem)] min-h-[560px] place-items-center rounded-2xl border border-border bg-surface/45">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <Loader2 className="size-5 animate-spin text-primary" />
           Собираю реальные связи…
@@ -606,7 +620,7 @@ function KnowledgeGraphWorkspace() {
 
   if (!projects.length) {
     return (
-      <div className="grid h-[calc(100vh-8.75rem)] min-h-[620px] place-items-center rounded-2xl border border-dashed border-border bg-surface/35 px-6 text-center">
+      <div className="grid h-[calc(100vh-8.75rem)] min-h-[560px] place-items-center rounded-2xl border border-dashed border-border bg-surface/35 px-6 text-center">
         <div className="max-w-sm">
           <Network className="mx-auto size-10 text-primary/70" />
           <h2 className="mt-4 text-base font-semibold">Граф начнётся с первого проекта</h2>
@@ -619,8 +633,13 @@ function KnowledgeGraphWorkspace() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-8.75rem)] min-h-[620px] overflow-hidden rounded-2xl border border-border bg-[#071722]/80 shadow-[0_24px_80px_-48px_rgba(0,0,0,.95)]">
-      <div className={cn("h-full min-w-0 transition-[padding]", selectedEntity && "xl:pr-[338px]")}>
+    <div className="relative h-[calc(100vh-8.75rem)] min-h-[560px] overflow-hidden rounded-2xl border border-border bg-[#071722]/80 shadow-[0_24px_80px_-48px_rgba(0,0,0,.95)]">
+      <div
+        className={cn(
+          "h-full min-w-0 transition-[width]",
+          selectedEntity ? "xl:w-[calc(100%-338px)]" : "w-full",
+        )}
+      >
         <ReactFlow<KnowledgeNode, Edge>
           nodes={nodes}
           edges={edges}
@@ -651,7 +670,7 @@ function KnowledgeGraphWorkspace() {
           />
 
           <Panel position="top-left" className="!m-4">
-            <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#091923]/76 px-3 py-2 text-[11px] text-slate-300 backdrop-blur-xl">
+            <div className="hidden items-center gap-2 rounded-xl border border-white/8 bg-[#091923]/76 px-3 py-2 text-[11px] text-slate-300 backdrop-blur-xl 2xl:flex">
               <Info className="size-4 text-slate-300" />
               Выберите точку, чтобы увидеть связи
             </div>
@@ -694,7 +713,9 @@ function KnowledgeGraphWorkspace() {
                               style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}` }}
                             />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-xs text-white">{entity.title}</span>
+                              <span className="block truncate text-xs text-white">
+                                {entity.title}
+                              </span>
                               <span className="text-[10px] text-slate-500">
                                 {GRAPH_OBJECT_LABELS[entity.type]}
                               </span>
@@ -703,7 +724,9 @@ function KnowledgeGraphWorkspace() {
                         );
                       })
                     ) : (
-                      <p className="px-3 py-4 text-center text-xs text-slate-500">Ничего не найдено</p>
+                      <p className="px-3 py-4 text-center text-xs text-slate-500">
+                        Ничего не найдено
+                      </p>
                     )}
                   </div>
                 ) : null}
@@ -947,14 +970,17 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
   }
 
   const nearby = getGraphDistances(props.selectedNodeId, props.relations, 3);
-  const projectEntities = [...nearby.keys()]
-    .filter((nodeId) => nodeId !== props.selectedNodeId)
-    .map((nodeId) => props.model.entities.get(nodeId))
-    .filter((entity): entity is GraphEntity => entity?.type === "project")
+  const projectEntities = directEntities
+    .filter((entity) => entity.type === "project")
+    .filter((entity) => props.entity.type === "project" || entity.id !== props.entity.projectId)
     .slice(0, 4);
 
-  const recentMaterials = directEntities
-    .filter((entity) => MATERIAL_TYPES.has(entity.type))
+  const materialCandidates =
+    props.entity.type === "project"
+      ? [...nearby.keys()].map((nodeId) => props.model.entities.get(nodeId))
+      : directEntities;
+  const recentMaterials = materialCandidates
+    .filter((entity): entity is GraphEntity => Boolean(entity) && MATERIAL_TYPES.has(entity.type))
     .sort((left, right) => (right.createdAt ?? "").localeCompare(left.createdAt ?? ""))
     .slice(0, 4);
 
@@ -1005,7 +1031,8 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
               {props.entity.title}
             </h2>
             <p className="mt-1 text-[10px] text-slate-500">
-              {GRAPH_OBJECT_LABELS[props.entity.type]} · {directEntities.length} связанных объектов
+              {GRAPH_OBJECT_LABELS[props.entity.type]} ·{" "}
+              {formatConnectionCount(directEntities.length)}
             </p>
           </div>
         </div>
@@ -1114,9 +1141,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
             </label>
             <select
               value={props.linkType}
-              onChange={(event) =>
-                props.onLinkTypeChange(event.target.value as GraphRelationType)
-              }
+              onChange={(event) => props.onLinkTypeChange(event.target.value as GraphRelationType)}
               className="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#0a1822] px-2.5 text-[11px] text-white outline-none focus:border-primary/50"
             >
               {RELATION_TYPES.map((type) => (
@@ -1176,7 +1201,11 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
               disabled={!props.linkTargetId || props.creatingLink}
               className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[11px] font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {props.creatingLink ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
+              {props.creatingLink ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Link2 className="size-3.5" />
+              )}
               Создать связь
             </button>
           </form>
@@ -1254,28 +1283,39 @@ function calculateEntityPosition(
     ? projects.find((candidate) => candidate.id === entity.projectId)
     : findRelatedProject(entity, model);
   const projectBase = project
-    ? projectPosition(Math.max(0, projects.findIndex((candidate) => candidate.id === project.id)))
+    ? projectPosition(
+        Math.max(
+          0,
+          projects.findIndex((candidate) => candidate.id === project.id),
+        ),
+      )
     : { x: 520, y: 300 };
 
   if (entity.type === "task") {
     const siblings = [...model.entities.values()].filter(
       (candidate) => candidate.type === "task" && candidate.projectId === entity.projectId,
     );
-    const index = Math.max(0, siblings.findIndex((candidate) => candidate.id === entity.id));
-    const column = index % 5;
-    const row = Math.floor(index / 5);
+    const index = Math.max(
+      0,
+      siblings.findIndex((candidate) => candidate.id === entity.id),
+    );
+    const column = index % 3;
+    const row = Math.floor(index / 3);
     return {
-      x: projectBase.x - 250 + column * 125,
-      y: projectBase.y + 190 + row * 135,
+      x: projectBase.x - 220 + column * 220,
+      y: projectBase.y + 190 + row * 150,
     };
   }
 
   if (entity.type === "person") {
     const people = [...model.entities.values()].filter((candidate) => candidate.type === "person");
-    const index = Math.max(0, people.findIndex((candidate) => candidate.id === entity.id));
+    const index = Math.max(
+      0,
+      people.findIndex((candidate) => candidate.id === entity.id),
+    );
     return {
-      x: projectBase.x - 110 + (index % 4) * 95,
-      y: projectBase.y - 125 - Math.floor(index / 4) * 70,
+      x: projectBase.x - 170 + (index % 3) * 180,
+      y: projectBase.y - 125 - Math.floor(index / 3) * 70,
     };
   }
 
@@ -1307,11 +1347,11 @@ function calculateEntityPosition(
 }
 
 function projectPosition(index: number): GraphPosition {
-  if (index === 0) return { x: 350, y: 150 };
+  if (index === 0) return { x: 290, y: 165 };
   const normalized = index - 1;
   return {
-    x: 720 + (normalized % 2) * 310,
-    y: 75 + Math.floor(normalized / 2) * 290,
+    x: 650 + (normalized % 2) * 260,
+    y: 75 + Math.floor(normalized / 2) * 275,
   };
 }
 
@@ -1333,4 +1373,16 @@ function stableHash(value: string): number {
     hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
   }
   return hash;
+}
+
+function formatConnectionCount(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  const word =
+    mod10 === 1 && mod100 !== 11
+      ? "связь"
+      : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+        ? "связи"
+        : "связей";
+  return `${count} ${word}`;
 }

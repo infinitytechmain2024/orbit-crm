@@ -95,3 +95,33 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+# AI Workflow
+
+Маршрут `/ai-workflow` — общий центр работы AI-команды. Он использует Supabase
+для организации данных, RLS и Realtime, FastAPI для защищённых API и уже
+подключённый NVIDIA OpenAI-compatible provider для маршрутизации и выполнения.
+
+Примените миграцию `supabase/migrations/20260812205542_ai_workflow.sql`. Она
+создаёт отделы, агентов, AI-задачи, события, заявки CEO, артефакты и конфигурации
+моделей; добавляет индексы/RLS/минимальные grants; включает Postgres Changes и
+инициализирует роли без дублей. Ключи в таблицах не сохраняются.
+
+Переменные сервера:
+
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY` —
+  backend и проверка пользовательского JWT.
+- `INTERNAL_API_TOKEN` — общий секрет между TanStack server proxy и FastAPI.
+- `RENDER_BACKEND_URL` — URL FastAPI для production server proxy.
+- `NVIDIA_API_KEY`, `NVIDIA_MODEL`, опционально `NVIDIA_BASE_URL` — NVIDIA NIM.
+- `AI_MODEL_CONFIGS_JSON` — массив моделей с capability tags (`coding`,
+  `reasoning`, `fast`, `long_context`, `writing`, `vision`, `analysis`),
+  `priority` и `max_retries`. Новая модель добавляется здесь или строкой в
+  `ai_model_configs`; приоритет/модель агента меняются в `ai_agents`.
+- `AI_WORKFLOW_AUTORUN=true` запускает выполнение после назначения.
+- `AI_WORKFLOW_TEST_FAIL_MODEL` — только для QA fallback; укажите часть имени
+  первой модели и проверьте события `model_failure`/`model_fallback`.
+- `WHISPER_MODEL`, `WHISPER_DEVICE`, `WHISPER_COMPUTE_TYPE`,
+  `WHISPER_LANGUAGE` — локальная транскрипция голосовых задач.
+
+Если `NVIDIA_API_KEY` отсутствует, очередь, назначение, approve/reject, Realtime
+и артефакты продолжают работать в demo-режиме, а UI явно сообщает об этом.

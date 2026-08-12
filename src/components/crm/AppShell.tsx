@@ -51,12 +51,14 @@ export function AppShell({
   children,
   mainClassName,
   headerActions,
+  hideAssistant = false,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   mainClassName?: string;
   headerActions?: ReactNode;
+  hideAssistant?: boolean;
 }) {
   const { theme, toggleTheme, emails, error, flash, clearError, clearFlash } = useCrm();
   const { user, signOut } = useAuth();
@@ -180,7 +182,8 @@ export function AppShell({
                   </div>
                   <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
                     {nav.map((item) => {
-                      const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+                      const active =
+                        item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
                       return (
                         <SheetClose asChild key={item.to}>
                           <Link
@@ -223,11 +226,11 @@ export function AppShell({
             </div>
             {headerActions}
             {!headerActions && (
-            <div className="hidden items-center gap-2 rounded-xl border border-border bg-surface-2/70 px-3 py-2 text-xs text-muted-foreground md:flex">
-              <Command className="size-3.5" />
-              Быстрый поиск
-              <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd>
-            </div>
+              <div className="hidden items-center gap-2 rounded-xl border border-border bg-surface-2/70 px-3 py-2 text-xs text-muted-foreground md:flex">
+                <Command className="size-3.5" />
+                Быстрый поиск
+                <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+              </div>
             )}
             <button
               className="grid size-9 place-items-center rounded-xl border border-border bg-surface-2/70 text-muted-foreground transition hover:text-foreground"
@@ -259,7 +262,7 @@ export function AppShell({
         <main className={cn("px-5 py-6 sm:px-8 sm:py-8", mainClassName)}>{children}</main>
       </div>
 
-      <AiAssistant />
+      {!hideAssistant && <AiAssistant />}
 
       {error && (
         <div className="fixed bottom-24 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl border border-destructive/35 bg-surface px-4 py-2 text-sm text-destructive shadow-xl animate-in slide-in-from-bottom-2">

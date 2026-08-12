@@ -34,16 +34,11 @@ function mapRelation(row: GraphRelationRow): GraphRelation {
   };
 }
 
-export async function fetchGraphLeads(
-  organizationId: string,
-  limit = 250,
-): Promise<GraphLead[]> {
+export async function fetchGraphLeads(organizationId: string, limit = 250): Promise<GraphLead[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("leads")
-    .select(
-      "id,company_name,website,status,project_id,responsible_user_id,created_at,source_query",
-    )
+    .select("id,company_name,website,status,project_id,responsible_user_id,created_at,source_query")
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -152,11 +147,7 @@ export async function createGraphRelation(input: {
     target_id: input.targetId,
     relation_type: input.relationType,
   };
-  const { data, error } = await supabase
-    .from("graph_relations")
-    .insert(payload)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("graph_relations").insert(payload).select().single();
 
   if (error) throw graphError("Не удалось создать связь", error.message);
   if (!data) throw new Error("Supabase не вернул созданную связь.");

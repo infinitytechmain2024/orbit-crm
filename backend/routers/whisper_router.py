@@ -10,16 +10,20 @@ import time
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
+from backend.auth import require_internal_token
 from backend.config import settings
 
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["Speech"])
+router = APIRouter(
+    tags=["Speech"],
+    dependencies=[Depends(require_internal_token)],
+)
 
 logging.getLogger("faster_whisper").setLevel(logging.WARNING)
 
@@ -31,11 +35,6 @@ LOCAL_WHISPER_ROOT = REPOSITORY_ROOT / "whisper"
 local_whisper_path = str(LOCAL_WHISPER_ROOT)
 if local_whisper_path not in sys.path:
     sys.path.insert(0, local_whisper_path)
-
-MODEL_SIZE = settings.WHISPER_MODEL
-DEVICE = settings.WHISPER_DEVICE
-COMPUTE_TYPE = settings.WHISPER_COMPUTE_TYPE
-LANGUAGE = settings.WHISPER_LANGUAGE or None
 
 whisper_model: Any | None = None
 model_initialization_error: Exception | None = None
@@ -59,16 +58,16 @@ def _load_model() -> Any:
             from faster_whisper import WhisperModel
 
             whisper_model = WhisperModel(
-                MODEL_SIZE,
-                device=DEVICE,
-                compute_type=COMPUTE_TYPE,
+                settings.WHISPER_MODEL,
+                device=settings.WHISPER_DEVICE,
+                compute_type=settings.WHISPER_COMPUTE_TYPE,
             )
             model_initialization_error = None
             logger.info(
                 "Local Faster-Whisper model initialized: model=%s, device=%s, compute_type=%s",
-                MODEL_SIZE,
-                DEVICE,
-                COMPUTE_TYPE,
+                settings.WHISPER_MODEL,
+                settings.WHISPER_DEVICE,
+                settings.WHISPER_COMPUTE_TYPE,
             )
         except Exception as exc:  # Keep the rest of the FastAPI application available.
             model_initialization_error = exc
@@ -92,7 +91,7 @@ def _transcribe_file(file_path: Path) -> tuple[str, str]:
     started = time.monotonic()
     segments, info = model.transcribe(
         str(file_path),
-        language=LANGUAGE,
+        language=settings.WHISPER_LANGUAGE or None,
         beam_size=5,
         vad_filter=True,
         vad_parameters=dict(min_silence_duration_ms=300),

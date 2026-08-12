@@ -2,9 +2,7 @@ import io
 import logging
 import tempfile
 from pathlib import Path
-from typing import BinaryIO
-
-from faster_whisper import WhisperModel
+from typing import Any, BinaryIO
 
 from backend.config import settings
 
@@ -13,14 +11,16 @@ logger = logging.getLogger(__name__)
 
 class STTService:
     def __init__(self):
-        self._model: WhisperModel | None = None
+        self._model: Any | None = None
         self._model_name = settings.WHISPER_MODEL
         self._device = settings.WHISPER_DEVICE
         self._compute_type = settings.WHISPER_COMPUTE_TYPE
         self._language = settings.WHISPER_LANGUAGE
 
-    def _load_model(self) -> WhisperModel:
+    def _load_model(self) -> Any:
         if self._model is None:
+            from faster_whisper import WhisperModel
+
             logger.info(
                 f"Loading Faster-Whisper model: {self._model_name} "
                 f"(device={self._device}, compute_type={self._compute_type})"

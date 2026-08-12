@@ -35,7 +35,9 @@ export function WorkflowToolbar({
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">⌄</span>
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+          ⌄
+        </span>
       </label>
 
       <label className="relative order-last min-w-full flex-1 sm:order-none sm:min-w-64 xl:w-72">
@@ -46,7 +48,9 @@ export function WorkflowToolbar({
           placeholder="Поиск задач, проектов, агентов…"
           className="h-10 w-full rounded-xl border border-border bg-[#0c1924]/90 pl-9 pr-12 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-primary/70 focus:ring-2 focus:ring-primary/15"
         />
-        <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-[9px] text-muted-foreground">⌘K</kbd>
+        <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-[9px] text-muted-foreground">
+          ⌘K
+        </kbd>
       </label>
 
       <button

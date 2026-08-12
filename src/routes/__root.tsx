@@ -12,9 +12,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CrmProvider } from "../lib/crm-store";
+import type { CrmSnapshot } from "../lib/crm-repository";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { AuthScreen } from "../components/crm/AuthScreen";
-import { GRAPH_PREVIEW_SNAPSHOT } from "../lib/graph-preview-data";
 
 function NotFoundComponent() {
   return (
@@ -106,6 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Персональная CRM-система для управления записями и клиентами",
       },
       { name: "twitter:image", content: "/og-image.png" },
+      { name: "theme-color", content: "#14b8a6" },
     ],
     links: [
       {
@@ -122,7 +123,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/logo-icon.svg", type: "image/svg+xml" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
       { rel: "manifest", href: "/manifest.json" },
-      { name: "theme-color", content: "#14b8a6" },
     ],
   }),
 
@@ -160,17 +160,20 @@ function RootComponent() {
 
 function ProtectedApp() {
   const { status } = useAuth();
-  const [graphPreview, setGraphPreview] = useState(false);
+  const [graphPreview, setGraphPreview] = useState<CrmSnapshot | null>(null);
 
   useEffect(() => {
-    setGraphPreview(
-      import.meta.env.DEV && new URLSearchParams(window.location.search).has("graphPreview"),
-    );
+    if (!import.meta.env.DEV || !new URLSearchParams(window.location.search).has("graphPreview")) {
+      return;
+    }
+    void import("../lib/graph-preview-data").then(({ GRAPH_PREVIEW_SNAPSHOT }) => {
+      setGraphPreview(GRAPH_PREVIEW_SNAPSHOT);
+    });
   }, []);
 
   if (graphPreview) {
     return (
-      <CrmProvider previewSnapshot={GRAPH_PREVIEW_SNAPSHOT}>
+      <CrmProvider previewSnapshot={graphPreview}>
         <Outlet />
       </CrmProvider>
     );
