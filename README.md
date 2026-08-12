@@ -95,6 +95,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
 ## AI Workflow
 
 Маршрут `/ai-workflow` — общий центр работы AI-команды. Он использует Supabase
@@ -110,8 +111,11 @@ npm run dev
 
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY` —
   backend и проверка пользовательского JWT.
-- `INTERNAL_API_TOKEN` — общий секрет между TanStack server proxy и FastAPI.
-- `RENDER_BACKEND_URL` — URL FastAPI для production server proxy.
+- `INTERNAL_API_TOKEN` — одинаковый серверный секрет в `.env.local` и
+  `backend/.env`; он не должен иметь префикс `VITE_`.
+- `AI_WORKFLOW_BACKEND_URL` — URL FastAPI для AI Workflow
+  (`http://127.0.0.1:8000` локально). `RENDER_BACKEND_URL` остаётся общим
+  fallback для существующих production-развёртываний.
 - `NVIDIA_API_KEY`, `NVIDIA_MODEL`, опционально `NVIDIA_BASE_URL` — NVIDIA NIM.
 - `AI_MODEL_CONFIGS_JSON` — массив моделей с capability tags (`coding`,
   `reasoning`, `fast`, `long_context`, `writing`, `vision`, `analysis`),
@@ -128,3 +132,6 @@ npm run dev
 
 Если `NVIDIA_API_KEY` отсутствует, очередь, назначение, approve/reject, Realtime
 и артефакты продолжают работать в demo-режиме, а UI явно сообщает об этом.
+Если FastAPI ещё не развёрнут или миграция не применена, экран автоматически
+переходит на интерактивные demo-данные вместо блокирующего экрана ошибки; кнопка
+«Проверить backend» повторяет подключение без перезагрузки страницы.

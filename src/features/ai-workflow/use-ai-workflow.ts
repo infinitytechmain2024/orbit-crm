@@ -17,6 +17,21 @@ const EMPTY_OVERVIEW: WorkflowOverview = {
   provider: { nvidia_configured: false, voice_configured: false, autorun: false },
 };
 
+function canUseDemoFallback(message: string) {
+  const normalized = message.toLocaleLowerCase();
+  return [
+    "backend url is not configured",
+    "server authentication is not configured",
+    "backend is unavailable",
+    "failed to fetch",
+    "pgrst205",
+    "could not find the table",
+    "ai workflow api: 500",
+    "ai workflow api: 502",
+    "ai workflow api: 503",
+  ].some((fragment) => normalized.includes(fragment));
+}
+
 export function useAiWorkflow(
   accessToken: string | undefined,
   organizationId: string | undefined,
@@ -27,6 +42,7 @@ export function useAiWorkflow(
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDemoFallback, setDemoFallback] = useState(false);
   const [isRealtimeConnected, setRealtimeConnected] = useState(false);
   const [lastRealtimeAt, setLastRealtimeAt] = useState(0);
   const timerRef = useRef<number | null>(null);
@@ -38,6 +54,7 @@ export function useAiWorkflow(
         setIsLoading(false);
         setIsRefreshing(false);
         setError(null);
+        setDemoFallback(false);
         return;
       }
       if (!accessToken || !organizationId) return;
@@ -51,10 +68,22 @@ export function useAiWorkflow(
         );
         setOverview(data);
         setError(null);
+        setDemoFallback(false);
       } catch (unknownError) {
-        setError(
-          unknownError instanceof Error ? unknownError.message : "Не удалось загрузить AI Workflow",
-        );
+        const message =
+          unknownError instanceof Error ? unknownError.message : "Не удалось загрузить AI Workflow";
+        if (canUseDemoFallback(message)) {
+          const demo = createDemoOverview(projectId);
+          setOverview({
+            ...demo,
+            provider: { nvidia_configured: false, voice_configured: false, autorun: false },
+          });
+          setError(null);
+          setDemoFallback(true);
+        } else {
+          setError(message);
+          setDemoFallback(false);
+        }
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -68,7 +97,7 @@ export function useAiWorkflow(
   }, [refresh]);
 
   useEffect(() => {
-    if (preview || !supabase || !organizationId) return;
+    if (preview || isDemoFallback || !supabase || !organizationId) return;
     const refreshSoon = () => {
       setLastRealtimeAt(Date.now());
       if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -94,7 +123,7 @@ export function useAiWorkflow(
       if (supabase) void supabase.removeChannel(channel);
       setRealtimeConnected(false);
     };
-  }, [organizationId, preview, refresh]);
+  }, [isDemoFallback, organizationId, preview, refresh]);
 
   const prependTask = useCallback((task: WorkflowTask, eventMessage?: string) => {
     setOverview((current) => ({
@@ -135,6 +164,7 @@ export function useAiWorkflow(
     isLoading,
     isRefreshing,
     error,
+    isDemoFallback,
     isRealtimeConnected,
     lastRealtimeAt,
     refresh,

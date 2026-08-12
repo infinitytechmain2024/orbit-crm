@@ -6,6 +6,10 @@ from pydantic_settings import BaseSettings
 from pydantic import Field
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+BACKEND_ENV_FILE = Path(__file__).resolve().parent / ".env"
+
+
 class Settings(BaseSettings):
     # App
     APP_NAME: str = "Orbit CRM Backend"
@@ -82,7 +86,7 @@ class Settings(BaseSettings):
     INTERNAL_API_TOKEN: str = Field(default="", validation_alias="INTERNAL_API_TOKEN")
 
     class Config:
-        env_file = ".env"
+        env_file = (PROJECT_ROOT / ".env", BACKEND_ENV_FILE)
         env_file_encoding = "utf-8"
         case_sensitive = True
         extra = "ignore"

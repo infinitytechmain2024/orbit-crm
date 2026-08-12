@@ -16,6 +16,7 @@ async function proxyWorkflowRequest(
   method: string,
 ): Promise<Response> {
   const base =
+    process.env["AI_WORKFLOW_BACKEND_URL"] ??
     process.env["RENDER_BACKEND_URL"] ??
     process.env["VITE_API_URL"] ??
     (process.env["NODE_ENV"] === "development" ? "http://127.0.0.1:8000" : "");
@@ -46,7 +47,17 @@ async function proxyWorkflowRequest(
     redirect: "manual",
   };
   if (method !== "GET" && method !== "HEAD") requestInit.body = await request.arrayBuffer();
-  const upstream = await fetch(target, requestInit);
+  let upstream: Response;
+  try {
+    upstream = await fetch(target, requestInit);
+  } catch (error) {
+    console.error("[ai-workflow proxy] upstream request failed", {
+      method,
+      path: path ?? "",
+      reason: error instanceof Error ? error.message : "Unknown upstream error",
+    });
+    return Response.json({ error: "AI Workflow backend is unavailable" }, { status: 502 });
+  }
 
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-length");

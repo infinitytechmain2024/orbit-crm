@@ -87,6 +87,7 @@ function AIWorkflowPage() {
   const accessToken = session?.access_token;
   const organizationId = preview ? DEMO_ORGANIZATION_ID : organization?.id;
   const workflow = useAiWorkflow(accessToken, organizationId, projectId, preview);
+  const demoMode = preview || workflow.isDemoFallback;
   const { overview } = workflow;
 
   const initialProjectId = projectId === "all" ? (overview.projects[0]?.id ?? "") : projectId;
@@ -138,7 +139,7 @@ function AIWorkflowPage() {
 
   async function handleCreate(input: Omit<NewWorkflowTask, "organization_id">) {
     if (!organizationId) throw new Error("Сессия ещё загружается");
-    if (preview) {
+    if (demoMode) {
       const agent = overview.agents.find((item) => item.role === previewRoleForTask(input));
       const task: WorkflowTask = {
         id: crypto.randomUUID(),
@@ -179,7 +180,7 @@ function AIWorkflowPage() {
 
   async function handlePatch(task: WorkflowTask, patch: Record<string, unknown>, success: string) {
     if (!organizationId) return;
-    if (preview) {
+    if (demoMode) {
       workflow.updateLocalTask(task.id, patch as Partial<WorkflowTask>);
       notify(success);
       return;
@@ -197,7 +198,7 @@ function AIWorkflowPage() {
 
   async function handleAssign(task: WorkflowTask, agentId: string) {
     if (!organizationId || !agentId) return;
-    if (preview) {
+    if (demoMode) {
       const agent = overview.agents.find((item) => item.id === agentId);
       workflow.updateLocalTask(task.id, {
         agent_id: agentId,
@@ -216,7 +217,7 @@ function AIWorkflowPage() {
 
   async function handleRun(task: WorkflowTask) {
     if (!organizationId) return;
-    if (preview) {
+    if (demoMode) {
       workflow.updateLocalTask(task.id, {
         status: "in_progress",
         updated_at: new Date().toISOString(),
@@ -233,7 +234,7 @@ function AIWorkflowPage() {
 
   async function handleApprove(task: WorkflowTask) {
     if (!organizationId) return;
-    if (preview) {
+    if (demoMode) {
       workflow.updateLocalTask(task.id, { status: "done", updated_at: new Date().toISOString() });
       notify("CEO утвердил результат");
       return;
@@ -249,7 +250,7 @@ function AIWorkflowPage() {
   async function handleReject(comment: string) {
     if (!organizationId || !rejectTask) return;
     const task = rejectTask;
-    if (preview) {
+    if (demoMode) {
       workflow.updateLocalTask(task.id, {
         status: "revisions_requested",
         updated_at: new Date().toISOString(),
@@ -304,15 +305,30 @@ function AIWorkflowPage() {
       mainClassName="ai-workflow-page !px-3 !py-4 sm:!px-5 sm:!py-5"
     >
       <div className="mx-auto max-w-[1500px]">
-        {!overview.provider.nvidia_configured && !workflow.isLoading && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-100">
-            <span className="flex items-center gap-2">
-              <Sparkles className="size-3.5" /> NVIDIA не подключена в локальном backend:
-              маршрутизация и workflow работают, выполнение создаёт demo-результаты.
-            </span>
-            <span className="rounded-full border border-amber-400/20 px-2 py-1">Demo mode</span>
-          </div>
-        )}
+        {(!overview.provider.nvidia_configured || workflow.isDemoFallback) &&
+          !workflow.isLoading && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-100">
+              <span className="flex items-center gap-2">
+                <Sparkles className="size-3.5" />
+                {workflow.isDemoFallback
+                  ? "Backend пока недоступен — AI Workflow автоматически переключён на рабочий demo-режим."
+                  : "NVIDIA не подключена в локальном backend: маршрутизация и workflow работают, выполнение создаёт demo-результаты."}
+              </span>
+              <span className="flex items-center gap-2">
+                {workflow.isDemoFallback && (
+                  <button
+                    type="button"
+                    onClick={() => void workflow.refresh()}
+                    className="rounded-full border border-amber-400/25 px-2 py-1 transition hover:bg-amber-400/10"
+                    aria-label="Повторить подключение к AI Workflow backend"
+                  >
+                    Проверить backend
+                  </button>
+                )}
+                <span className="rounded-full border border-amber-400/20 px-2 py-1">Demo mode</span>
+              </span>
+            </div>
+          )}
 
         {workflow.isLoading ? (
           <div className="grid min-h-[65vh] place-items-center rounded-2xl border border-border bg-[#0b1925]/75">
@@ -407,7 +423,7 @@ function AIWorkflowPage() {
         initialProjectId={initialProjectId}
         onOpenChange={setVoiceOpen}
         onTranscribe={async (audio) => {
-          if (preview) throw new Error("В preview-режиме используйте ручной ввод задачи.");
+          if (demoMode) throw new Error("В demo-режиме используйте ручной ввод задачи.");
           if (!accessToken || !organizationId) throw new Error("Сессия ещё загружается");
           const result = await transcribeWorkflowVoice(accessToken, organizationId, audio);
           return result.transcript;
