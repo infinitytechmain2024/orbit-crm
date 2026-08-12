@@ -24,6 +24,7 @@ import {
   updateProject as updateRemoteProject,
   updateTask as updateRemoteTask,
   uploadTaskFile as uploadRemoteTaskFile,
+  type CrmSnapshot,
 } from "@/lib/crm-repository";
 import {
   initialEmails,
@@ -90,16 +91,24 @@ function messageFromError(error: unknown): string {
   return "Не удалось выполнить действие.";
 }
 
-export function CrmProvider({ children }: { children: ReactNode }) {
+export function CrmProvider({
+  children,
+  previewSnapshot,
+}: {
+  children: ReactNode;
+  previewSnapshot?: CrmSnapshot;
+}) {
   const { user } = useAuth();
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [members, setMembers] = useState<OrganizationMember[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [taskLabels, setTaskLabels] = useState<TaskLabel[]>([]);
+  const [organization, setOrganization] = useState<Organization | null>(
+    previewSnapshot?.organization ?? null,
+  );
+  const [members, setMembers] = useState<OrganizationMember[]>(previewSnapshot?.members ?? []);
+  const [tasks, setTasks] = useState<Task[]>(previewSnapshot?.tasks ?? []);
+  const [taskLabels, setTaskLabels] = useState<TaskLabel[]>(previewSnapshot?.taskLabels ?? []);
   const [emails, setEmails] = useState<Email[]>(initialEmails);
-  const [txs, setTxs] = useState<Tx[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [txs, setTxs] = useState<Tx[]>(previewSnapshot?.txs ?? []);
+  const [projects, setProjects] = useState<Project[]>(previewSnapshot?.projects ?? []);
+  const [isLoading, setIsLoading] = useState(!previewSnapshot);
   const [pendingMutations, setPendingMutations] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -155,6 +164,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
   }, [applySnapshot, user]);
 
   useEffect(() => {
+    if (previewSnapshot) return;
     let alive = true;
     if (!user) return;
 
@@ -182,7 +192,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     return () => {
       alive = false;
     };
-  }, [applySnapshot, user]);
+  }, [applySnapshot, previewSnapshot, user]);
 
   const runMutation = useCallback(
     async <T,>(successMessage: string, action: () => Promise<T>): Promise<T | null> => {

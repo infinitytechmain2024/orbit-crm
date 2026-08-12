@@ -14,6 +14,7 @@ import { Route as BookRouteImport } from './routes/book'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as GraphRouteImport } from './routes/graph'
 import { Route as LeadSearchRouteImport } from './routes/lead-search'
 import { Route as MailRouteImport } from './routes/mail'
 import { Route as ProjectsRouteImport } from './routes/projects'
@@ -21,6 +22,7 @@ import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as ApiNvidiaChatRouteImport } from './routes/api/nvidia-chat'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks.$taskId'
+import { Route as ApiAiWorkflowSplatRouteImport } from './routes/api/ai-workflow/$'
 import { Route as ApiBackendSplatRouteImport } from './routes/api/backend/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +48,11 @@ const ClientsRoute = ClientsRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GraphRoute = GraphRouteImport.update({
+  id: '/graph',
+  path: '/graph',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeadSearchRoute = LeadSearchRouteImport.update({
@@ -83,6 +90,11 @@ const TasksTaskIdRoute = TasksTaskIdRouteImport.update({
   path: '/$taskId',
   getParentRoute: () => TasksRoute,
 } as any)
+const ApiAiWorkflowSplatRoute = ApiAiWorkflowSplatRouteImport.update({
+  id: '/api/ai-workflow/$',
+  path: '/api/ai-workflow/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBackendSplatRoute = ApiBackendSplatRouteImport.update({
   id: '/api/backend/$',
   path: '/api/backend/$',
@@ -95,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/projects': typeof ProjectsRoute
@@ -102,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof TasksRouteWithChildren
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
+  '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
 }
 export interface FileRoutesByTo {
@@ -110,6 +124,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/projects': typeof ProjectsRoute
@@ -117,6 +132,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof TasksRouteWithChildren
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
+  '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
 }
 export interface FileRoutesById {
@@ -126,6 +142,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/projects': typeof ProjectsRoute
@@ -133,6 +150,7 @@ export interface FileRoutesById {
   '/tasks': typeof TasksRouteWithChildren
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
+  '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
 }
 export interface FileRouteTypes {
@@ -143,6 +161,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
+    | '/graph'
     | '/lead-search'
     | '/mail'
     | '/projects'
@@ -150,6 +169,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
+    | '/api/ai-workflow/$'
     | '/api/backend/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -158,6 +178,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
+    | '/graph'
     | '/lead-search'
     | '/mail'
     | '/projects'
@@ -165,6 +186,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
+    | '/api/ai-workflow/$'
     | '/api/backend/$'
   id:
     | '__root__'
@@ -173,6 +195,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
+    | '/graph'
     | '/lead-search'
     | '/mail'
     | '/projects'
@@ -180,6 +203,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
+    | '/api/ai-workflow/$'
     | '/api/backend/$'
   fileRoutesById: FileRoutesById
 }
@@ -189,12 +213,14 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   ClientsRoute: typeof ClientsRoute
   FinanceRoute: typeof FinanceRoute
+  GraphRoute: typeof GraphRoute
   LeadSearchRoute: typeof LeadSearchRoute
   MailRoute: typeof MailRoute
   ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
   TasksRoute: typeof TasksRouteWithChildren
   ApiNvidiaChatRoute: typeof ApiNvidiaChatRoute
+  ApiAiWorkflowSplatRoute: typeof ApiAiWorkflowSplatRoute
   ApiBackendSplatRoute: typeof ApiBackendSplatRoute
 }
 
@@ -233,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/graph': {
+      id: '/graph'
+      path: '/graph'
+      fullPath: '/graph'
+      preLoaderRoute: typeof GraphRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lead-search': {
@@ -284,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksTaskIdRouteImport
       parentRoute: typeof TasksRoute
     }
+    '/api/ai-workflow/$': {
+      id: '/api/ai-workflow/$'
+      path: '/api/ai-workflow/$'
+      fullPath: '/api/ai-workflow/$'
+      preLoaderRoute: typeof ApiAiWorkflowSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/backend/$': {
       id: '/api/backend/$'
       path: '/api/backend/$'
@@ -310,12 +350,14 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   ClientsRoute: ClientsRoute,
   FinanceRoute: FinanceRoute,
+  GraphRoute: GraphRoute,
   LeadSearchRoute: LeadSearchRoute,
   MailRoute: MailRoute,
   ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,
   TasksRoute: TasksRouteWithChildren,
   ApiNvidiaChatRoute: ApiNvidiaChatRoute,
+  ApiAiWorkflowSplatRoute: ApiAiWorkflowSplatRoute,
   ApiBackendSplatRoute: ApiBackendSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -17,6 +17,9 @@ import {
   FolderKanban,
   Bot,
   Network,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -25,11 +28,14 @@ import { useAuth } from "@/lib/auth";
 import { AiAssistant } from "./AiAssistant";
 import { OrbitLogoFull, OrbitLogoIcon } from "./OrbitLogo";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Дашборд", icon: LayoutDashboard },
   { to: "/tasks", label: "Задачи и проекты", icon: ListChecks },
   { to: "/projects", label: "Проекты", icon: FolderKanban },
+  { to: "/ai-workflow", label: "AI Workflow", icon: Network },
   { to: "/graph", label: "Граф", icon: Network },
   { to: "/calendar", label: "Календарь", icon: Calendar },
   { to: "/clients", label: "Клиенты", icon: Users },
@@ -44,11 +50,13 @@ export function AppShell({
   subtitle,
   children,
   mainClassName,
+  headerActions,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   mainClassName?: string;
+  headerActions?: ReactNode;
 }) {
   const { theme, toggleTheme, emails, error, flash, clearError, clearFlash } = useCrm();
   const { user, signOut } = useAuth();
@@ -78,39 +86,55 @@ export function AppShell({
           </div>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
-          {nav.map((item) => {
-            const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
-                  collapsed && "justify-center px-2",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_var(--sidebar-border)]"
-                    : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <item.icon
-                  className={cn("size-4 shrink-0 transition-colors", active && "text-primary")}
-                />
-                {!collapsed && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {item.to === "/mail" && unread > 0 && (
-                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                        {unread}
-                      </span>
-                    )}
-                  </>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+        <TooltipProvider delayDuration={150}>
+          <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
+            {nav.map((item) => {
+              const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+              const link = (
+                <Link
+                  to={item.to}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
+                    collapsed && "justify-center px-2",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_var(--sidebar-border)]"
+                      : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+                  )}
+                >
+                  <item.icon
+                    className={cn("size-4 shrink-0 transition-colors", active && "text-primary")}
+                  />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1">{item.label}</span>
+                      {item.to === "/mail" && unread > 0 && (
+                        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                          {unread}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Link>
+              );
+              if (!collapsed) return <div key={item.to}>{link}</div>;
+              return (
+                <Tooltip key={item.to}>
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </nav>
+        </TooltipProvider>
+
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute right-0 top-1/2 grid size-7 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border bg-sidebar text-muted-foreground shadow-lg transition hover:border-primary/60 hover:text-primary"
+          aria-label={collapsed ? "Развернуть боковое меню" : "Свернуть боковое меню"}
+        >
+          {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
+        </button>
 
         <div className="border-t border-border p-2">
           <button
@@ -135,17 +159,76 @@ export function AppShell({
       >
         <header className="sticky top-0 z-20 glass">
           <div className="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-8">
+            <Sheet>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  className="grid size-9 place-items-center rounded-xl border border-border bg-surface-2/70 text-muted-foreground transition hover:text-foreground lg:hidden"
+                  aria-label="Открыть меню"
+                >
+                  <Menu className="size-4" />
+                </button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="w-[min(86vw,19rem)] border-border bg-sidebar/95 p-0 backdrop-blur-xl"
+              >
+                <SheetTitle className="sr-only">Навигация Orbit CRM</SheetTitle>
+                <div className="flex h-full flex-col">
+                  <div className="border-b border-border px-6 py-5 text-primary">
+                    <OrbitLogoFull className="h-8" />
+                  </div>
+                  <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
+                    {nav.map((item) => {
+                      const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+                      return (
+                        <SheetClose asChild key={item.to}>
+                          <Link
+                            to={item.to}
+                            className={cn(
+                              "flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition",
+                              active
+                                ? "bg-sidebar-accent text-foreground"
+                                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+                            )}
+                          >
+                            <item.icon className={cn("size-4", active && "text-primary")} />
+                            <span className="flex-1">{item.label}</span>
+                            {item.to === "/mail" && unread > 0 && (
+                              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] text-primary">
+                                {unread}
+                              </span>
+                            )}
+                          </Link>
+                        </SheetClose>
+                      );
+                    })}
+                  </nav>
+                  <button
+                    type="button"
+                    onClick={() => void signOut()}
+                    className="m-3 flex items-center gap-3 rounded-xl border border-border px-3 py-3 text-sm text-muted-foreground transition hover:border-destructive/50 hover:text-destructive"
+                  >
+                    <LogOut className="size-4" />
+                    Выйти
+                  </button>
+                </div>
+              </SheetContent>
+            </Sheet>
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-lg font-semibold sm:text-xl">{title}</h1>
               {subtitle && (
                 <p className="truncate text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
               )}
             </div>
+            {headerActions}
+            {!headerActions && (
             <div className="hidden items-center gap-2 rounded-xl border border-border bg-surface-2/70 px-3 py-2 text-xs text-muted-foreground md:flex">
               <Command className="size-3.5" />
               Быстрый поиск
               <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd>
             </div>
+            )}
             <button
               className="grid size-9 place-items-center rounded-xl border border-border bg-surface-2/70 text-muted-foreground transition hover:text-foreground"
               aria-label="Уведомления"
@@ -171,19 +254,6 @@ export function AppShell({
               {userInitial}
             </div>
           </div>
-          <nav className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden">
-            {nav.slice(0, 5).map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs text-muted-foreground"
-                activeProps={{ className: "bg-sidebar-accent text-foreground" }}
-                activeOptions={{ exact: item.to === "/" }}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
         </header>
 
         <main className={cn("px-5 py-6 sm:px-8 sm:py-8", mainClassName)}>{children}</main>

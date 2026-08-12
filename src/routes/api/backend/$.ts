@@ -17,16 +17,19 @@ async function proxyRequest(
   path: string | undefined,
   method: string,
 ): Promise<Response> {
-  const base = process.env.RENDER_BACKEND_URL;
+  const base =
+    process.env.RENDER_BACKEND_URL ||
+    process.env.VITE_API_URL ||
+    (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
   if (!base) {
     return Response.json(
-      { error: "RENDER_BACKEND_URL is not configured on the server" },
-      { status: 500 },
+      { error: "Backend URL is not configured on the server" },
+      { status: 503 },
     );
   }
 
   const url = new URL(request.url);
-  const target = `${base}${path ? `/${path}` : ""}${url.search}`;
+  const target = `${base.replace(/\/$/, "")}${path ? `/${path}` : ""}${url.search}`;
 
   const headers = new Headers(request.headers);
   headers.delete("host");
@@ -38,16 +41,29 @@ async function proxyRequest(
     headers.set("authorization", `Bearer ${token}`);
   }
 
-  const upstream = await fetch(target, {
-    method,
-    headers,
-    body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
-    redirect: "manual",
-  });
+  try {
+    const upstream = await fetch(target, {
+      method,
+      headers,
+      body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
+      redirect: "manual",
+    });
 
-  return new Response(upstream.body, {
-    status: upstream.status,
-    statusText: upstream.statusText,
-    headers: upstream.headers,
-  });
+    const responseHeaders = new Headers(upstream.headers);
+    responseHeaders.delete("content-length");
+    responseHeaders.delete("content-encoding");
+    responseHeaders.set("cache-control", "no-store");
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error("[backend proxy] upstream request failed", {
+      target,
+      error,
+    });
+    return Response.json({ error: "Backend is unavailable" }, { status: 502 });
+  }
 }

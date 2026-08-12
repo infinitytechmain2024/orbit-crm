@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,8 @@ from typing import Any
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
+
+from backend.config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -29,12 +32,14 @@ local_whisper_path = str(LOCAL_WHISPER_ROOT)
 if local_whisper_path not in sys.path:
     sys.path.insert(0, local_whisper_path)
 
-MODEL_SIZE = "base"
-DEVICE = "cpu"
-COMPUTE_TYPE = "int8"
+MODEL_SIZE = settings.WHISPER_MODEL
+DEVICE = settings.WHISPER_DEVICE
+COMPUTE_TYPE = settings.WHISPER_COMPUTE_TYPE
+LANGUAGE = settings.WHISPER_LANGUAGE or None
 
 whisper_model: Any | None = None
 model_initialization_error: Exception | None = None
+model_lock = threading.Lock()
 
 
 def _load_model() -> Any:
@@ -47,24 +52,28 @@ def _load_model() -> Any:
     global whisper_model, model_initialization_error
     if whisper_model is not None:
         return whisper_model
-    try:
-        from faster_whisper import WhisperModel
+    with model_lock:
+        if whisper_model is not None:
+            return whisper_model
+        try:
+            from faster_whisper import WhisperModel
 
-        whisper_model = WhisperModel(
-            MODEL_SIZE,
-            device=DEVICE,
-            compute_type=COMPUTE_TYPE,
-        )
-        logger.info(
-            "Local Faster-Whisper model initialized: model=%s, device=%s, compute_type=%s",
-            MODEL_SIZE,
-            DEVICE,
-            COMPUTE_TYPE,
-        )
-    except Exception as exc:  # Keep the rest of the FastAPI application available.
-        model_initialization_error = exc
-        logger.exception("Failed to initialize the local Faster-Whisper model")
-        raise
+            whisper_model = WhisperModel(
+                MODEL_SIZE,
+                device=DEVICE,
+                compute_type=COMPUTE_TYPE,
+            )
+            model_initialization_error = None
+            logger.info(
+                "Local Faster-Whisper model initialized: model=%s, device=%s, compute_type=%s",
+                MODEL_SIZE,
+                DEVICE,
+                COMPUTE_TYPE,
+            )
+        except Exception as exc:  # Keep the rest of the FastAPI application available.
+            model_initialization_error = exc
+            logger.exception("Failed to initialize the local Faster-Whisper model")
+            raise
     return whisper_model
 
 
@@ -83,6 +92,7 @@ def _transcribe_file(file_path: Path) -> tuple[str, str]:
     started = time.monotonic()
     segments, info = model.transcribe(
         str(file_path),
+        language=LANGUAGE,
         beam_size=5,
         vad_filter=True,
         vad_parameters=dict(min_silence_duration_ms=300),
@@ -101,15 +111,6 @@ def _transcribe_file(file_path: Path) -> tuple[str, str]:
 @router.post("/api/speech/transcribe", response_model=TranscriptionResponse)
 async def transcribe_speech(audio: UploadFile = File(...)) -> TranscriptionResponse:
     """Save an uploaded recording temporarily and return its transcription."""
-    try:
-        _load_model()
-    except Exception as exc:
-        logger.error("Transcription requested while the model is unavailable: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail=f"Whisper model is unavailable: {exc}",
-        ) from exc
-
     suffix = Path(audio.filename or "recording.webm").suffix.lower()
     if not suffix or len(suffix) > 10 or not suffix[1:].isalnum():
         suffix = ".webm"
@@ -127,7 +128,24 @@ async def transcribe_speech(audio: UploadFile = File(...)) -> TranscriptionRespo
         if uploaded_bytes == 0:
             raise HTTPException(status_code=400, detail="Uploaded audio file is empty")
 
-        logger.info("Received audio for transcription: %d bytes", uploaded_bytes)
+        logger.info(
+            "Received audio for transcription: filename=%s content_type=%s bytes=%d",
+            audio.filename or "recording.webm",
+            audio.content_type or "unknown",
+            uploaded_bytes,
+        )
+
+        try:
+            # Model loading can download weights and must not block FastAPI's
+            # event loop. The lock also prevents concurrent first-load races.
+            await run_in_threadpool(_load_model)
+        except Exception as exc:
+            logger.error("Transcription requested while the model is unavailable: %s", exc)
+            raise HTTPException(
+                status_code=503,
+                detail=f"Whisper model is unavailable: {exc}",
+            ) from exc
+
         text, language = await run_in_threadpool(_transcribe_file, temporary_path)
 
         # Surface empty results as a 422 so the frontend can tell the user

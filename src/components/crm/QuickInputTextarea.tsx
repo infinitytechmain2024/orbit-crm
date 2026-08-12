@@ -3,7 +3,33 @@ import { Mic, MicOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { transcribeAudio } from "@/agents/whisper";
 
-type RecorderState = "idle" | "recording" | "processing";
+type RecorderState = "idle" | "requesting" | "recording" | "processing";
+
+const AUDIO_MIME_TYPES = [
+  "audio/webm;codecs=opus",
+  "audio/ogg;codecs=opus",
+  "audio/mp4",
+  "audio/webm",
+  "audio/ogg",
+];
+
+function getSupportedAudioMimeType(): string | undefined {
+  if (typeof MediaRecorder === "undefined") return undefined;
+  return AUDIO_MIME_TYPES.find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+}
+
+function getMicrophoneError(error: unknown): string {
+  if (error instanceof DOMException) {
+    if (error.name === "NotAllowedError" || error.name === "SecurityError") {
+      return "Нет доступа к микрофону. Разрешите его в настройках браузера.";
+    }
+    if (error.name === "NotFoundError") return "Микрофон не найден.";
+    if (error.name === "NotSupportedError") {
+      return "Браузер не поддерживает запись аудио в доступном формате.";
+    }
+  }
+  return error instanceof Error ? error.message : "Не удалось начать запись.";
+}
 
 interface QuickInputTextareaProps {
   value: string;
@@ -62,11 +88,27 @@ export function QuickInputTextarea({
 
   const toggleRecording = useCallback(async () => {
     if (recorderState === "recording") {
-      mediaRecorderRef.current?.stop();
+      const mediaRecorder = mediaRecorderRef.current;
+      if (mediaRecorder?.state === "recording") {
+        console.log("[QuickInput] stopping recording", {
+          mimeType: mediaRecorder.mimeType,
+          chunks: audioChunksRef.current.length,
+        });
+        mediaRecorder.stop();
+      }
       return;
     }
 
+    if (recorderState !== "idle") return;
+
+    setRecorderState("requesting");
+    setVoiceError(null);
+
     try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+        throw new Error("Этот браузер не поддерживает запись с микрофона.");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
@@ -79,9 +121,12 @@ export function QuickInputTextarea({
       source.connect(analyser);
       updateAudioLevel();
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm;codecs=opus",
-      });
+      const supportedMimeType = getSupportedAudioMimeType();
+      const mediaRecorder = supportedMimeType
+        ? new MediaRecorder(stream, { mimeType: supportedMimeType })
+        : new MediaRecorder(stream);
+      const recordedMimeType = mediaRecorder.mimeType || supportedMimeType || "audio/webm";
+      let recorderFailed = false;
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -89,38 +134,62 @@ export function QuickInputTextarea({
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
+      mediaRecorder.onerror = (event) => {
+        recorderFailed = true;
+        console.error("[QuickInput] MediaRecorder error", event.error);
+        setVoiceError(`Ошибка записи: ${event.error.message}`);
+      };
+
       mediaRecorder.onstop = async () => {
         setRecorderState("processing");
         setVoiceError(null);
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const audioChunks = [...audioChunksRef.current];
+        const audioBlob = new Blob(audioChunks, { type: recordedMimeType });
         console.log("[QuickInput] recording stopped", {
-          chunks: audioChunksRef.current.length,
+          chunks: audioChunks.length,
           blobSize: audioBlob.size,
+          blobType: audioBlob.type,
         });
         cleanup();
 
         try {
-          const result = await transcribeAudio(audioBlob);
-          if (result.text) {
-            console.log("[QuickInput] transcript received, updating input:", result.text);
-            onChange(result.text);
-          } else {
-            console.warn("[QuickInput] empty transcript — nothing to insert");
-            setVoiceError("Не удалось распознать речь. Попробуйте ещё раз.");
+          if (recorderFailed) throw new Error("Браузер завершил запись с ошибкой.");
+          if (audioBlob.size === 0) {
+            throw new Error("Запись получилась пустой. Попробуйте говорить чуть дольше.");
           }
+
+          console.log("[QuickInput] sending audio to Whisper", {
+            size: audioBlob.size,
+            type: audioBlob.type,
+          });
+          const result = await transcribeAudio(audioBlob);
+          const transcript = result.text.trim();
+          if (!transcript) throw new Error("Whisper не обнаружил речь в записи.");
+
+          console.log("[QuickInput] updating textarea state", {
+            transcript,
+            language: result.language,
+          });
+          onChange(transcript);
         } catch (err) {
           console.error("[QuickInput] voice transcription failed:", err);
-          setVoiceError(err instanceof Error ? err.message : "Ошибка распознавания голоса");
+          setVoiceError(
+            err instanceof Error ? err.message : "Не удалось распознать голос. Попробуйте ещё раз.",
+          );
         } finally {
           setRecorderState("idle");
         }
       };
 
       mediaRecorder.start(100);
-      setVoiceError(null);
+      console.log("[QuickInput] recording started", {
+        mimeType: recordedMimeType,
+        audioTracks: stream.getAudioTracks().length,
+      });
       setRecorderState("recording");
     } catch (err) {
-      console.error("Microphone access denied:", err);
+      console.error("[QuickInput] could not start microphone recording:", err);
+      setVoiceError(getMicrophoneError(err));
       setRecorderState("idle");
       cleanup();
     }
@@ -131,6 +200,7 @@ export function QuickInputTextarea({
   }, [cleanup]);
 
   const isRecording = recorderState === "recording";
+  const isRequesting = recorderState === "requesting";
   const isProcessing = recorderState === "processing";
 
   return (
@@ -140,7 +210,7 @@ export function QuickInputTextarea({
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         placeholder={placeholder}
-        disabled={disabled || isProcessing}
+        disabled={disabled || isRequesting || isProcessing}
         className="w-full resize-none rounded-xl border border-border bg-surface-2/60 p-4 pr-12 text-sm outline-none transition focus:border-primary/60 disabled:opacity-60"
       />
 
@@ -148,19 +218,19 @@ export function QuickInputTextarea({
       <button
         type="button"
         onClick={() => void toggleRecording()}
-        disabled={disabled || isProcessing}
+        disabled={disabled || isRequesting || isProcessing}
         className={cn(
           "absolute right-3 top-3 grid size-8 place-items-center rounded-lg transition-all duration-200",
           isRecording
             ? "bg-red-500/20 text-red-500 animate-pulse"
-            : isProcessing
+            : isRequesting || isProcessing
               ? "bg-primary/20 text-primary"
               : "text-muted-foreground hover:bg-surface-3 hover:text-foreground",
-          (disabled || isProcessing) && "opacity-50 cursor-not-allowed",
+          (disabled || isRequesting || isProcessing) && "opacity-50 cursor-not-allowed",
         )}
         aria-label={isRecording ? "Остановить запись" : "Голосовой ввод"}
       >
-        {isProcessing ? (
+        {isRequesting || isProcessing ? (
           <Loader2 className="size-4 animate-spin" />
         ) : isRecording ? (
           <MicOff className="size-4" />
@@ -190,7 +260,7 @@ export function QuickInputTextarea({
 
       {/* Voice error feedback — previously the failure was swallowed silently */}
       {voiceError && !isRecording && (
-        <p className="absolute -bottom-5 left-0 right-0 text-[11px] text-destructive">
+        <p className="mt-1 text-[11px] text-destructive" role="alert">
           {voiceError}
         </p>
       )}
