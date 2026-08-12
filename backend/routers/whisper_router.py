@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,8 @@ from starlette.concurrency import run_in_threadpool
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Speech"])
+
+logging.getLogger("faster_whisper").setLevel(logging.WARNING)
 
 # The repository contains faster-whisper's sources in <repo>/whisper.  Put that
 # directory first so this router does not accidentally import a separately
@@ -33,23 +36,36 @@ COMPUTE_TYPE = "int8"
 whisper_model: Any | None = None
 model_initialization_error: Exception | None = None
 
-try:
-    from faster_whisper import WhisperModel
 
-    whisper_model = WhisperModel(
-        MODEL_SIZE,
-        device=DEVICE,
-        compute_type=COMPUTE_TYPE,
-    )
-    logger.info(
-        "Local Faster-Whisper model initialized: model=%s, device=%s, compute_type=%s",
-        MODEL_SIZE,
-        DEVICE,
-        COMPUTE_TYPE,
-    )
-except Exception as exc:  # Keep the rest of the FastAPI application available.
-    model_initialization_error = exc
-    logger.exception("Failed to initialize the local Faster-Whisper model")
+def _load_model() -> Any:
+    """Lazily load the model on first request instead of at import time.
+
+    Loading at import blocks startup and can take the whole app down if the
+    model or its dependencies fail to initialise. Lazily loading surfaces the
+    failure as a clear 503 on the transcription endpoint only.
+    """
+    global whisper_model, model_initialization_error
+    if whisper_model is not None:
+        return whisper_model
+    try:
+        from faster_whisper import WhisperModel
+
+        whisper_model = WhisperModel(
+            MODEL_SIZE,
+            device=DEVICE,
+            compute_type=COMPUTE_TYPE,
+        )
+        logger.info(
+            "Local Faster-Whisper model initialized: model=%s, device=%s, compute_type=%s",
+            MODEL_SIZE,
+            DEVICE,
+            COMPUTE_TYPE,
+        )
+    except Exception as exc:  # Keep the rest of the FastAPI application available.
+        model_initialization_error = exc
+        logger.exception("Failed to initialize the local Faster-Whisper model")
+        raise
+    return whisper_model
 
 
 class TranscriptionResponse(BaseModel):
@@ -60,31 +76,39 @@ class TranscriptionResponse(BaseModel):
 
 def _transcribe_file(file_path: Path) -> tuple[str, str]:
     """Run the blocking CPU transcription outside the async event loop."""
-    if whisper_model is None:
+    model = _load_model()
+    if model is None:
         raise RuntimeError("Whisper model is not initialized")
 
-    segments, info = whisper_model.transcribe(
+    started = time.monotonic()
+    segments, info = model.transcribe(
         str(file_path),
         beam_size=5,
         vad_filter=True,
+        vad_parameters=dict(min_silence_duration_ms=300),
     )
     text = " ".join(segment.text.strip() for segment in segments).strip()
-    language = info.language or "unknown"
-    return text, language
+    duration = time.monotonic() - started
+    logger.info(
+        "Transcription finished: language=%s chars=%d duration=%.2fs",
+        info.language or "unknown",
+        len(text),
+        duration,
+    )
+    return text, info.language or "unknown"
 
 
 @router.post("/api/speech/transcribe", response_model=TranscriptionResponse)
 async def transcribe_speech(audio: UploadFile = File(...)) -> TranscriptionResponse:
     """Save an uploaded recording temporarily and return its transcription."""
-    if whisper_model is None:
-        logger.error(
-            "Transcription requested while the model is unavailable: %s",
-            model_initialization_error,
-        )
+    try:
+        _load_model()
+    except Exception as exc:
+        logger.error("Transcription requested while the model is unavailable: %s", exc)
         raise HTTPException(
             status_code=503,
-            detail="Whisper model is unavailable; check the backend logs",
-        )
+            detail=f"Whisper model is unavailable: {exc}",
+        ) from exc
 
     suffix = Path(audio.filename or "recording.webm").suffix.lower()
     if not suffix or len(suffix) > 10 or not suffix[1:].isalnum():
@@ -103,7 +127,17 @@ async def transcribe_speech(audio: UploadFile = File(...)) -> TranscriptionRespo
         if uploaded_bytes == 0:
             raise HTTPException(status_code=400, detail="Uploaded audio file is empty")
 
+        logger.info("Received audio for transcription: %d bytes", uploaded_bytes)
         text, language = await run_in_threadpool(_transcribe_file, temporary_path)
+
+        # Surface empty results as a 422 so the frontend can tell the user
+        # "no speech detected" instead of silently dropping the transcript.
+        if not text:
+            raise HTTPException(
+                status_code=422,
+                detail="No speech detected in the audio",
+            )
+
         return TranscriptionResponse(text=text, success=True, language=language)
     except HTTPException:
         raise

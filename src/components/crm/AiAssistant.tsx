@@ -95,12 +95,33 @@ export function AiAssistant() {
 
         try {
           const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+          console.log("[AiAssistant] sending audio for transcription", { size: blob.size });
+
+          if (blob.size === 0) {
+            console.warn("[AiAssistant] empty audio blob — nothing to transcribe");
+            return;
+          }
+
           const result = await transcribeAudio(blob);
-          if (result.text) {
-            void send(result.text);
+          const text = result.text.trim();
+          if (text) {
+            console.log("[AiAssistant] transcript received, auto-sending:", text);
+            setInput(text); // 1) текст появляется в строке ввода
+            void send(text); // 2) автоматическая отправка (клик по стрелочке)
+          } else {
+            console.warn("[AiAssistant] empty transcript — nothing to send");
           }
         } catch (err) {
-          console.error("Voice transcription error:", err);
+          console.error("[AiAssistant] voice transcription failed:", err);
+          setInput("");
+          setMsgs((m) => [
+            ...m,
+            {
+              id: Math.random().toString(36),
+              role: "ai",
+              text: "Не удалось распознать голос. Попробуйте ещё раз или введите текст вручную.",
+            },
+          ]);
         } finally {
           setTranscribing(false);
         }
