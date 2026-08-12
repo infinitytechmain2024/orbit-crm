@@ -19,7 +19,9 @@ import { Route as MailRouteImport } from './routes/mail'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as ApiNvidiaChatRouteImport } from './routes/api/nvidia-chat'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks.$taskId'
+import { Route as ApiBackendSplatRouteImport } from './routes/api/backend/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,10 +73,20 @@ const TasksRoute = TasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiNvidiaChatRoute = ApiNvidiaChatRouteImport.update({
+  id: '/api/nvidia-chat',
+  path: '/api/nvidia-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TasksTaskIdRoute = TasksTaskIdRouteImport.update({
   id: '/$taskId',
   path: '/$taskId',
   getParentRoute: () => TasksRoute,
+} as any)
+const ApiBackendSplatRoute = ApiBackendSplatRouteImport.update({
+  id: '/api/backend/$',
+  path: '/api/backend/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -88,7 +100,9 @@ export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRouteWithChildren
+  '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
+  '/api/backend/$': typeof ApiBackendSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,7 +115,9 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRouteWithChildren
+  '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
+  '/api/backend/$': typeof ApiBackendSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,7 +131,9 @@ export interface FileRoutesById {
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRouteWithChildren
+  '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
+  '/api/backend/$': typeof ApiBackendSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,7 +148,9 @@ export interface FileRouteTypes {
     | '/projects'
     | '/requests'
     | '/tasks'
+    | '/api/nvidia-chat'
     | '/tasks/$taskId'
+    | '/api/backend/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -143,7 +163,9 @@ export interface FileRouteTypes {
     | '/projects'
     | '/requests'
     | '/tasks'
+    | '/api/nvidia-chat'
     | '/tasks/$taskId'
+    | '/api/backend/$'
   id:
     | '__root__'
     | '/'
@@ -156,7 +178,9 @@ export interface FileRouteTypes {
     | '/projects'
     | '/requests'
     | '/tasks'
+    | '/api/nvidia-chat'
     | '/tasks/$taskId'
+    | '/api/backend/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -170,6 +194,8 @@ export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
   TasksRoute: typeof TasksRouteWithChildren
+  ApiNvidiaChatRoute: typeof ApiNvidiaChatRoute
+  ApiBackendSplatRoute: typeof ApiBackendSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -244,12 +270,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/nvidia-chat': {
+      id: '/api/nvidia-chat'
+      path: '/api/nvidia-chat'
+      fullPath: '/api/nvidia-chat'
+      preLoaderRoute: typeof ApiNvidiaChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tasks/$taskId': {
       id: '/tasks/$taskId'
       path: '/$taskId'
       fullPath: '/tasks/$taskId'
       preLoaderRoute: typeof TasksTaskIdRouteImport
       parentRoute: typeof TasksRoute
+    }
+    '/api/backend/$': {
+      id: '/api/backend/$'
+      path: '/api/backend/$'
+      fullPath: '/api/backend/$'
+      preLoaderRoute: typeof ApiBackendSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -275,6 +315,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,
   TasksRoute: TasksRouteWithChildren,
+  ApiNvidiaChatRoute: ApiNvidiaChatRoute,
+  ApiBackendSplatRoute: ApiBackendSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

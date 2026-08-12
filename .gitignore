@@ -22,6 +22,15 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Environment files (never commit secrets)
+.env
+.env.*
+!.env.example
+backend/.env
+
+# Vercel
+.vercel/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

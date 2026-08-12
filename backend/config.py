@@ -61,6 +61,9 @@ class Settings(BaseSettings):
         validation_alias="CORS_ORIGINS",
     )
 
+    # Server-to-server auth: Vercel proxy must send this as `Authorization: Bearer <token>`
+    INTERNAL_API_TOKEN: str = Field(default="", validation_alias="INTERNAL_API_TOKEN")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -1,0 +1,21 @@
+services:
+- type: web
+  name: aura-crm-backend
+  env: python
+  region: ohio
+  plan: free
+  buildCommand: pip install -r backend/requirements.txt
+  startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+  envVars:
+  - key: PYTHON_VERSION
+    value: "3.12"
+  - key: NVIDIA_API_KEY
+    sync: false
+  - key: SUPABASE_URL
+    sync: false
+  - key: SUPABASE_SERVICE_ROLE_KEY
+    sync: false
+  - key: SUPABASE_PUBLISHABLE_KEY
+    sync: false
+  - key: INTERNAL_API_TOKEN
+    sync: false

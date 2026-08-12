@@ -26,9 +26,10 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
 
 from backend.config import settings
+from backend.routers import agent_router
+from backend.routers.internal import router as internal_router
 from backend.services.stt import stt_service
 from backend.services.ai_dispatcher import ai_dispatcher
 from backend.services.intent_executor import execute_intent, ExecutionResult
@@ -128,6 +129,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(internal_router)
+app.include_router(agent_router.router)
+
 
 # ============================
 # Models
@@ -142,20 +146,6 @@ class VoiceProcessResponse(BaseModel):
 class IntentExecuteRequest(BaseModel):
     user_id: str
     intent: dict
-
-
-class AgentProcessRequest(BaseModel):
-    text: Optional[str] = None
-    audio_base64: Optional[str] = None
-    user_id: str = "default"
-
-
-class AgentProcessResponse(BaseModel):
-    success: bool
-    reply: str
-    leads: list[dict] = []
-    action_taken: str = ""
-    error: Optional[str] = None
 
 
 class ClientCreateRequest(BaseModel):
@@ -306,31 +296,6 @@ async def execute_voice_intent(request: IntentExecuteRequest):
     except Exception as e:
         logger.error(f"Intent execution failed: {e}")
         raise HTTPException(status_code=500, detail=f"Execution failed: {str(e)}")
-
-
-@app.post("/api/agent/process", response_model=AgentProcessResponse)
-async def agent_process(request: AgentProcessRequest):
-    """Process text command via Liam AI agent."""
-    try:
-        text = request.text
-        if not text:
-            raise HTTPException(status_code=400, detail="Text is required")
-
-        from backend.agents.liam_agent import liam_agent
-        result = await liam_agent.process(text, user_id=request.user_id)
-
-        return AgentProcessResponse(
-            success=result.success,
-            reply=result.reply,
-            leads=result.leads,
-            action_taken=result.action_taken,
-            error=result.error,
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Agent processing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Agent processing failed: {str(e)}")
 
 
 @app.get("/api/clients")
