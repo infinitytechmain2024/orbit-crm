@@ -31,6 +31,7 @@ from pydantic import BaseModel
 from backend.config import settings
 from backend.routers import agent_router
 from backend.routers.ai_workflow import router as ai_workflow_api_router
+from backend.routers.company_router import router as company_router
 from backend.routers.internal import router as internal_router
 from backend.routers.whisper_router import router as whisper_router
 from backend.services.stt import stt_service
@@ -134,6 +135,7 @@ app.add_middleware(
 
 app.include_router(internal_router)
 app.include_router(agent_router.router)
+app.include_router(company_router)
 app.include_router(whisper_router)
 app.include_router(ai_workflow_api_router)
 
