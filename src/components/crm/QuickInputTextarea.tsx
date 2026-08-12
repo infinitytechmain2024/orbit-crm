@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { processVoiceNoteFn } from "@/lib/voice/server-functions";
+import { transcribeAudio } from "@/agents/whisper";
 
 type RecorderState = "idle" | "recording" | "processing";
 
@@ -94,16 +94,9 @@ export function QuickInputTextarea({
         cleanup();
 
         try {
-          const formData = new FormData();
-          formData.append("audio", audioBlob, "voice-note.webm");
-          const response = await processVoiceNoteFn({
-            request: new Request("", { method: "POST", body: formData }),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            if (data.transcript) {
-              onChange(data.transcript);
-            }
+          const result = await transcribeAudio(audioBlob);
+          if (result.text) {
+            onChange(result.text);
           }
         } catch (err) {
           console.error("Voice transcription error:", err);

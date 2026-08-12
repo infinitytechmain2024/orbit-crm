@@ -10,7 +10,7 @@ export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionRes
   const formData = new FormData();
   formData.append("audio", audioBlob, "recording.webm");
 
-  const response = await fetch(`${BACKEND_API}/api/voice/stt`, {
+  const response = await fetch(`${BACKEND_API}/api/speech/transcribe`, {
     method: "POST",
     headers: COMMON_HEADERS,
     body: formData,
@@ -22,15 +22,19 @@ export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionRes
   }
 
   const data = (await response.json()) as {
-    transcript: string;
-    language?: string;
-    duration?: number;
+    text: string;
+    success: boolean;
+    language: string;
   };
 
+  if (!data.success) {
+    throw new Error("Transcription failed");
+  }
+
   return {
-    text: data.transcript,
-    language: data.language ?? undefined,
-  } as TranscriptionResult;
+    text: data.text,
+    language: data.language,
+  };
 }
 
 export async function checkWhisperHealth(): Promise<boolean> {

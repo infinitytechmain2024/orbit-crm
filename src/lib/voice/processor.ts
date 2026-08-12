@@ -18,7 +18,8 @@ export interface VoiceProcessResult {
   suggestedActions: string[];
 }
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 const COMMON_HEADERS: Record<string, string> = {
   "ngrok-skip-browser-warning": "true",
@@ -55,14 +56,14 @@ async function tryBackendTranscribe(audioBlob: Blob): Promise<string | null> {
   try {
     const formData = new FormData();
     formData.append("audio", audioBlob, "audio.webm");
-    const response = await fetch(`${BACKEND_URL}/api/voice/transcribe`, {
+    const response = await fetch(`${BACKEND_URL}/api/speech/transcribe`, {
       method: "POST",
       headers: COMMON_HEADERS,
       body: formData,
     });
     if (response.ok) {
       const data = await response.json();
-      return data.transcript || null;
+      return data.success ? data.text || null : null;
     }
   } catch {
     // Backend unavailable, fall through to OpenAI

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bot, Send, Sparkles, X, Mic, MicOff, Loader2 } from "lucide-react";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
-import { processVoiceNoteFn } from "@/lib/voice/server-functions";
+import { transcribeAudio } from "@/agents/whisper";
 
 type Msg = { id: string; role: "user" | "ai"; text: string };
 
@@ -95,16 +95,9 @@ export function AiAssistant() {
 
         try {
           const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-          const formData = new FormData();
-          formData.append("audio", blob, "voice-note.webm");
-          const response = await processVoiceNoteFn({
-            request: new Request("", { method: "POST", body: formData }),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            if (data.transcript) {
-              void send(data.transcript);
-            }
+          const result = await transcribeAudio(blob);
+          if (result.text) {
+            void send(result.text);
           }
         } catch (err) {
           console.error("Voice transcription error:", err);

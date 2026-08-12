@@ -1,6 +1,7 @@
 """Orbit CRM Backend — FastAPI application.
 
 Endpoints:
+  POST /api/speech/transcribe   — Transcribe audio via local Faster-Whisper
   POST /api/voice/stt           — Transcribe audio via Faster-Whisper
   POST /api/voice/process       — Full pipeline: transcribe + classify intent
   POST /api/voice/execute       — Execute a classified intent
@@ -30,6 +31,7 @@ from pydantic import BaseModel
 from backend.config import settings
 from backend.routers import agent_router
 from backend.routers.internal import router as internal_router
+from backend.routers.whisper_router import router as whisper_router
 from backend.services.stt import stt_service
 from backend.services.ai_dispatcher import ai_dispatcher
 from backend.services.intent_executor import execute_intent, ExecutionResult
@@ -131,6 +133,7 @@ app.add_middleware(
 
 app.include_router(internal_router)
 app.include_router(agent_router.router)
+app.include_router(whisper_router)
 
 
 # ============================
