@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from functools import lru_cache
+from typing import Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
@@ -18,6 +19,11 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = Field(validation_alias="SUPABASE_SERVICE_ROLE_KEY")
     SUPABASE_PUBLISHABLE_KEY: str = Field(validation_alias="SUPABASE_PUBLISHABLE_KEY")
     SUPABASE_STORAGE_BUCKET: str = "orbit-projects"
+
+    # AI provider API keys (all optional — app must not crash if any are missing)
+    NVIDIA_API_KEY: Optional[str] = Field(default=None, validation_alias="NVIDIA_API_KEY")
+    GEMINI_API_KEY: Optional[str] = Field(default=None, validation_alias="GEMINI_API_KEY")
+    GROQ_API_KEY: Optional[str] = Field(default=None, validation_alias="GROQ_API_KEY")
 
     # Ollama / Llama 3.2
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434/v1", validation_alias="OLLAMA_BASE_URL")
