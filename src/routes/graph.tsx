@@ -259,6 +259,13 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
 
 const nodeTypes = { knowledge: KnowledgeNodeView };
 
+function MiniMapNode({ x, y, width, height, color }: { x: number; y: number; width: number; height: number; color?: string }) {
+  const diameter = Math.min(width, height);
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+  return <circle cx={cx} cy={cy} r={diameter / 2} fill={color ?? "#456878"} />;
+}
+
 function KnowledgeGraphWorkspace() {
   const { fitView: fitGraphView } = useReactFlow<KnowledgeNode, Edge>();
   const { user } = useAuth();
@@ -802,6 +809,7 @@ function KnowledgeGraphWorkspace() {
               return GRAPH_TYPE_COLORS[knowledgeNode.data.entity.type];
             }}
             nodeStrokeWidth={0}
+            nodeComponent={MiniMapNode}
             maskColor="rgba(4, 14, 22, .64)"
             pannable
             zoomable

@@ -26,6 +26,12 @@ async function proxyRequest(
   }
 
   const token = process.env.INTERNAL_API_TOKEN;
+  if (!token) {
+    return Response.json(
+      { error: "Backend proxy authentication is not configured" },
+      { status: 503 },
+    );
+  }
 
   const url = new URL(request.url);
   const target = `${base.replace(/\/$/, "")}${path ? `/${path}` : ""}${url.search}`;
@@ -35,12 +41,7 @@ async function proxyRequest(
   headers.delete("content-length");
   headers.delete("connection");
   headers.delete("authorization");
-  // The internal token is only required by protected backend routes. The
-  // transcription route is open, so forward without it when unset instead of
-  // hard-failing the whole proxy.
-  if (token) {
-    headers.set("authorization", `Bearer ${token}`);
-  }
+  headers.set("authorization", `Bearer ${token}`);
 
   try {
     const upstream = await fetch(target, {
