@@ -34,6 +34,7 @@ from backend.routers.ai_workflow import router as ai_workflow_api_router
 from backend.routers.company_router import router as company_router
 from backend.routers.internal import router as internal_router
 from backend.routers.whisper_router import router as whisper_router
+from backend.middleware.rate_limit import WorkflowRateLimitMiddleware
 from backend.services.stt import stt_service
 from backend.services.ai_dispatcher import ai_dispatcher
 from backend.services.intent_executor import execute_intent, ExecutionResult
@@ -135,6 +136,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(WorkflowRateLimitMiddleware)
 
 app.include_router(internal_router)
 app.include_router(agent_router.router)

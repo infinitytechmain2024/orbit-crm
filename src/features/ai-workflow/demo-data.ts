@@ -198,6 +198,13 @@ export function createDemoOverview(projectId = "all"): WorkflowOverview {
             requested_by_agent_id: approvalTask.agent_id,
             assigned_to_agent_id: agents[0]?.id ?? null,
             status: "pending",
+            action: "Публикация изменений",
+            reason: "Перед внешним действием требуется решение пользователя.",
+            risk: "high",
+            executor: "Orbit Commander",
+            estimated_cost: null,
+            currency: "EUR",
+            consequences: "Изменения станут доступны внешним пользователям.",
             decision_comment: null,
             created_at: "2026-08-13T14:15:00.000Z",
             resolved_at: null,
@@ -216,7 +223,17 @@ export function createDemoOverview(projectId = "all"): WorkflowOverview {
         max_retries: 1,
       },
     ],
-    provider: { nvidia_configured: true, voice_configured: true, autorun: true },
+    workflow_runs: [],
+    task_dependencies: [],
+    agent_runs: [],
+    notifications: [],
+    provider: {
+      nvidia_configured: true,
+      configured: ["nvidia"],
+      voice_configured: true,
+      autorun: true,
+      worker_enabled: true,
+    },
   };
 }
 

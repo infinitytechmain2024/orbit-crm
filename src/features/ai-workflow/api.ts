@@ -1,4 +1,11 @@
-import type { NewWorkflowTask, WorkflowOverview, WorkflowTask } from "./types";
+import type {
+  AgentRun,
+  NewWorkflowTask,
+  TaskDependency,
+  WorkflowOverview,
+  WorkflowRun,
+  WorkflowTask,
+} from "./types";
 
 type ApiErrorPayload = { detail?: string; error?: string };
 
@@ -67,6 +74,56 @@ export function runWorkflowTask(accessToken: string, taskId: string, organizatio
   );
 }
 
+export function controlWorkflowTask(
+  accessToken: string,
+  taskId: string,
+  organizationId: string,
+  action: "pause" | "resume" | "retry" | "cancel",
+) {
+  return workflowRequest<{ task: WorkflowTask; action: string }>(
+    accessToken,
+    `tasks/${taskId}/${action}`,
+    { method: "POST", body: JSON.stringify({ organization_id: organizationId }) },
+  );
+}
+
+export function fetchWorkflowPlan(accessToken: string, taskId: string, organizationId: string) {
+  const query = new URLSearchParams({ organization_id: organizationId });
+  return workflowRequest<{
+    task: WorkflowTask;
+    workflow_run: WorkflowRun;
+    subtasks: WorkflowTask[];
+    dependencies: TaskDependency[];
+    agent_runs: AgentRun[];
+    agent_messages: Array<Record<string, unknown>>;
+  }>(accessToken, `tasks/${taskId}/plan?${query}`);
+}
+
+export function fetchWorkflowGraphContext(accessToken: string, organizationId: string) {
+  const query = new URLSearchParams({ organization_id: organizationId });
+  return workflowRequest<{
+    nodes: Array<{
+      organization_id: string;
+      id: string;
+      node_type: "project" | "task" | "person" | "document" | "file";
+      title: string;
+      status: string;
+      created_at: string;
+      metadata: Record<string, unknown>;
+    }>;
+    edges: Array<{
+      id: string;
+      source_type: string;
+      source_id: string;
+      target_type: string;
+      target_id: string;
+      relation_type: string;
+      created_at: string;
+      created_by: string | null;
+    }>;
+  }>(accessToken, `graph-context?${query}`);
+}
+
 export function decideWorkflowApproval(
   accessToken: string,
   taskId: string,
@@ -81,6 +138,27 @@ export function decideWorkflowApproval(
       decision_comment: decisionComment || null,
     }),
   });
+}
+
+export function decideApprovalRequest(
+  accessToken: string,
+  approvalId: string,
+  organizationId: string,
+  decision: "approve" | "reject" | "request_changes",
+  decisionComment?: string,
+) {
+  return workflowRequest<{ approval: Record<string, unknown> }>(
+    accessToken,
+    `approvals/${approvalId}/decision`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        organization_id: organizationId,
+        decision,
+        decision_comment: decisionComment || null,
+      }),
+    },
+  );
 }
 
 export function assignWorkflowTask(

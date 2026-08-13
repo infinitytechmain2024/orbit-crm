@@ -1,4 +1,10 @@
-# Aura CRM
+# Orbit CRM
+
+Backend и AI workflow MVP реализованы через Orbit Commander, Supabase и FastAPI. Архитектура, запуск, approval policy и ограничения описаны в [docs/orbit-commander-mvp.md](docs/orbit-commander-mvp.md).
+
+## Историческое frontend-ТЗ
+
+Ниже сохранён первоначальный frontend brief. Он больше не описывает текущее состояние: backend, Auth, persistence и AI workflow уже подключены.
 
 Роль: Ты — Frontend / UI/UX Разработчик (React / Next.js, Tailwind CSS, Lucide Icons, Framer Motion).
 Задача: Сделать полностью рабочий, красивый и интерактивный клиентский прототип (Frontend-only) персональной CRM-системы. Бэкенд пока не нужен — все данные должны браться из локального состояния (state) или JSON-моков (mock data).
@@ -102,10 +108,11 @@ npm run dev
 для организации данных, RLS и Realtime, FastAPI для защищённых API и уже
 подключённый NVIDIA OpenAI-compatible provider для маршрутизации и выполнения.
 
-Примените миграцию `supabase/migrations/20260812205542_ai_workflow.sql`. Она
-создаёт отделы, агентов, AI-задачи, события, заявки CEO, артефакты и конфигурации
-моделей; добавляет индексы/RLS/минимальные grants; включает Postgres Changes и
-инициализирует роли без дублей. Ключи в таблицах не сохраняются.
+Примените все новые миграции каталога `supabase/migrations` через проверочный
+`supabase db push --linked --dry-run`, затем `supabase db push --linked`.
+`20260813070444_orbit_commander_mvp.sql` добавляет очередь, RBAC, QA/audit и
+workflow runs, а `20260813073223_knowledge_graph_v2.sql` синхронизирует сущности
+CRM с универсальным графом. Ключи в таблицах не сохраняются.
 
 Переменные сервера:
 
@@ -120,7 +127,7 @@ npm run dev
 - `GROQ_API_KEY`, опционально `GROQ_WHISPER_MODEL` — server-side голосовая
   транскрипция (по умолчанию `whisper-large-v3-turbo`); ключ не должен иметь
   префикс `VITE_`.
-- `AI_MODEL_CONFIGS_JSON` — массив моделей с capability tags (`coding`,
+- `AI_MODEL_CONFIGS_JSON` — массив моделей с provider и capability tags (`coding`,
   `reasoning`, `fast`, `long_context`, `writing`, `vision`, `analysis`),
   `priority` и `max_retries`. Новая модель добавляется здесь или строкой в
   `ai_model_configs`; приоритет/модель агента меняются в `ai_agents`.

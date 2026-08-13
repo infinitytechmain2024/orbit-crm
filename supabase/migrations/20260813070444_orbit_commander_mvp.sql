@@ -297,13 +297,14 @@ create table public.integrations (
   connected_at timestamptz,
   updated_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
-  unique (organization_id, service)
+  unique (organization_id, service),
+  unique (organization_id, id)
 );
 
 create table public.credentials_metadata (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  integration_id uuid not null references public.integrations(id) on delete cascade,
+  integration_id uuid not null,
   service text not null,
   owner_id uuid references auth.users(id) on delete set null,
   secret_reference text not null check (secret_reference !~* '(key|token|secret)=') ,
@@ -313,7 +314,9 @@ create table public.credentials_metadata (
   expires_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (organization_id, integration_id, secret_reference)
+  unique (organization_id, integration_id, secret_reference),
+  foreign key (organization_id, integration_id)
+    references public.integrations(organization_id, id) on delete cascade
 );
 
 create table public.audit_logs (
@@ -430,6 +433,11 @@ $$;
 
 revoke execute on function public.claim_workflow_job(text) from public, anon, authenticated;
 grant execute on function public.claim_workflow_job(text) to service_role;
+
+-- The legacy RPC could mark a task done without QA. New approvals are resolved
+-- through Orbit Commander, so remove direct execution from the service role.
+revoke execute on function public.resolve_ai_approval(uuid, uuid, text, text)
+  from service_role;
 
 create or replace function private.graph_object_is_visible(
   target_organization_id uuid,
@@ -713,6 +721,59 @@ where
   or (role.code = 'manager' and permission.code in ('workflow.read', 'workflow.create', 'workflow.control'))
   or (role.code in ('member', 'accountant') and permission.code in ('workflow.read', 'workflow.create'))
 on conflict (role_id, permission_id) do nothing;
+
+create or replace function private.bootstrap_orbit_rbac()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.roles (organization_id, code, name, description)
+  select new.id, seed.code, seed.name, seed.description
+  from (values
+    ('owner', 'Владелец', 'Полный контроль и бизнес-критические решения'),
+    ('admin', 'Администратор', 'Управление командой, workflow и интеграциями'),
+    ('manager', 'Менеджер', 'Управление проектами и задачами'),
+    ('accountant', 'Финансы', 'Финансовые операции и отчёты'),
+    ('member', 'Участник', 'Создание и выполнение внутренних задач')
+  ) as seed(code, name, description)
+  on conflict (organization_id, code) do nothing;
+
+  insert into public.permissions (organization_id, code, description)
+  select new.id, seed.code, seed.description
+  from (values
+    ('workflow.read', 'Просмотр AI workflow'),
+    ('workflow.create', 'Создание AI-задач'),
+    ('workflow.control', 'Пауза, возобновление, отмена и retry'),
+    ('approval.decide', 'Решение по критическим действиям'),
+    ('agents.manage', 'Управление AI-агентами'),
+    ('integrations.manage', 'Управление внешними интеграциями'),
+    ('access.manage', 'Управление доступами')
+  ) as seed(code, description)
+  on conflict (organization_id, code) do nothing;
+
+  insert into public.role_permissions (organization_id, role_id, permission_id)
+  select role.organization_id, role.id, permission.id
+  from public.roles role
+  join public.permissions permission on permission.organization_id = role.organization_id
+  where role.organization_id = new.id
+    and (
+      role.code in ('owner', 'admin')
+      or (role.code = 'manager' and permission.code in ('workflow.read', 'workflow.create', 'workflow.control'))
+      or (role.code in ('member', 'accountant') and permission.code in ('workflow.read', 'workflow.create'))
+    )
+  on conflict (role_id, permission_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists bootstrap_orbit_rbac_on_organization on public.organizations;
+create trigger bootstrap_orbit_rbac_on_organization
+  after insert on public.organizations
+  for each row execute function private.bootstrap_orbit_rbac();
+
+revoke execute on function private.bootstrap_orbit_rbac() from public, anon, authenticated;
 
 insert into public.agent_capabilities (organization_id, agent_id, capability)
 select agent.organization_id, agent.id, capability

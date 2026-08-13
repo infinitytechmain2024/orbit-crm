@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  BaseEdge,
   Background,
   BackgroundVariant,
   Handle,
   MiniMap,
+  MarkerType,
   Panel,
   Position,
   ReactFlow,
@@ -11,6 +13,7 @@ import {
   applyNodeChanges,
   useReactFlow,
   type Edge,
+  type EdgeProps,
   type Node,
   type NodeChange,
   type NodeProps,
@@ -18,6 +21,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import {
   AlertTriangle,
+  ArrowRightLeft,
   Check,
   CheckSquare2,
   ChevronRight,
@@ -29,6 +33,7 @@ import {
   Info,
   Link2,
   Loader2,
+  Lock,
   Maximize2,
   MessageCircle,
   Minus,
@@ -37,7 +42,9 @@ import {
   Plus,
   Search,
   Tag,
+  Trash2,
   UserRound,
+  ExternalLink,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -52,6 +59,7 @@ import {
   type ReactNode,
 } from "react";
 import { AppShell } from "@/components/crm/AppShell";
+import { fetchWorkflowGraphContext } from "@/features/ai-workflow/api";
 import { useAuth } from "@/lib/auth";
 import { useCrm } from "@/lib/crm-store";
 import {
@@ -64,6 +72,7 @@ import {
   relatedNodeId,
   relationTouches,
   type GraphEntity,
+  type GraphDirection,
   type GraphLead,
   type GraphModel,
   type GraphObjectType,
@@ -72,11 +81,15 @@ import {
 } from "@/lib/graph-data";
 import {
   createGraphRelation,
+  deleteGraphRelation,
   fetchGraphLeads,
+  fetchGraphNeighborhood,
   fetchGraphPositions,
-  fetchGraphRelationsForNode,
   fetchProjectGraphRelations,
+  fetchTopLevelGraphNodes,
   saveGraphPosition,
+  searchGraphNodes,
+  updateGraphRelation,
   type GraphPosition,
 } from "@/lib/graph-repository";
 import { cn } from "@/lib/utils";
@@ -101,6 +114,7 @@ type KnowledgeNodeData = {
   dimmed: boolean;
   labelVisible: boolean;
   relationCount: number;
+  projectColor: string;
 };
 
 type KnowledgeNode = Node<KnowledgeNodeData, "knowledge">;
@@ -127,15 +141,18 @@ const FILTER_GROUPS: FilterGroup[] = [
     icon: FileText,
     types: [
       "site",
+      "area",
       "page",
       "document",
       "note",
       "prompt",
       "generation",
       "image",
+      "design",
       "file",
       "comment",
       "email",
+      "message",
       "decision",
       "approval",
       "request",
@@ -146,7 +163,7 @@ const FILTER_GROUPS: FilterGroup[] = [
     id: "finance",
     label: "Финансы",
     icon: CircleDollarSign,
-    types: ["finance_transaction"],
+    types: ["finance", "finance_transaction"],
   },
 ];
 
@@ -160,8 +177,10 @@ const NODE_ICON: Partial<Record<GraphObjectType, LucideIcon>> = {
   document: FileText,
   file: FileText,
   image: ImageIcon,
+  design: ImageIcon,
   comment: MessageCircle,
   finance_transaction: CircleDollarSign,
+  finance: CircleDollarSign,
   task_label: Tag,
   checklist_item: CheckSquare2,
 };
@@ -170,6 +189,7 @@ const MATERIAL_TYPES = new Set<GraphObjectType>([
   "document",
   "file",
   "image",
+  "design",
   "comment",
   "prompt",
   "generation",
@@ -195,13 +215,21 @@ function KnowledgeGraphRoute() {
 }
 
 function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
-  const size = data.entity.type === "project" ? 32 : data.entity.type === "task" ? 16 : 12;
-  const color = GRAPH_TYPE_COLORS[data.entity.type];
+  const size =
+    data.entity.type === "project"
+      ? 34
+      : ["area", "site", "person", "client"].includes(data.entity.type)
+        ? 19
+        : data.entity.type === "task"
+          ? 14
+          : 11;
+  const color =
+    data.entity.type === "project" ? data.projectColor : GRAPH_TYPE_COLORS[data.entity.type];
 
   return (
     <div
       className={cn(
-        "relative flex min-w-[40px] items-center gap-3 transition-[opacity,filter] duration-300",
+        "group relative flex min-w-[40px] items-center gap-3 transition-[opacity,filter] duration-300",
         data.dimmed && "opacity-20 grayscale-[35%]",
       )}
       title={`${GRAPH_OBJECT_LABELS[data.entity.type]} · ${data.entity.title}`}
@@ -218,12 +246,18 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
           width: size,
           height: size,
           backgroundColor: color,
-          borderColor: data.selected ? "rgba(255,255,255,.9)" : `${color}cc`,
+          borderColor: data.selected
+            ? "rgba(255,255,255,.9)"
+            : data.entity.type === "project"
+              ? `${color}dd`
+              : `${data.projectColor}aa`,
           boxShadow: data.selected
             ? `0 0 0 7px ${color}22, 0 0 34px ${color}aa`
             : data.direct
               ? `0 0 18px ${color}77`
-              : `0 0 10px ${color}45`,
+              : data.entity.projectId
+                ? `0 0 0 3px ${data.projectColor}18, 0 0 10px ${color}45`
+                : `0 0 10px ${color}45`,
         }}
       >
         {data.selected ? (
@@ -236,30 +270,70 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
         className="!border-0 !bg-transparent"
         style={{ left: size / 2, width: 2, height: 2 }}
       />
-      {data.labelVisible ? (
-        <div className="pointer-events-none max-w-[190px] whitespace-nowrap">
-          <p
-            className={cn(
-              "truncate text-[12px] font-medium text-[#f5f7fa] drop-shadow-[0_2px_8px_rgba(0,0,0,1)]",
-              data.entity.type === "project" && "text-[14px] font-semibold text-white",
-            )}
-          >
-            {data.entity.title}
+      <div
+        className={cn(
+          "pointer-events-none max-w-[190px] whitespace-nowrap transition-opacity duration-150 group-hover:opacity-100",
+          data.labelVisible ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <p
+          className={cn(
+            "truncate text-[12px] font-medium text-[#f5f7fa] drop-shadow-[0_2px_8px_rgba(0,0,0,1)]",
+            data.entity.type === "project" && "text-[14px] font-semibold text-white",
+          )}
+        >
+          {data.entity.title}
+        </p>
+        {data.selected && data.entity.type !== "project" ? (
+          <p className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+            {GRAPH_OBJECT_LABELS[data.entity.type]} · {formatConnectionCount(data.relationCount)}
           </p>
-          {data.selected && data.entity.type !== "project" ? (
-            <p className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
-              {GRAPH_OBJECT_LABELS[data.entity.type]} · {formatConnectionCount(data.relationCount)}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
 
 const nodeTypes = { knowledge: KnowledgeNodeView };
 
-function MiniMapNode({ x, y, width, height, color }: { x: number; y: number; width: number; height: number; color?: string }) {
+type KnowledgeEdgeData = { parallelOffset?: number };
+type KnowledgeEdge = Edge<KnowledgeEdgeData, "relation">;
+
+function RelationEdgeView({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  markerEnd,
+  style,
+  data,
+}: EdgeProps<KnowledgeEdge>) {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const length = Math.max(1, Math.hypot(dx, dy));
+  const offset = data?.parallelOffset ?? 0;
+  const controlX = (sourceX + targetX) / 2 + (-dy / length) * offset;
+  const controlY = (sourceY + targetY) / 2 + (dx / length) * offset;
+  const path = `M ${sourceX} ${sourceY} Q ${controlX} ${controlY} ${targetX} ${targetY}`;
+  return <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />;
+}
+
+const edgeTypes = { relation: RelationEdgeView };
+
+function MiniMapNode({
+  x,
+  y,
+  width,
+  height,
+  color,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color?: string;
+}) {
   const diameter = Math.min(width, height);
   const cx = x + width / 2;
   const cy = y + height / 2;
@@ -267,11 +341,14 @@ function MiniMapNode({ x, y, width, height, color }: { x: number; y: number; wid
 }
 
 function KnowledgeGraphWorkspace() {
-  const { fitView: fitGraphView } = useReactFlow<KnowledgeNode, Edge>();
-  const { user } = useAuth();
+  const { fitView: fitGraphView } = useReactFlow<KnowledgeNode, KnowledgeEdge>();
+  const { user, session } = useAuth();
   const { organization, members, projects, tasks, txs, isLoading } = useCrm();
   const [leads, setLeads] = useState<GraphLead[]>([]);
   const [manualRelations, setManualRelations] = useState<GraphRelation[]>([]);
+  const [persistentEntities, setPersistentEntities] = useState<GraphEntity[]>([]);
+  const [workflowEntities, setWorkflowEntities] = useState<GraphEntity[]>([]);
+  const [workflowRelations, setWorkflowRelations] = useState<GraphRelation[]>([]);
   const [persistedPositions, setPersistedPositions] = useState<Map<string, GraphPosition>>(
     () => new Map(),
   );
@@ -280,9 +357,11 @@ function KnowledgeGraphWorkspace() {
   const [enabledTypes, setEnabledTypes] = useState<Set<GraphObjectType>>(
     () => new Set(ALL_FILTER_TYPES),
   );
+  const [enabledProjectIds, setEnabledProjectIds] = useState<Set<string>>(() => new Set());
   const [depth, setDepth] = useState<1 | 2 | 3>(1);
   const [zoom, setZoom] = useState(1);
   const [search, setSearch] = useState("");
+  const [remoteSearchResults, setRemoteSearchResults] = useState<GraphEntity[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [nodes, setNodes] = useState<KnowledgeNode[]>([]);
   const [schemaWarning, setSchemaWarning] = useState<string | null>(null);
@@ -291,19 +370,35 @@ function KnowledgeGraphWorkspace() {
   const [linkTargetQuery, setLinkTargetQuery] = useState("");
   const [linkTargetId, setLinkTargetId] = useState<string | null>(null);
   const [linkType, setLinkType] = useState<GraphRelationType>("related_to");
+  const [linkDirection, setLinkDirection] = useState<GraphDirection>("one_way");
   const [creatingLink, setCreatingLink] = useState(false);
+  const [busyRelationId, setBusyRelationId] = useState<string | null>(null);
   const initializedOrganization = useRef<string | null>(null);
   const fetchedManualNodes = useRef(new Set<string>());
   const fittedNodeCount = useRef(0);
+  const initializedProjectFilters = useRef(false);
 
-  const model = useMemo(
-    () => buildGraphModel({ projects, tasks, members, txs, leads }),
-    [leads, members, projects, tasks, txs],
-  );
+  const model = useMemo(() => {
+    const base = buildGraphModel({ projects, tasks, members, txs, leads });
+    const entities = new Map(base.entities);
+    for (const entity of persistentEntities) {
+      const key = graphNodeId(entity.type, entity.id);
+      const existing = entities.get(key);
+      entities.set(key, {
+        ...existing,
+        ...entity,
+        metadata: { ...existing?.metadata, ...entity.metadata },
+      });
+    }
+    for (const entity of workflowEntities) {
+      entities.set(graphNodeId(entity.type, entity.id), entity);
+    }
+    return { ...base, entities };
+  }, [leads, members, persistentEntities, projects, tasks, txs, workflowEntities]);
 
   const relations = useMemo(
-    () => dedupeRelations([...model.relations, ...manualRelations]),
-    [manualRelations, model.relations],
+    () => dedupeRelations([...manualRelations, ...workflowRelations, ...model.relations]),
+    [manualRelations, model.relations, workflowRelations],
   );
 
   const selectedEntity = selectedNodeId ? (model.entities.get(selectedNodeId) ?? null) : null;
@@ -317,13 +412,15 @@ function KnowledgeGraphWorkspace() {
       fetchGraphLeads(organization.id),
       fetchGraphPositions(organization.id, user.id),
       fetchProjectGraphRelations(organization.id),
-    ]).then(([leadResult, positionResult, relationResult]) => {
+      fetchTopLevelGraphNodes(organization.id),
+    ]).then(([leadResult, positionResult, relationResult, nodeResult]) => {
       if (!alive) return;
       if (leadResult.status === "fulfilled") setLeads(leadResult.value);
       if (positionResult.status === "fulfilled") setPersistedPositions(positionResult.value);
       if (relationResult.status === "fulfilled") setManualRelations(relationResult.value);
+      if (nodeResult.status === "fulfilled") setPersistentEntities(nodeResult.value);
 
-      const graphFailure = [positionResult, relationResult].find(
+      const graphFailure = [positionResult, relationResult, nodeResult].find(
         (result) => result.status === "rejected",
       );
       if (graphFailure?.status === "rejected") {
@@ -331,9 +428,7 @@ function KnowledgeGraphWorkspace() {
           "Автоматические связи доступны. Примените новую миграцию Supabase, чтобы сохранять расположение и ручные связи.",
         );
       }
-      if (leadResult.status === "rejected") {
-        setSoftError("Связанные клиенты временно недоступны.");
-      }
+      if (leadResult.status === "rejected") setLeads([]);
     });
 
     return () => {
@@ -342,15 +437,95 @@ function KnowledgeGraphWorkspace() {
   }, [organization, user]);
 
   useEffect(() => {
+    if (!projects.length || initializedProjectFilters.current) return;
+    initializedProjectFilters.current = true;
+    setEnabledProjectIds(new Set(projects.map((project) => project.id)));
+  }, [projects]);
+
+  useEffect(() => {
+    if (!organization || !session?.access_token) return;
+    let alive = true;
+    fetchWorkflowGraphContext(session.access_token, organization.id)
+      .then((context) => {
+        if (!alive) return;
+        const allowedTypes = new Set<GraphObjectType>([
+          "project",
+          "task",
+          "person",
+          "document",
+          "file",
+        ]);
+        const entities: GraphEntity[] = context.nodes
+          .filter((node) => allowedTypes.has(node.node_type))
+          .map((node) => ({
+            id: node.id,
+            type: node.node_type,
+            title: node.title,
+            subtitle:
+              node.node_type === "person"
+                ? String(node.metadata["role"] ?? "AI-агент")
+                : node.node_type === "task"
+                  ? "AI Workflow"
+                  : undefined,
+            projectId:
+              typeof node.metadata["project_id"] === "string"
+                ? node.metadata["project_id"]
+                : node.node_type === "project"
+                  ? node.id
+                  : null,
+            status: node.status,
+            createdAt: node.created_at,
+            metadata: Object.fromEntries(
+              Object.entries(node.metadata).map(([key, value]) => [
+                key,
+                typeof value === "string" || typeof value === "number" || value === null
+                  ? value
+                  : JSON.stringify(value),
+              ]),
+            ),
+          }));
+        const relationTypes = new Set<GraphRelationType>(
+          Object.keys(GRAPH_RELATION_LABELS) as GraphRelationType[],
+        );
+        const edges: GraphRelation[] = context.edges
+          .filter(
+            (edge) =>
+              allowedTypes.has(edge.source_type as GraphObjectType) &&
+              allowedTypes.has(edge.target_type as GraphObjectType) &&
+              relationTypes.has(edge.relation_type as GraphRelationType),
+          )
+          .map((edge) => ({
+            id: edge.id,
+            sourceType: edge.source_type as GraphObjectType,
+            sourceId: edge.source_id,
+            targetType: edge.target_type as GraphObjectType,
+            targetId: edge.target_id,
+            relationType: edge.relation_type as GraphRelationType,
+            direction: "one_way",
+            strength: 1,
+            isAutomatic: true,
+            createdAt: edge.created_at,
+            createdBy: edge.created_by,
+            implicit: false,
+          }));
+        setWorkflowEntities(entities);
+        setWorkflowRelations(edges);
+      })
+      .catch(() => {
+        // AI Workflow is an optional enrichment source. The Supabase graph remains
+        // fully usable when the orchestration backend is not running locally.
+        setWorkflowEntities([]);
+        setWorkflowRelations([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [organization, session?.access_token]);
+
+  useEffect(() => {
     if (isLoading || !projects.length || !organization) return;
     if (visibleNodeIds.size || selectedNodeId) return;
-    const projectIds = projects
-      .filter((project) => !project.archivedAt)
-      .map((project) => graphNodeId("project", project.id));
-    const fallbackIds = projects.map((project) => graphNodeId("project", project.id));
-    const initial = projectIds.length ? projectIds : fallbackIds;
-    setVisibleNodeIds(new Set(initial));
-    setSelectedNodeId(initial[0] ?? null);
+    setVisibleNodeIds(new Set(projects.map((project) => graphNodeId("project", project.id))));
   }, [isLoading, organization, projects, selectedNodeId, visibleNodeIds.size]);
 
   const distances = useMemo(
@@ -391,8 +566,19 @@ function KnowledgeGraphWorkspace() {
     }
     const lookupId = selectedNodeId!;
     fetchedManualNodes.current.add(lookupId);
-    fetchGraphRelationsForNode(organization.id, selectedEntity.type, selectedEntity.id)
-      .then((loaded) => setManualRelations((current) => dedupeRelations([...current, ...loaded])))
+    fetchGraphNeighborhood(organization.id, selectedEntity.type, selectedEntity.id)
+      .then((loaded) => {
+        setManualRelations((current) => dedupeRelations([...loaded.relations, ...current]));
+        setPersistentEntities((current) => {
+          const merged = new Map(
+            current.map((entity) => [graphNodeId(entity.type, entity.id), entity]),
+          );
+          for (const entity of loaded.entities) {
+            merged.set(graphNodeId(entity.type, entity.id), entity);
+          }
+          return [...merged.values()];
+        });
+      })
       .catch(() => {
         if (!schemaWarning) {
           setSchemaWarning(
@@ -405,7 +591,9 @@ function KnowledgeGraphWorkspace() {
   const positionedNodes = useMemo(() => {
     const allowedVisible = [...visibleNodeIds].filter((nodeId) => {
       const entity = model.entities.get(nodeId);
-      return entity && (enabledTypes.has(entity.type) || nodeId === selectedNodeId);
+      if (!entity || (!enabledTypes.has(entity.type) && nodeId !== selectedNodeId)) return false;
+      const projectId = entity.type === "project" ? entity.id : entity.projectId;
+      return !projectId || enabledProjectIds.has(projectId) || nodeId === selectedNodeId;
     });
     return allowedVisible
       .map((nodeId) => model.entities.get(nodeId))
@@ -414,12 +602,18 @@ function KnowledgeGraphWorkspace() {
         const id = graphNodeId(entity.type, entity.id);
         const distance = distances.get(id);
         const direct = distance === 1;
+        const hasSavedPosition =
+          persistedPositions.has(id) ||
+          (typeof entity.positionX === "number" && typeof entity.positionY === "number");
+        const position =
+          !hasSavedPosition && direct && selectedEntity?.type === "project"
+            ? connectedEntityPosition(entity, selectedEntity, model)
+            : (persistedPositions.get(id) ??
+              calculateEntityPosition(entity, model, persistedPositions));
         return {
           id,
           type: "knowledge" as const,
-          position:
-            persistedPositions.get(id) ??
-            calculateEntityPosition(entity, model, persistedPositions),
+          position,
           data: {
             entity,
             selected: id === selectedNodeId,
@@ -431,6 +625,7 @@ function KnowledgeGraphWorkspace() {
               direct ||
               (zoom >= 1.18 && distance !== undefined),
             relationCount: relations.filter((relation) => relationTouches(relation, id)).length,
+            projectColor: projectColorForEntity(entity, model),
           },
           draggable: true,
           selectable: true,
@@ -439,10 +634,12 @@ function KnowledgeGraphWorkspace() {
       });
   }, [
     distances,
+    enabledProjectIds,
     enabledTypes,
     model,
     persistedPositions,
     relations,
+    selectedEntity,
     selectedNodeId,
     visibleNodeIds,
     zoom,
@@ -459,15 +656,24 @@ function KnowledgeGraphWorkspace() {
     return () => window.clearTimeout(timer);
   }, [fitGraphView, positionedNodes.length]);
 
-  const edges = useMemo<Edge[]>(() => {
+  const edges = useMemo<KnowledgeEdge[]>(() => {
     const visible = new Set(positionedNodes.map((node) => node.id));
     return relations
       .filter((relation) => {
         const source = graphNodeId(relation.sourceType, relation.sourceId);
         const target = graphNodeId(relation.targetType, relation.targetId);
-        return visible.has(source) && visible.has(target);
+        if (!visible.has(source) || !visible.has(target)) return false;
+        if (!selectedNodeId) return true;
+        const sourceDistance = distances.get(source);
+        const targetDistance = distances.get(target);
+        return (
+          sourceDistance !== undefined &&
+          targetDistance !== undefined &&
+          sourceDistance <= depth &&
+          targetDistance <= depth
+        );
       })
-      .map((relation) => {
+      .flatMap((relation) => {
         const source = graphNodeId(relation.sourceType, relation.sourceId);
         const target = graphNodeId(relation.targetType, relation.targetId);
         const selectedEdge = selectedNodeId ? relationTouches(relation, selectedNodeId) : false;
@@ -485,34 +691,90 @@ function KnowledgeGraphWorkspace() {
         const reused =
           relation.relationType === "used_in" ||
           relation.relationType === "uses" ||
+          relation.relationType === "adapted_for" ||
           (relation.relationType === "related_to" && relation.sourceType === "project");
-        return {
-          id: relation.id,
-          source,
-          target,
-          type: "default",
-          animated: selectedEdge && !relation.implicit,
+        const clusterColor = edgeColorForRelation(relation, model);
+        const stroke = selectedEdge ? clusterColor : secondary ? "#5bcfc4" : "#456878";
+        const makeEdge = (
+          edgeId: string,
+          edgeSource: string,
+          edgeTarget: string,
+          parallelOffset: number,
+        ): KnowledgeEdge => ({
+          id: edgeId,
+          source: edgeSource,
+          target: edgeTarget,
+          type: "relation",
+          data: { parallelOffset },
+          animated: selectedEdge && !relation.isAutomatic,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: stroke,
+            width: selectedEdge ? 12 : 8,
+            height: selectedEdge ? 12 : 8,
+          },
           style: {
-            stroke: selectedEdge ? "#1fe0ca" : secondary ? "#5bcfc4" : "#456878",
-            strokeWidth: selectedEdge ? 1.8 : 1.05,
-            strokeOpacity: dimmed ? 0.12 : selectedEdge ? 0.95 : secondary ? 0.68 : 0.42,
-            strokeDasharray: secondary || reused || !relation.implicit ? "4 6" : undefined,
+            stroke,
+            strokeWidth: selectedEdge ? 1.9 : Math.max(0.85, relation.strength),
+            strokeOpacity: dimmed ? 0.1 : selectedEdge ? 0.95 : secondary ? 0.6 : 0.38,
+            strokeDasharray: reused ? "4 6" : undefined,
           },
           zIndex: selectedEdge ? 8 : 0,
-        };
+        });
+        if (relation.direction === "two_way") {
+          return [
+            makeEdge(`${relation.id}:forward`, source, target, 18),
+            makeEdge(`${relation.id}:reverse`, target, source, 18),
+          ];
+        }
+        return [makeEdge(relation.id, source, target, selectedEdge ? 8 : 0)];
       });
-  }, [distances, positionedNodes, relations, selectedNodeId]);
+  }, [depth, distances, model, positionedNodes, relations, selectedNodeId]);
+
+  useEffect(() => {
+    if (!organization || search.trim().length < 2) {
+      setRemoteSearchResults([]);
+      return;
+    }
+    let alive = true;
+    const timer = window.setTimeout(() => {
+      searchGraphNodes({
+        organizationId: organization.id,
+        query: search,
+        types: [...enabledTypes],
+        limit: 12,
+      })
+        .then((items) => {
+          if (alive) setRemoteSearchResults(items);
+        })
+        .catch(() => {
+          if (alive) setRemoteSearchResults([]);
+        });
+    }, 220);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [enabledProjectIds, enabledTypes, organization, search]);
 
   const searchResults = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase("ru");
     if (!normalized) return [];
-    return [...model.entities.values()]
+    const combined = new Map<string, GraphEntity>();
+    for (const entity of [...remoteSearchResults, ...model.entities.values()]) {
+      combined.set(graphNodeId(entity.type, entity.id), entity);
+    }
+    return [...combined.values()]
       .filter((entity) => enabledTypes.has(entity.type))
+      .filter((entity) => {
+        const projectId = entity.type === "project" ? entity.id : entity.projectId;
+        return !projectId || enabledProjectIds.has(projectId);
+      })
       .filter((entity) =>
         `${entity.title} ${entity.subtitle ?? ""}`.toLocaleLowerCase("ru").includes(normalized),
       )
       .slice(0, 8);
-  }, [enabledTypes, model.entities, search]);
+  }, [enabledProjectIds, enabledTypes, model.entities, remoteSearchResults, search]);
 
   const linkTargetResults = useMemo(() => {
     if (!selectedNodeId) return [];
@@ -531,6 +793,11 @@ function KnowledgeGraphWorkspace() {
 
   const selectSearchEntity = (entity: GraphEntity) => {
     const id = graphNodeId(entity.type, entity.id);
+    setPersistentEntities((current) => {
+      const next = new Map(current.map((item) => [graphNodeId(item.type, item.id), item]));
+      next.set(id, entity);
+      return [...next.values()];
+    });
     setVisibleNodeIds((current) => new Set(current).add(id));
     setSelectedNodeId(id);
     setSearch("");
@@ -583,7 +850,8 @@ function KnowledgeGraphWorkspace() {
         relation.sourceId === selectedEntity.id &&
         relation.targetType === target.type &&
         relation.targetId === target.id &&
-        relation.relationType === linkType,
+        relation.relationType === linkType &&
+        relation.direction === linkDirection,
     );
     if (duplicate) {
       setSoftError("Такая связь уже существует.");
@@ -601,16 +869,56 @@ function KnowledgeGraphWorkspace() {
         targetType: target.type,
         targetId: target.id,
         relationType: linkType,
+        direction: linkDirection,
       });
       setManualRelations((current) => dedupeRelations([...current, relation]));
       setVisibleNodeIds((current) => new Set(current).add(linkTargetId));
       setLinkComposerOpen(false);
       setLinkTargetId(null);
       setLinkTargetQuery("");
+      setLinkDirection("one_way");
     } catch (error) {
       setSoftError(error instanceof Error ? error.message : "Не удалось создать связь.");
     } finally {
       setCreatingLink(false);
+    }
+  };
+
+  const handleUpdateRelation = async (
+    relation: GraphRelation,
+    relationType: GraphRelationType,
+    direction: GraphDirection,
+  ) => {
+    if (relation.isAutomatic || relation.implicit) return;
+    setBusyRelationId(relation.id);
+    setSoftError(null);
+    try {
+      const updated = await updateGraphRelation({
+        relationId: relation.id,
+        relationType,
+        direction,
+      });
+      setManualRelations((current) =>
+        current.map((item) => (item.id === relation.id ? updated : item)),
+      );
+    } catch (error) {
+      setSoftError(error instanceof Error ? error.message : "Не удалось изменить связь.");
+    } finally {
+      setBusyRelationId(null);
+    }
+  };
+
+  const handleDeleteRelation = async (relation: GraphRelation) => {
+    if (relation.isAutomatic || relation.implicit) return;
+    setBusyRelationId(relation.id);
+    setSoftError(null);
+    try {
+      await deleteGraphRelation(relation.id);
+      setManualRelations((current) => current.filter((item) => item.id !== relation.id));
+    } catch (error) {
+      setSoftError(error instanceof Error ? error.message : "Не удалось удалить связь.");
+    } finally {
+      setBusyRelationId(null);
     }
   };
 
@@ -647,12 +955,15 @@ function KnowledgeGraphWorkspace() {
           selectedEntity ? "xl:w-[calc(100%-338px)]" : "w-full",
         )}
       >
-        <ReactFlow<KnowledgeNode, Edge>
+        <ReactFlow<KnowledgeNode, KnowledgeEdge>
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={handleNodesChange}
-          onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
+          onNodeClick={(_event, node) =>
+            setSelectedNodeId((current) => (current === node.id ? null : node.id))
+          }
           onNodeDragStop={handleNodeDragStop}
           onPaneClick={() => {
             setFiltersOpen(false);
@@ -752,7 +1063,7 @@ function KnowledgeGraphWorkspace() {
                   Фильтры
                 </button>
                 {filtersOpen ? (
-                  <div className="absolute right-0 top-11 z-40 w-52 rounded-xl border border-white/10 bg-[#0b1b26]/98 p-2 shadow-2xl backdrop-blur-xl">
+                  <div className="absolute right-0 top-11 z-40 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1b26]/98 p-2 shadow-2xl backdrop-blur-xl">
                     {FILTER_GROUPS.map((group) => {
                       const active = group.types.every((type) => enabledTypes.has(type));
                       return (
@@ -772,6 +1083,57 @@ function KnowledgeGraphWorkspace() {
                           </span>
                           <group.icon className="size-3.5 text-slate-500" />
                           {group.label}
+                        </button>
+                      );
+                    })}
+                    <div className="my-2 border-t border-white/8" />
+                    <div className="flex items-center justify-between px-2.5 py-1">
+                      <span className="text-[9px] uppercase tracking-[0.12em] text-slate-600">
+                        Проекты
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEnabledProjectIds(
+                            enabledProjectIds.size
+                              ? new Set()
+                              : new Set(projects.map((item) => item.id)),
+                          )
+                        }
+                        className="text-[9px] text-primary/70 hover:text-primary"
+                      >
+                        {enabledProjectIds.size ? "Снять все" : "Выбрать все"}
+                      </button>
+                    </div>
+                    {projects.map((project) => {
+                      const active = enabledProjectIds.has(project.id);
+                      return (
+                        <button
+                          key={project.id}
+                          type="button"
+                          onClick={() =>
+                            setEnabledProjectIds((current) => {
+                              const next = new Set(current);
+                              if (next.has(project.id)) next.delete(project.id);
+                              else next.add(project.id);
+                              return next;
+                            })
+                          }
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-slate-300 transition hover:bg-white/6 hover:text-white"
+                        >
+                          <span
+                            className={cn(
+                              "grid size-4 place-items-center rounded border border-white/15",
+                              active && "border-primary bg-primary text-primary-foreground",
+                            )}
+                          >
+                            {active ? <Check className="size-3" /> : null}
+                          </span>
+                          <span
+                            className="size-2.5 rounded-full"
+                            style={{ backgroundColor: projectColor(project.name, project.id) }}
+                          />
+                          <span className="truncate">{project.name}</span>
                         </button>
                       );
                     })}
@@ -856,6 +1218,7 @@ function KnowledgeGraphWorkspace() {
             if (!open) {
               setLinkTargetId(null);
               setLinkTargetQuery("");
+              setLinkDirection("one_way");
             }
           }}
           linkTargetQuery={linkTargetQuery}
@@ -865,8 +1228,13 @@ function KnowledgeGraphWorkspace() {
           linkTargetResults={linkTargetResults}
           linkType={linkType}
           onLinkTypeChange={setLinkType}
+          linkDirection={linkDirection}
+          onLinkDirectionChange={setLinkDirection}
           onSubmitLink={submitLink}
           creatingLink={creatingLink}
+          busyRelationId={busyRelationId}
+          onUpdateRelation={handleUpdateRelation}
+          onDeleteRelation={handleDeleteRelation}
         />
       ) : null}
     </div>
@@ -911,7 +1279,7 @@ function GraphZoomControls({ zoom }: { zoom: number }) {
 }
 
 function useGraphViewport() {
-  const flow = useReactFlow<KnowledgeNode, Edge>();
+  const flow = useReactFlow<KnowledgeNode, KnowledgeEdge>();
   return {
     zoomIn: () => void flow.zoomIn({ duration: 180 }),
     zoomOut: () => void flow.zoomOut({ duration: 180 }),
@@ -958,8 +1326,17 @@ type GraphDetailsPanelProps = {
   linkTargetResults: GraphEntity[];
   linkType: GraphRelationType;
   onLinkTypeChange: (value: GraphRelationType) => void;
+  linkDirection: GraphDirection;
+  onLinkDirectionChange: (value: GraphDirection) => void;
   onSubmitLink: (event: FormEvent) => void;
   creatingLink: boolean;
+  busyRelationId: string | null;
+  onUpdateRelation: (
+    relation: GraphRelation,
+    relationType: GraphRelationType,
+    direction: GraphDirection,
+  ) => void;
+  onDeleteRelation: (relation: GraphRelation) => void;
 };
 
 function GraphDetailsPanel(props: GraphDetailsPanelProps) {
@@ -995,6 +1372,19 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
   const dependencies = directRelations.filter((relation) =>
     ["blocks", "depends_on", "requires_approval"].includes(relation.relationType),
   );
+  const exchangeRelations = directRelations.filter(
+    (relation) =>
+      relation.direction === "two_way" ||
+      props.relations.some(
+        (candidate) =>
+          candidate.id !== relation.id &&
+          candidate.sourceType === relation.targetType &&
+          candidate.sourceId === relation.targetId &&
+          candidate.targetType === relation.sourceType &&
+          candidate.targetId === relation.sourceId,
+      ),
+  );
+  const sourceHref = entitySourceHref(props.entity);
 
   const project =
     props.entity.type === "project"
@@ -1051,6 +1441,25 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
           </p>
         ) : null}
 
+        {props.entity.type !== "project" ? (
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/7 bg-white/[0.025] p-3 text-[9px]">
+            <span className="text-slate-600">Создан</span>
+            <span className="text-right text-slate-400">
+              {props.entity.createdAt
+                ? new Date(props.entity.createdAt).toLocaleDateString("ru-RU")
+                : "—"}
+            </span>
+            <span className="text-slate-600">Исходный проект</span>
+            <span className="truncate text-right text-slate-400">
+              {project?.title ?? "Без проекта"}
+            </span>
+            <span className="text-slate-600">Статус</span>
+            <span className="truncate text-right text-slate-400">
+              {props.entity.status ?? "Активен"}
+            </span>
+          </div>
+        ) : null}
+
         {props.entity.type === "project" ? (
           <section className="mt-5">
             <div className="flex items-center justify-between text-[10px] text-slate-400">
@@ -1101,6 +1510,24 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
           </PanelSection>
         ) : null}
 
+        {exchangeRelations.length ? (
+          <PanelSection title="Обмен связями">
+            {exchangeRelations.slice(0, 5).map((relation) => {
+              const otherId = relatedNodeId(relation, props.selectedNodeId);
+              const other = otherId ? props.model.entities.get(otherId) : null;
+              return (
+                <div key={relation.id} className="flex items-center gap-2 py-1.5 text-[10px]">
+                  <span className="size-2 rounded-full bg-primary/80" />
+                  <span className="min-w-0 flex-1 truncate text-slate-400">
+                    {other?.title ?? "Связанный объект"}
+                  </span>
+                  <ArrowRightLeft className="size-3 text-primary/70" />
+                </div>
+              );
+            })}
+          </PanelSection>
+        ) : null}
+
         {recentMaterials.length ? (
           <PanelSection title="Последние материалы">
             {recentMaterials.map((item) => (
@@ -1125,6 +1552,100 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                 {GRAPH_RELATION_LABELS[relation.relationType]}
               </p>
             ))}
+          </PanelSection>
+        ) : null}
+
+        {directRelations.length ? (
+          <PanelSection title="Управление связями">
+            <div className="space-y-2">
+              {directRelations.slice(0, 8).map((relation) => {
+                const otherId = relatedNodeId(relation, props.selectedNodeId);
+                const other = otherId ? props.model.entities.get(otherId) : null;
+                const locked = relation.isAutomatic || relation.implicit;
+                const busy = props.busyRelationId === relation.id;
+                return (
+                  <div
+                    key={relation.id}
+                    className="rounded-lg border border-white/7 bg-white/[0.02] px-2.5 py-2"
+                  >
+                    <div className="flex items-center gap-2 text-[9px]">
+                      <span className="min-w-0 flex-1 truncate text-slate-400">
+                        {other?.title ?? "Связанный объект"}
+                      </span>
+                      {locked ? (
+                        <span
+                          className="flex items-center gap-1 text-slate-600"
+                          title="Автоматическая связь"
+                        >
+                          <Lock className="size-3" />
+                          авто
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => props.onDeleteRelation(relation)}
+                          className="text-slate-600 transition hover:text-red-300 disabled:opacity-40"
+                          aria-label="Удалить ручную связь"
+                        >
+                          {busy ? (
+                            <Loader2 className="size-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    {locked ? (
+                      <p className="mt-1 text-[9px] text-slate-600">
+                        {GRAPH_RELATION_LABELS[relation.relationType]}
+                      </p>
+                    ) : (
+                      <div className="mt-2 flex gap-1.5">
+                        <select
+                          value={relation.relationType}
+                          disabled={busy}
+                          onChange={(event) =>
+                            props.onUpdateRelation(
+                              relation,
+                              event.target.value as GraphRelationType,
+                              relation.direction,
+                            )
+                          }
+                          className="h-7 min-w-0 flex-1 rounded-md border border-white/8 bg-[#0a1822] px-1.5 text-[9px] text-slate-300 outline-none"
+                        >
+                          {RELATION_TYPES.map((type) => (
+                            <option key={type} value={type}>
+                              {GRAPH_RELATION_LABELS[type]}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            props.onUpdateRelation(
+                              relation,
+                              relation.relationType,
+                              relation.direction === "two_way" ? "one_way" : "two_way",
+                            )
+                          }
+                          className={cn(
+                            "grid size-7 place-items-center rounded-md border border-white/8 text-slate-500",
+                            relation.direction === "two_way" && "border-primary/30 text-primary",
+                          )}
+                          title={
+                            relation.direction === "two_way" ? "Двусторонняя" : "Односторонняя"
+                          }
+                        >
+                          <ArrowRightLeft className="size-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </PanelSection>
         ) : null}
 
@@ -1157,6 +1678,19 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                   {GRAPH_RELATION_LABELS[type]}
                 </option>
               ))}
+            </select>
+            <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-slate-500">
+              Направление
+            </label>
+            <select
+              value={props.linkDirection}
+              onChange={(event) =>
+                props.onLinkDirectionChange(event.target.value as GraphDirection)
+              }
+              className="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#0a1822] px-2.5 text-[11px] text-white outline-none focus:border-primary/50"
+            >
+              <option value="one_way">Односторонняя дуга</option>
+              <option value="two_way">Две встречные дуги</option>
             </select>
             <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-slate-500">
               Второй объект
@@ -1221,6 +1755,15 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
       </div>
 
       <div className="space-y-2 border-t border-white/8 p-4">
+        {sourceHref ? (
+          <a
+            href={sourceHref}
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 text-[11px] font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+          >
+            <ExternalLink className="size-3.5" />
+            Открыть исходный объект
+          </a>
+        ) : null}
         <button
           type="button"
           onClick={props.onRevealAll}
@@ -1282,6 +1825,9 @@ function calculateEntityPosition(
   const key = graphNodeId(entity.type, entity.id);
   const persisted = saved.get(key);
   if (persisted) return persisted;
+  if (typeof entity.positionX === "number" && typeof entity.positionY === "number") {
+    return { x: entity.positionX, y: entity.positionY };
+  }
 
   const projects = [...model.entities.values()].filter((item) => item.type === "project");
   const projectIndex = projects.findIndex((project) => project.id === entity.id);
@@ -1355,11 +1901,38 @@ function calculateEntityPosition(
 }
 
 function projectPosition(index: number): GraphPosition {
-  if (index === 0) return { x: 290, y: 165 };
-  const normalized = index - 1;
   return {
-    x: 650 + (normalized % 2) * 260,
-    y: 75 + Math.floor(normalized / 2) * 275,
+    x: 190 + (index % 4) * 255,
+    y: 110 + Math.floor(index / 4) * 190,
+  };
+}
+
+function connectedEntityPosition(
+  entity: GraphEntity,
+  project: GraphEntity,
+  model: GraphModel,
+): GraphPosition {
+  const projects = [...model.entities.values()].filter((item) => item.type === "project");
+  const projectIndex = Math.max(
+    0,
+    projects.findIndex((candidate) => candidate.id === project.id),
+  );
+  const base = projectPosition(projectIndex);
+  const connected = [...model.entities.values()]
+    .filter((candidate) => candidate.type !== "project" && candidate.projectId === project.id)
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const index = Math.max(
+    0,
+    connected.findIndex(
+      (candidate) => candidate.id === entity.id && candidate.type === entity.type,
+    ),
+  );
+  const hashOffset = stableHash(`${entity.type}:${entity.id}`) % 5;
+  const angle = ((index * 61 + hashOffset * 17 + 30) * Math.PI) / 180;
+  const radius = 145 + (index % 3) * 34;
+  return {
+    x: base.x + Math.cos(angle) * radius,
+    y: base.y + Math.sin(angle) * radius,
   };
 }
 
@@ -1372,6 +1945,64 @@ function findRelatedProject(entity: GraphEntity, model: GraphModel): GraphEntity
     const candidate = model.entities.get(other);
     if (candidate?.type === "project") return candidate;
   }
+  return null;
+}
+
+function projectColor(name: string, id: string): string {
+  const normalized = name.toLocaleLowerCase("ru");
+  if (
+    normalized.includes("aybolit") ||
+    normalized.includes("айболит") ||
+    normalized.includes("лечение за рубежом")
+  ) {
+    return "#19d5c1";
+  }
+  if (normalized.includes("berrdo")) return "#dc6fd2";
+  if (normalized.includes("osnova") || normalized.includes("основа")) return "#62d98b";
+  const palette = [
+    "#55a7e8",
+    "#a77ae6",
+    "#d18bc8",
+    "#66b9a5",
+    "#d2a85d",
+    "#6e9fd7",
+    "#bc7f9f",
+    "#78ad72",
+    "#9d91d8",
+    "#4fb6bd",
+  ];
+  return palette[stableHash(id) % palette.length] ?? "#55a7e8";
+}
+
+function projectColorForEntity(entity: GraphEntity, model: GraphModel): string {
+  if (entity.type === "project") {
+    const stored = entity.metadata?.["project_color"];
+    return typeof stored === "string" ? stored : projectColor(entity.title, entity.id);
+  }
+  const project = entity.projectId
+    ? model.entities.get(graphNodeId("project", entity.projectId))
+    : findRelatedProject(entity, model);
+  return project ? projectColorForEntity(project, model) : GRAPH_TYPE_COLORS[entity.type];
+}
+
+function edgeColorForRelation(relation: GraphRelation, model: GraphModel): string {
+  const source = model.entities.get(graphNodeId(relation.sourceType, relation.sourceId));
+  const target = model.entities.get(graphNodeId(relation.targetType, relation.targetId));
+  if (source?.type === "project") return projectColorForEntity(source, model);
+  if (target?.type === "project") return projectColorForEntity(target, model);
+  if (source) return projectColorForEntity(source, model);
+  if (target) return projectColorForEntity(target, model);
+  return "#1fe0ca";
+}
+
+function entitySourceHref(entity: GraphEntity): string | null {
+  const url = entity.metadata?.["url"];
+  if (typeof url === "string" && /^(https?:|\/)/.test(url)) return url;
+  if (entity.type === "task") return `/tasks/${entity.id}`;
+  if (entity.type === "project") return "/projects";
+  if (entity.type === "client") return "/clients";
+  if (entity.type === "finance" || entity.type === "finance_transaction") return "/finance";
+  if (entity.projectId) return "/projects";
   return null;
 }
 

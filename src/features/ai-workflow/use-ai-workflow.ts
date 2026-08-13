@@ -14,6 +14,10 @@ const EMPTY_OVERVIEW: WorkflowOverview = {
   approval_requests: [],
   projects: [],
   model_configs: [],
+  workflow_runs: [],
+  task_dependencies: [],
+  agent_runs: [],
+  notifications: [],
   provider: { nvidia_configured: false, voice_configured: false, autorun: false },
 };
 
@@ -76,7 +80,13 @@ export function useAiWorkflow(
           const demo = createDemoOverview(projectId);
           setOverview({
             ...demo,
-            provider: { nvidia_configured: false, voice_configured: false, autorun: false },
+            provider: {
+              nvidia_configured: false,
+              configured: [],
+              voice_configured: false,
+              autorun: false,
+              worker_enabled: false,
+            },
           });
           setError(null);
           setDemoFallback(true);
@@ -110,6 +120,10 @@ export function useAiWorkflow(
       "approval_requests",
       "artifacts",
       "ai_agents",
+      "workflow_runs",
+      "task_dependencies",
+      "agent_runs",
+      "notifications",
     ] as const) {
       channel = channel.on(
         "postgres_changes",

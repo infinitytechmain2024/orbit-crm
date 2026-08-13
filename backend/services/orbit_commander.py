@@ -16,7 +16,6 @@ from typing import Any, Literal
 from backend.config import settings
 from backend.services.ai_providers import (
     ProviderResult,
-    ProviderUnavailable,
     ai_provider_registry,
     redact_error,
 )
@@ -372,24 +371,54 @@ class OrbitCommander:
             }
             existing = by_role.get(str(definition["role"]))
             if existing:
-                await self.store.update(
-                    "ai_agents",
-                    organization_id=organization_id,
-                    filters={"id": f"eq.{existing['id']}"},
-                    payload={key: value for key, value in payload.items() if key != "organization_id"},
-                )
+                managed = {
+                    key: value
+                    for key, value in payload.items()
+                    if key not in ("organization_id", "status", "fallback_models")
+                }
+                changed = {
+                    key: value for key, value in managed.items() if existing.get(key) != value
+                }
+                if changed:
+                    await self.store.update(
+                        "ai_agents",
+                        organization_id=organization_id,
+                        filters={"id": f"eq.{existing['id']}"},
+                        payload=changed,
+                    )
             else:
                 inserted = await self.store.insert("ai_agents", payload)
                 if inserted:
                     by_role[str(definition["role"])] = inserted[0]
 
+        model_configs = await self.store.select(
+            "ai_model_configs", organization_id=organization_id
+        )
+        config_by_key = {
+            (str(item.get("provider")), str(item.get("model_name"))): item
+            for item in model_configs
+        }
         for model in self._environment_models():
-            await self.store.insert(
-                "ai_model_configs",
-                {"organization_id": organization_id, **model},
-                upsert=True,
-                on_conflict="organization_id,provider,model_name",
-            )
+            key = (model["provider"], model["model_name"])
+            existing_model = config_by_key.get(key)
+            if not existing_model:
+                await self.store.insert(
+                    "ai_model_configs",
+                    {"organization_id": organization_id, **model},
+                )
+                continue
+            changed = {
+                field: value
+                for field, value in model.items()
+                if field not in ("provider", "model_name") and existing_model.get(field) != value
+            }
+            if changed:
+                await self.store.update(
+                    "ai_model_configs",
+                    organization_id=organization_id,
+                    filters={"id": f"eq.{existing_model['id']}"},
+                    payload=changed,
+                )
 
         workflows = await self.store.select(
             "workflows",
@@ -538,7 +567,7 @@ class OrbitCommander:
                     if result.content.strip():
                         return result
                     raise RuntimeError("Empty model response")
-                except (ProviderUnavailable, Exception) as error:
+                except Exception as error:
                     await self.create_event(
                         task,
                         "model_failure",
@@ -1181,6 +1210,7 @@ class OrbitCommander:
                         filters={"id": f"eq.{original_agent_id}"},
                         payload={"status": "completed"},
                     )
+                await self._update_progress(run)
                 await self.enqueue_ready(run)
         else:
             revisions = int(task.get("attempt_count") or 0)
@@ -1259,10 +1289,11 @@ class OrbitCommander:
         )
         work = [item for item in children if item["id"] != qa_task["id"]]
         failed = [item for item in work if item.get("status") != "done" or item.get("qa_status") != "passed"]
+        work_ids = [item["id"] for item in work]
         artifacts = await self.store.select(
             "artifacts",
             organization_id=qa_task["organization_id"],
-            filters={"project_id": f"eq.{root['project_id']}"} if root.get("project_id") else None,
+            filters={"task_id": "in.(" + ",".join(work_ids) + ")"} if work_ids else {"task_id": "eq.00000000-0000-0000-0000-000000000000"},
         )
         return {
             "passed": not failed and bool(artifacts),
@@ -1283,10 +1314,11 @@ class OrbitCommander:
         )
         if not children or any(item["status"] != "done" for item in children):
             return
+        child_ids = [child["id"] for child in children]
         artifacts = await self.store.select(
             "artifacts",
             organization_id=root["organization_id"],
-            filters={"project_id": f"eq.{root['project_id']}"} if root.get("project_id") else None,
+            filters={"task_id": "in.(" + ",".join(child_ids) + ")"},
             order="created_at.asc",
         )
         summary = {
@@ -1295,7 +1327,7 @@ class OrbitCommander:
                 {"id": item["id"], "title": item["title"], "qa_status": item["qa_status"]}
                 for item in children
             ],
-            "artifact_ids": [item["id"] for item in artifacts if item.get("task_id") in {child["id"] for child in children}],
+            "artifact_ids": [item["id"] for item in artifacts],
             "qa_status": "passed",
         }
         await self._create_artifact(root, f"Итог — {root['title']}", "workflow_report", {"content": summary})
@@ -1340,6 +1372,28 @@ class OrbitCommander:
             entity_type="workflow_run",
             entity_id=run["id"],
             summary="Все этапы и финальный QA завершены.",
+        )
+
+    async def _update_progress(self, run: dict[str, Any]) -> None:
+        root = await self.store.one(
+            "ai_tasks",
+            organization_id=run["organization_id"],
+            row_id=run["root_task_id"],
+        )
+        children = await self.store.select(
+            "ai_tasks",
+            organization_id=run["organization_id"],
+            filters={"parent_task_id": f"eq.{root['id']}"},
+        )
+        if not children:
+            return
+        completed = sum(item["status"] == "done" for item in children)
+        progress = min(95, 10 + round(85 * completed / len(children)))
+        await self.store.update(
+            "workflow_runs",
+            organization_id=run["organization_id"],
+            filters={"id": f"eq.{run['id']}"},
+            payload={"progress": progress, "current_phase": "qa" if completed else "execution"},
         )
 
     async def pause(self, task: dict[str, Any], actor_id: str) -> dict[str, Any]:
@@ -1552,6 +1606,20 @@ class OrbitCommander:
         if not source_id or not target_id:
             return
         try:
+            existing = await self.store.select(
+                "graph_relations",
+                organization_id=task["organization_id"],
+                filters={
+                    "source_type": f"eq.{source_type}",
+                    "source_id": f"eq.{source_id}",
+                    "target_type": f"eq.{target_type}",
+                    "target_id": f"eq.{target_id}",
+                    "relation_type": f"eq.{relation_type}",
+                },
+                limit=1,
+            )
+            if existing:
+                return
             await self.store.insert(
                 "graph_relations",
                 {
@@ -1563,8 +1631,6 @@ class OrbitCommander:
                     "relation_type": relation_type,
                     "created_by": task["created_by"],
                 },
-                upsert=True,
-                on_conflict="organization_id,source_type,source_id,target_type,target_id,relation_type",
             )
         except Exception as error:
             logger.warning("Could not persist graph relation: %s", redact_error(error))

@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import {
   ArrowUpDown,
+  Ban,
   CheckCircle2,
   Clock3,
   MoreHorizontal,
+  Pause,
   Play,
   RotateCcw,
   Send,
@@ -29,8 +31,11 @@ import type {
 export type TaskTab = "all" | "queued" | "in_progress" | "approval_required" | "done";
 
 const STATUS_LABEL: Record<WorkflowTaskStatus, string> = {
+  planning: "Планируется",
   queued: "В очереди",
   in_progress: "В работе",
+  paused: "Приостановлено",
+  review: "На проверке",
   approval_required: "Требует утверждения",
   done: "Готово",
   blocked: "Заблокировано",
@@ -47,7 +52,9 @@ const PRIORITY_LABEL = {
 
 function statusClass(status: WorkflowTaskStatus) {
   if (status === "done") return "text-emerald-300";
-  if (status === "in_progress") return "text-cyan-300";
+  if (status === "in_progress" || status === "planning") return "text-cyan-300";
+  if (status === "review") return "text-violet-300";
+  if (status === "paused") return "text-slate-300";
   if (status === "approval_required") return "text-amber-300";
   if (status === "blocked" || status === "revisions_requested") return "text-red-300";
   return "text-sky-300";
@@ -76,6 +83,7 @@ export function TasksTable({
   onAssign,
   onRun,
   onApproval,
+  onControl,
 }: {
   tasks: WorkflowTask[];
   projects: WorkflowProject[];
@@ -91,6 +99,7 @@ export function TasksTable({
   onAssign: (task: WorkflowTask, agentId: string) => void;
   onRun: (task: WorkflowTask) => void;
   onApproval: (task: WorkflowTask) => void;
+  onControl: (task: WorkflowTask, action: "pause" | "resume" | "retry" | "cancel") => void;
 }) {
   const [sort, setSort] = useState<"updated" | "due" | "priority">("updated");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -100,7 +109,15 @@ export function TasksTable({
   const filtered = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase();
     const values = tasks.filter((task) => {
-      if (tab !== "all" && task.status !== tab) return false;
+      if (
+        tab !== "all" &&
+        (tab === "in_progress"
+          ? !["planning", "in_progress", "paused", "review", "revisions_requested"].includes(
+              task.status,
+            )
+          : task.status !== tab)
+      )
+        return false;
       if (selectedDepartmentId && task.department_id !== selectedDepartmentId) return false;
       if (!needle) return true;
       const project = task.project_id ? projectById.get(task.project_id)?.name : "";
@@ -165,7 +182,17 @@ export function TasksTable({
             const count =
               item.value === "all"
                 ? tasks.length
-                : tasks.filter((task) => task.status === item.value).length;
+                : item.value === "in_progress"
+                  ? tasks.filter((task) =>
+                      [
+                        "planning",
+                        "in_progress",
+                        "paused",
+                        "review",
+                        "revisions_requested",
+                      ].includes(task.status),
+                    ).length
+                  : tasks.filter((task) => task.status === item.value).length;
             return (
               <button
                 key={item.value}
@@ -317,7 +344,13 @@ export function TasksTable({
                       {dueLabel(task.due_at)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <TaskMenu task={task} onOpen={onOpen} onRun={onRun} onApproval={onApproval} />
+                      <TaskMenu
+                        task={task}
+                        onOpen={onOpen}
+                        onRun={onRun}
+                        onApproval={onApproval}
+                        onControl={onControl}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -336,7 +369,13 @@ export function TasksTable({
                   >
                     {task.title}
                   </button>
-                  <TaskMenu task={task} onOpen={onOpen} onRun={onRun} onApproval={onApproval} />
+                  <TaskMenu
+                    task={task}
+                    onOpen={onOpen}
+                    onRun={onRun}
+                    onApproval={onApproval}
+                    onControl={onControl}
+                  />
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
                   <span>
@@ -381,11 +420,13 @@ function TaskMenu({
   onOpen,
   onRun,
   onApproval,
+  onControl,
 }: {
   task: WorkflowTask;
   onOpen: (task: WorkflowTask) => void;
   onRun: (task: WorkflowTask) => void;
   onApproval: (task: WorkflowTask) => void;
+  onControl: (task: WorkflowTask, action: "pause" | "resume" | "retry" | "cancel") => void;
 }) {
   return (
     <DropdownMenu>
@@ -404,12 +445,26 @@ function TaskMenu({
         <DropdownMenuItem onSelect={() => onRun(task)}>
           <Play className="size-3.5" /> Запустить
         </DropdownMenuItem>
+        {task.status === "paused" ? (
+          <DropdownMenuItem onSelect={() => onControl(task, "resume")}>
+            <Play className="size-3.5" /> Возобновить
+          </DropdownMenuItem>
+        ) : !["done", "cancelled", "approval_required"].includes(task.status) ? (
+          <DropdownMenuItem onSelect={() => onControl(task, "pause")}>
+            <Pause className="size-3.5" /> Приостановить
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onSelect={() => onApproval(task)}>
           <Send className="size-3.5" /> На утверждение
         </DropdownMenuItem>
-        {task.status === "blocked" && (
-          <DropdownMenuItem onSelect={() => onRun(task)}>
+        {["blocked", "revisions_requested"].includes(task.status) && (
+          <DropdownMenuItem onSelect={() => onControl(task, "retry")}>
             <RotateCcw className="size-3.5" /> Повторить
+          </DropdownMenuItem>
+        )}
+        {!["done", "cancelled"].includes(task.status) && (
+          <DropdownMenuItem onSelect={() => onControl(task, "cancel")} className="text-red-300">
+            <Ban className="size-3.5" /> Отменить
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

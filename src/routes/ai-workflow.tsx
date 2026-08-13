@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth";
 import { useCrm } from "@/lib/crm-store";
 import {
   assignWorkflowTask,
+  controlWorkflowTask,
   createWorkflowTask,
+  decideApprovalRequest,
   decideWorkflowApproval,
   patchWorkflowTask,
   runWorkflowTask,
@@ -31,6 +33,7 @@ import type {
 } from "@/features/ai-workflow/types";
 import { useAiWorkflow } from "@/features/ai-workflow/use-ai-workflow";
 import { WorkflowToolbar } from "@/features/ai-workflow/WorkflowToolbar";
+import { WorkflowPlanCard } from "@/features/ai-workflow/WorkflowPlanCard";
 import { DEMO_ORGANIZATION_ID, DEMO_USER_ID } from "@/features/ai-workflow/demo-data";
 
 export const Route = createFileRoute("/ai-workflow")({
@@ -232,6 +235,39 @@ function AIWorkflowPage() {
     }, "Задача запущена");
   }
 
+  async function handleControl(
+    task: WorkflowTask,
+    action: "pause" | "resume" | "retry" | "cancel",
+  ) {
+    if (!organizationId) return;
+    const statusByAction: Record<typeof action, WorkflowTaskStatus> = {
+      pause: "paused",
+      resume: "in_progress",
+      retry: "queued",
+      cancel: "cancelled",
+    };
+    const successByAction = {
+      pause: "Workflow приостановлен",
+      resume: "Workflow возобновлён",
+      retry: "Этап перезапущен",
+      cancel: "Workflow отменён",
+    };
+    if (demoMode) {
+      workflow.updateLocalTask(task.id, {
+        status: statusByAction[action],
+        updated_at: new Date().toISOString(),
+      });
+      notify(successByAction[action]);
+      return;
+    }
+    if (!accessToken) return;
+    await perform(async () => {
+      const response = await controlWorkflowTask(accessToken, task.id, organizationId, action);
+      workflow.prependTask(response.task);
+      await workflow.refresh(true);
+    }, successByAction[action]);
+  }
+
   async function handleApprove(task: WorkflowTask) {
     if (!organizationId) return;
     if (demoMode) {
@@ -247,26 +283,33 @@ function AIWorkflowPage() {
     }, "CEO утвердил результат");
   }
 
-  async function handleReject(comment: string) {
+  async function handleReject(comment: string, decision: "request_changes" | "reject") {
     if (!organizationId || !rejectTask) return;
     const task = rejectTask;
     if (demoMode) {
       workflow.updateLocalTask(task.id, {
-        status: "revisions_requested",
+        status: decision === "request_changes" ? "revisions_requested" : "cancelled",
         updated_at: new Date().toISOString(),
         input_data: { ...task.input_data, decision_comment: comment },
       });
       setRejectTask(null);
-      notify("Задача возвращена на правки");
+      notify(
+        decision === "request_changes" ? "Запрошены изменения" : "Критическое действие отклонено",
+      );
       return;
     }
     if (!accessToken) return;
-    await perform(async () => {
-      await decideWorkflowApproval(accessToken, task.id, organizationId, "reject", comment);
-      setRejectTask(null);
-      setSelectedTask(null);
-      await workflow.refresh(true);
-    }, "Задача возвращена на правки");
+    await perform(
+      async () => {
+        const approval = overview.approval_requests.find((item) => item.task_id === task.id);
+        if (!approval) throw new Error("Запрос на подтверждение не найден");
+        await decideApprovalRequest(accessToken, approval.id, organizationId, decision, comment);
+        setRejectTask(null);
+        setSelectedTask(null);
+        await workflow.refresh(true);
+      },
+      decision === "request_changes" ? "Запрошены изменения" : "Критическое действие отклонено",
+    );
   }
 
   function selectDepartment(department: WorkflowDepartment) {
@@ -355,6 +398,14 @@ function AIWorkflowPage() {
         ) : (
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_330px]">
             <div className="min-w-0 space-y-3">
+              <WorkflowPlanCard
+                tasks={overview.tasks}
+                agents={overview.agents}
+                runs={overview.workflow_runs}
+                dependencies={overview.task_dependencies}
+                onOpen={setSelectedTask}
+                onControl={(task, action) => void handleControl(task, action)}
+              />
               <TeamMap
                 departments={overview.departments}
                 agents={overview.agents}
@@ -391,6 +442,7 @@ function AIWorkflowPage() {
                     "Задача отправлена CEO",
                   )
                 }
+                onControl={(task, action) => void handleControl(task, action)}
               />
             </div>
             <RightRail
@@ -440,6 +492,8 @@ function AIWorkflowPage() {
             department_id: null,
             agent_id: null,
             auto_assign: true,
+            source: "voice",
+            original_request: transcript,
           })
         }
         onManualFallback={() => {

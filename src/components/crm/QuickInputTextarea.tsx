@@ -170,7 +170,10 @@ export function QuickInputTextarea({
             transcript,
             language: result.language,
           });
-          onChange(transcript);
+          const trimmed = value.trim();
+          const newPart = transcript.trim();
+          if (!newPart) return;
+          onChange(trimmed ? `${trimmed}\n${newPart}` : newPart);
         } catch (err) {
           console.error("[QuickInput] voice transcription failed:", err);
           setVoiceError(
@@ -193,7 +196,7 @@ export function QuickInputTextarea({
       setRecorderState("idle");
       cleanup();
     }
-  }, [recorderState, cleanup, updateAudioLevel, onChange]);
+  }, [recorderState, cleanup, updateAudioLevel, onChange, value]);
 
   useEffect(() => {
     return () => cleanup();
@@ -258,11 +261,18 @@ export function QuickInputTextarea({
         </div>
       )}
 
-      {/* Voice error feedback — previously the failure was swallowed silently */}
+      {/* Voice error feedback with retry button */}
       {voiceError && !isRecording && (
-        <p className="mt-1 text-[11px] text-destructive" role="alert">
-          {voiceError}
-        </p>
+        <div className="mt-1 flex items-center gap-2" role="alert">
+          <p className="text-[11px] text-destructive">{voiceError}</p>
+          <button
+            type="button"
+            onClick={() => void toggleRecording()}
+            className="text-[11px] text-primary underline underline-offset-2 hover:text-primary/80"
+          >
+            Повторить
+          </button>
+        </div>
       )}
     </div>
   );

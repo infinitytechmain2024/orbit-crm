@@ -30,6 +30,16 @@ import type {
 } from "./types";
 
 const ROLE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  "Orbit Commander": Sparkles,
+  "Backend Engineer": Database,
+  "Frontend Engineer": Code2,
+  "AI Engineer": Bot,
+  "DevOps / Ops Agent": Network,
+  "QA Agent": ShieldCheck,
+  "Research Agent": Search,
+  "Content Agent": Mail,
+  "Design Agent": Sparkles,
+  "Business Analyst": BriefcaseBusiness,
   Frontend: Code2,
   Backend: Database,
   "QA / DevOps": ShieldCheck,
@@ -51,7 +61,11 @@ function counts(tasks: WorkflowTask[]) {
   return {
     queued: tasks.filter((task) => task.status === "queued").length,
     active: tasks.filter(
-      (task) => task.status === "in_progress" || task.status === "revisions_requested",
+      (task) =>
+        task.status === "planning" ||
+        task.status === "in_progress" ||
+        task.status === "review" ||
+        task.status === "revisions_requested",
     ).length,
     done: tasks.filter((task) => task.status === "done").length,
   };
@@ -60,6 +74,8 @@ function counts(tasks: WorkflowTask[]) {
 function currentTask(tasks: WorkflowTask[]) {
   return (
     tasks.find((task) => task.status === "in_progress") ??
+    tasks.find((task) => task.status === "review") ??
+    tasks.find((task) => task.status === "planning") ??
     tasks.find((task) => task.status === "queued")
   );
 }
@@ -98,13 +114,20 @@ export function TeamMap({
     ? agentById.get(nextApproval.requested_by_agent_id)
     : undefined;
   const activeTransfer = Date.now() - lastRealtimeAt < 6000;
-  const orderedDepartments = ["Developer", "Marketer", "HR"]
+  const commanderDepartments = ["Engineering", "Research", "Operations", "Business"];
+  const legacyDepartments = ["Developer", "Marketer", "HR"];
+  const departmentOrder = departments.some((item) => commanderDepartments.includes(item.name))
+    ? commanderDepartments
+    : legacyDepartments;
+  const orderedDepartments = departmentOrder
     .map((name) => departments.find((department) => department.name === name))
     .filter((department): department is WorkflowDepartment => Boolean(department));
   const initiatorDepartmentIndex = orderedDepartments.findIndex(
     (department) => department.id === initiator?.department_id,
   );
-  const nodeX = [170, 500, 830];
+  const nodeX = orderedDepartments.map((_, index) =>
+    Math.round(((index + 0.5) / Math.max(1, orderedDepartments.length)) * 1000),
+  );
 
   return (
     <section aria-label="Карта AI-команды" className="relative">
@@ -115,12 +138,14 @@ export function TeamMap({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-baseline gap-x-1.5">
-              <h2 className="text-sm font-semibold">CEO</h2>
-              <span className="text-xs text-muted-foreground">— Chief Executive Officer</span>
+              <h2 className="text-sm font-semibold">Orbit Commander</h2>
+              <span className="text-xs text-muted-foreground">
+                — оркестрация и контроль качества
+              </span>
             </div>
             <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.8)]" />
-              {approvalTask ? "Проверяет стратегический результат" : "Формирует стратегию"}
+              {approvalTask ? "Ожидает бизнес-решение пользователя" : "Управляет выполнением и QA"}
             </p>
           </div>
         </div>
@@ -133,6 +158,16 @@ export function TeamMap({
                   <Sparkles className="size-3.5" /> Требуется утверждение
                 </p>
                 <p className="mt-1 truncate text-sm font-medium">{approvalTask.title}</p>
+                {nextApproval.action && (
+                  <p className="mt-1 text-[10px] font-medium text-amber-100">
+                    Действие: {nextApproval.action} · риск {nextApproval.risk ?? "high"}
+                  </p>
+                )}
+                {nextApproval.reason && (
+                  <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">
+                    {nextApproval.reason}
+                  </p>
+                )}
                 <p className="mt-1 text-[10px] text-muted-foreground">
                   {initiator?.role ?? "AI-агент"} ·{" "}
                   {approvalTask.project_id
@@ -161,10 +196,10 @@ export function TeamMap({
         ) : (
           <div className="mt-3 flex items-center justify-between rounded-xl border border-border/80 bg-white/[0.02] px-3 py-2.5">
             <span className="text-[11px] text-muted-foreground">
-              Очередь стратегических решений свободна
+              Критических решений от пользователя не требуется
             </span>
             <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300">
-              Готов к утверждению
+              Автономная работа
             </span>
           </div>
         )}
@@ -230,7 +265,7 @@ export function TeamMap({
       </div>
       <div className="mx-auto h-6 w-px bg-gradient-to-b from-primary/70 to-primary/10 lg:hidden" />
 
-      <div className="grid items-start gap-3 lg:grid-cols-3">
+      <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
         {orderedDepartments.map((department) => {
           const departmentTasks = tasks.filter((task) => task.department_id === department.id);
           const departmentAgents = agents.filter(
@@ -256,10 +291,12 @@ export function TeamMap({
               >
                 <div className="flex items-start gap-2.5">
                   <span className="grid size-9 place-items-center rounded-full border border-primary/25 bg-primary/8 text-primary">
-                    {department.name === "Developer" ? (
+                    {department.name === "Developer" || department.name === "Engineering" ? (
                       <Code2 className="size-4" />
-                    ) : department.name === "Marketer" ? (
+                    ) : department.name === "Marketer" || department.name === "Business" ? (
                       <Megaphone className="size-4" />
+                    ) : department.name === "Research" ? (
+                      <Search className="size-4" />
                     ) : (
                       <UsersRound className="size-4" />
                     )}
@@ -308,7 +345,9 @@ export function TeamMap({
                   const Icon = ROLE_ICONS[agent.role] ?? Bot;
                   const agentTasks = departmentTasks.filter((task) => task.agent_id === agent.id);
                   const activeTask = currentTask(agentTasks);
-                  const displayStatus = agentTasks.some((task) => task.status === "in_progress")
+                  const displayStatus = agentTasks.some((task) =>
+                    ["planning", "in_progress"].includes(task.status),
+                  )
                     ? "working"
                     : agent.status;
                   return (

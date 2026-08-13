@@ -261,6 +261,14 @@ export function TaskDetailDialog({
               <span className="rounded-lg border border-border px-2 py-1">
                 Модель: {task.current_model ?? "выбирается"}
               </span>
+              <span className="rounded-lg border border-border px-2 py-1">
+                QA: {task.qa_status ?? "pending"}
+              </span>
+              {task.risk_level && (
+                <span className="rounded-lg border border-border px-2 py-1">
+                  Риск: {task.risk_level}
+                </span>
+              )}
             </div>
             <section className="rounded-xl border border-border bg-white/[0.02] p-3">
               <h3 className="flex items-center gap-2 text-xs font-semibold">
@@ -270,6 +278,32 @@ export function TaskDetailDialog({
                 {task.description || "Описание не добавлено"}
               </p>
             </section>
+            {Boolean(task.execution_plan && Object.keys(task.execution_plan).length) && (
+              <section className="rounded-xl border border-cyan-400/20 bg-cyan-400/[0.025] p-3">
+                <h3 className="flex items-center gap-2 text-xs font-semibold">
+                  <Sparkles className="size-4 text-cyan-300" /> Что будет сделано
+                </h3>
+                <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-[10px] leading-5 text-muted-foreground">
+                  {JSON.stringify(task.execution_plan, null, 2)}
+                </pre>
+              </section>
+            )}
+            {task.blocker_reason && (
+              <section className="rounded-xl border border-red-400/25 bg-red-400/[0.04] p-3 text-xs text-red-200">
+                <strong className="block">Причина блокировки</strong>
+                <p className="mt-1 leading-5">{task.blocker_reason}</p>
+              </section>
+            )}
+            {task.qa_report && (
+              <section className="rounded-xl border border-violet-400/20 bg-violet-400/[0.03] p-3">
+                <h3 className="flex items-center gap-2 text-xs font-semibold">
+                  <CheckCircle2 className="size-4 text-violet-300" /> QA-отчёт
+                </h3>
+                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap text-[10px] leading-5 text-muted-foreground">
+                  {JSON.stringify(task.qa_report, null, 2)}
+                </pre>
+              </section>
+            )}
             {task.result && (
               <section className="rounded-xl border border-primary/20 bg-primary/[0.035] p-3">
                 <h3 className="flex items-center gap-2 text-xs font-semibold">

@@ -12,6 +12,7 @@ import type {
 
 export type GraphObjectType =
   | "project"
+  | "area"
   | "task"
   | "person"
   | "client"
@@ -22,11 +23,14 @@ export type GraphObjectType =
   | "prompt"
   | "generation"
   | "image"
+  | "design"
   | "file"
   | "comment"
   | "email"
+  | "message"
   | "decision"
   | "approval"
+  | "finance"
   | "finance_transaction"
   | "request"
   | "task_label"
@@ -36,14 +40,20 @@ export type GraphRelationType =
   | "belongs_to"
   | "contains"
   | "assigned_to"
+  | "created_by"
   | "created_from"
   | "uses"
   | "used_in"
+  | "adapted_for"
   | "related_to"
   | "requires_approval"
+  | "approved_by"
   | "blocks"
   | "depends_on"
-  | "generated_from_prompt";
+  | "generated_from_prompt"
+  | "communicates_with";
+
+export type GraphDirection = "one_way" | "two_way";
 
 export type GraphEntity = {
   id: string;
@@ -55,6 +65,10 @@ export type GraphEntity = {
   createdBy?: string | null;
   status?: string;
   metadata?: Record<string, string | number | null | undefined>;
+  graphNodeId?: string;
+  positionX?: number | null;
+  positionY?: number | null;
+  isAutomatic?: boolean;
 };
 
 export type GraphRelation = {
@@ -67,6 +81,10 @@ export type GraphRelation = {
   createdAt: string;
   createdBy: string | null;
   implicit: boolean;
+  direction: GraphDirection;
+  strength: number;
+  isAutomatic: boolean;
+  metadata?: Record<string, string | number | boolean | null | undefined>;
 };
 
 export type GraphModel = {
@@ -88,6 +106,7 @@ export type GraphLead = Pick<
 
 export const GRAPH_OBJECT_LABELS: Record<GraphObjectType, string> = {
   project: "Проект",
+  area: "Направление",
   task: "Задача",
   person: "Человек",
   client: "Клиент",
@@ -98,11 +117,14 @@ export const GRAPH_OBJECT_LABELS: Record<GraphObjectType, string> = {
   prompt: "Промпт",
   generation: "Генерация",
   image: "Изображение",
+  design: "Макет",
   file: "Файл",
   comment: "Комментарий",
   email: "Письмо",
+  message: "Сообщение",
   decision: "Решение",
   approval: "Согласование",
+  finance: "Финансы",
   finance_transaction: "Финансы",
   request: "Заявка",
   task_label: "Метка",
@@ -113,18 +135,23 @@ export const GRAPH_RELATION_LABELS: Record<GraphRelationType, string> = {
   belongs_to: "принадлежит",
   contains: "содержит",
   assigned_to: "назначено",
+  created_by: "создано",
   created_from: "создано из",
   uses: "использует",
   used_in: "используется в",
+  adapted_for: "адаптировано для",
   related_to: "связано",
   requires_approval: "требует утверждения",
+  approved_by: "утверждено",
   blocks: "блокирует",
   depends_on: "зависит от",
   generated_from_prompt: "создано из промпта",
+  communicates_with: "взаимодействует",
 };
 
 export const GRAPH_TYPE_COLORS: Record<GraphObjectType, string> = {
   project: "#19d5c1",
+  area: "#3b8fe8",
   task: "#48b77a",
   person: "#3b96f3",
   client: "#37c7df",
@@ -135,11 +162,14 @@ export const GRAPH_TYPE_COLORS: Record<GraphObjectType, string> = {
   prompt: "#a36bdb",
   generation: "#f29a37",
   image: "#eea43b",
+  design: "#f1a13c",
   file: "#8f78d8",
   comment: "#9c83da",
   email: "#5e86dc",
+  message: "#7d9fc8",
   decision: "#5bb889",
   approval: "#dbb04c",
+  finance: "#efa43b",
   finance_transaction: "#efa43b",
   request: "#65b8a2",
   task_label: "#4e92ed",
@@ -174,7 +204,12 @@ function addEntity(target: Map<string, GraphEntity>, entity: GraphEntity) {
 
 function addRelation(
   target: GraphRelation[],
-  relation: Omit<GraphRelation, "id" | "implicit"> & { id?: string },
+  relation: Omit<GraphRelation, "id" | "implicit" | "direction" | "strength" | "isAutomatic"> & {
+    id?: string;
+    direction?: GraphDirection;
+    strength?: number;
+    isAutomatic?: boolean;
+  },
 ) {
   target.push({
     ...relation,
@@ -188,6 +223,9 @@ function addRelation(
         relation.targetId,
       ]),
     implicit: true,
+    direction: relation.direction ?? "one_way",
+    strength: relation.strength ?? 1,
+    isAutomatic: relation.isAutomatic ?? true,
   });
 }
 
@@ -492,12 +530,13 @@ export function buildGraphModel(input: {
 export function dedupeRelations(relations: GraphRelation[]): GraphRelation[] {
   const seen = new Set<string>();
   return relations.filter((relation) => {
-    const endpoints = [
-      `${relation.sourceType}:${relation.sourceId}`,
-      `${relation.targetType}:${relation.targetId}`,
-    ];
-    if (relation.relationType === "related_to") endpoints.sort();
-    const key = `${endpoints.join(":")}:${relation.relationType}`;
+    const key = [
+      relation.sourceType,
+      relation.sourceId,
+      relation.targetType,
+      relation.targetId,
+      relation.relationType,
+    ].join(":");
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

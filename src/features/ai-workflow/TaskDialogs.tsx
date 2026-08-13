@@ -545,7 +545,7 @@ export function RejectTaskDialog({
 }: {
   task: WorkflowTask | null;
   onClose: () => void;
-  onReject: (comment: string) => Promise<void>;
+  onReject: (comment: string, decision: "request_changes" | "reject") => Promise<void>;
 }) {
   const [comment, setComment] = useState("");
   const [isSubmitting, setSubmitting] = useState(false);
@@ -558,11 +558,11 @@ export function RejectTaskDialog({
     >
       <DialogContent className="border-border bg-[#0b1823]">
         <DialogHeader>
-          <DialogTitle>Вернуть на правки</DialogTitle>
+          <DialogTitle>Решение по критическому действию</DialogTitle>
           <DialogDescription>{task?.title}</DialogDescription>
         </DialogHeader>
         <label className="space-y-1.5">
-          <span className="text-xs text-muted-foreground">Комментарий CEO</span>
+          <span className="text-xs text-muted-foreground">Комментарий владельца</span>
           <textarea
             autoFocus
             value={comment}
@@ -584,14 +584,28 @@ export function RejectTaskDialog({
             disabled={comment.trim().length < 3 || isSubmitting}
             onClick={() => {
               setSubmitting(true);
-              void onReject(comment.trim()).finally(() => {
+              void onReject(comment.trim(), "request_changes").finally(() => {
+                setSubmitting(false);
+                setComment("");
+              });
+            }}
+            className="h-10 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 text-xs font-semibold text-amber-200 disabled:opacity-50"
+          >
+            Запросить изменения
+          </button>
+          <button
+            type="button"
+            disabled={comment.trim().length < 3 || isSubmitting}
+            onClick={() => {
+              setSubmitting(true);
+              void onReject(comment.trim(), "reject").finally(() => {
                 setSubmitting(false);
                 setComment("");
               });
             }}
             className="h-10 rounded-xl border border-red-400/40 bg-red-400/10 px-4 text-xs font-semibold text-red-300 disabled:opacity-50"
           >
-            Отклонить и вернуть
+            Отклонить действие
           </button>
         </DialogFooter>
       </DialogContent>

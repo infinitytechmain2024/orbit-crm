@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 from backend.auth import WorkflowActor, require_workflow_actor, require_workflow_permission
 from backend.config import settings
 from backend.services.ai_workflow_store import ai_workflow_store
-from backend.services.orbit_commander import critical_approval, orbit_commander
+from backend.services.orbit_commander import orbit_commander
 from backend.services.stt import stt_service
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ async def get_overview(
     project_id: str | None = Query(default=None, min_length=36, max_length=36),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(organization_id, actor, "workflow.create")
+    await _authorize(organization_id, actor)
     await orbit_commander.ensure_bootstrap(organization_id, actor.user_id)
     task_filters = {"project_id": f"eq.{project_id}"} if project_id else None
     (
@@ -558,6 +558,29 @@ async def get_task_plan(
     }
 
 
+@router.get("/graph-context")
+async def get_workflow_graph_context(
+    organization_id: str = Query(min_length=36, max_length=36),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
+    await _authorize(organization_id, actor)
+    nodes, edges = await asyncio.gather(
+        ai_workflow_store.select(
+            "knowledge_nodes",
+            organization_id=organization_id,
+            order="created_at.desc",
+            limit=500,
+        ),
+        ai_workflow_store.select(
+            "knowledge_edges",
+            organization_id=organization_id,
+            order="created_at.desc",
+            limit=750,
+        ),
+    )
+    return {"nodes": nodes, "edges": edges}
+
+
 async def _control_task(
     action: Literal["pause", "resume", "retry", "cancel"],
     task_id: str,
@@ -658,7 +681,7 @@ async def transcribe_voice_task(
     audio: UploadFile = File(...),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(organization_id, actor)
+    await _authorize(organization_id, actor, "workflow.create")
     content = await audio.read()
     if not content:
         raise HTTPException(status_code=400, detail="Аудиозапись пустая")

@@ -132,7 +132,7 @@ export type Database = {
       graph_node_positions: {
         Row: {
           node_id: string;
-          node_type: Database["public"]["Enums"]["graph_object_type"];
+          node_type: string;
           organization_id: string;
           updated_at: string;
           user_id: string;
@@ -141,7 +141,7 @@ export type Database = {
         };
         Insert: {
           node_id: string;
-          node_type: Database["public"]["Enums"]["graph_object_type"];
+          node_type: string;
           organization_id: string;
           updated_at?: string;
           user_id: string;
@@ -150,7 +150,7 @@ export type Database = {
         };
         Update: {
           node_id?: string;
-          node_type?: Database["public"]["Enums"]["graph_object_type"];
+          node_type?: string;
           organization_id?: string;
           updated_at?: string;
           user_id?: string;
@@ -167,39 +167,126 @@ export type Database = {
           },
         ];
       };
-      graph_relations: {
+      graph_nodes: {
         Row: {
           created_at: string;
-          created_by: string;
+          created_by: string | null;
+          entity_id: string;
+          entity_type: string;
           id: string;
+          is_automatic: boolean;
+          metadata: Json;
           organization_id: string;
-          relation_type: Database["public"]["Enums"]["graph_relation_type"];
-          source_id: string;
-          source_type: Database["public"]["Enums"]["graph_object_type"];
-          target_id: string;
-          target_type: Database["public"]["Enums"]["graph_object_type"];
+          position_x: number | null;
+          position_y: number | null;
+          project_id: string | null;
+          status: string | null;
+          title: string;
+          updated_at: string;
         };
         Insert: {
           created_at?: string;
-          created_by: string;
+          created_by?: string | null;
+          entity_id: string;
+          entity_type: string;
           id?: string;
+          is_automatic?: boolean;
+          metadata?: Json;
           organization_id: string;
-          relation_type: Database["public"]["Enums"]["graph_relation_type"];
-          source_id: string;
-          source_type: Database["public"]["Enums"]["graph_object_type"];
-          target_id: string;
-          target_type: Database["public"]["Enums"]["graph_object_type"];
+          position_x?: number | null;
+          position_y?: number | null;
+          project_id?: string | null;
+          status?: string | null;
+          title: string;
+          updated_at?: string;
         };
         Update: {
           created_at?: string;
-          created_by?: string;
+          created_by?: string | null;
+          entity_id?: string;
+          entity_type?: string;
           id?: string;
+          is_automatic?: boolean;
+          metadata?: Json;
           organization_id?: string;
-          relation_type?: Database["public"]["Enums"]["graph_relation_type"];
+          position_x?: number | null;
+          position_y?: number | null;
+          project_id?: string | null;
+          status?: string | null;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "graph_nodes_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "graph_nodes_organization_id_project_id_fkey";
+            columns: ["organization_id", "project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      graph_relations: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          direction: string;
+          id: string;
+          is_automatic: boolean;
+          metadata: Json;
+          organization_id: string;
+          relation_type: string;
+          source_id: string;
+          source_node_id: string;
+          source_type: string;
+          strength: number;
+          target_id: string;
+          target_node_id: string;
+          target_type: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          direction?: string;
+          id?: string;
+          is_automatic?: boolean;
+          metadata?: Json;
+          organization_id: string;
+          relation_type: string;
+          source_id: string;
+          source_node_id: string;
+          source_type: string;
+          strength?: number;
+          target_id: string;
+          target_node_id: string;
+          target_type: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          direction?: string;
+          id?: string;
+          is_automatic?: boolean;
+          metadata?: Json;
+          organization_id?: string;
+          relation_type?: string;
           source_id?: string;
-          source_type?: Database["public"]["Enums"]["graph_object_type"];
+          source_node_id?: string;
+          source_type?: string;
+          strength?: number;
           target_id?: string;
-          target_type?: Database["public"]["Enums"]["graph_object_type"];
+          target_node_id?: string;
+          target_type?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
