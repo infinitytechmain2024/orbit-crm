@@ -20,6 +20,7 @@ async function proxyRequest(
   const base =
     process.env.RENDER_BACKEND_URL ||
     process.env.BACKEND_URL ||
+    process.env.AI_WORKFLOW_BACKEND_URL ||
     (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "http://localhost:8000");
   if (!base) {
     return Response.json({ error: "Backend URL is not configured on the server" }, { status: 503 });
@@ -43,13 +44,23 @@ async function proxyRequest(
   headers.delete("authorization");
   headers.set("authorization", `Bearer ${token}`);
 
+  // Render free plan cold start can take 30-60s; allow enough time.
+  const isTranscribe = path?.includes("transcribe");
+  const timeoutMs = isTranscribe ? 120_000 : 30_000;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const upstream = await fetch(target, {
       method,
       headers,
       body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
       redirect: "manual",
+      signal: controller.signal,
     });
+
+    clearTimeout(timer);
 
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.delete("content-length");
@@ -62,11 +73,19 @@ async function proxyRequest(
       headers: responseHeaders,
     });
   } catch (error) {
+    clearTimeout(timer);
+    const reason = error instanceof Error ? error.message : "Unknown upstream error";
+    const isTimeout =
+      error instanceof DOMException && error.name === "AbortError";
     console.error("[backend proxy] upstream request failed", {
       method,
       path: path ?? "",
-      reason: error instanceof Error ? error.message : "Unknown upstream error",
+      reason,
+      isTimeout,
     });
-    return Response.json({ error: "Backend is unavailable" }, { status: 502 });
+    return Response.json(
+      { error: isTimeout ? "Backend is waking up, please try again" : "Backend is unavailable" },
+      { status: 502 },
+    );
   }
 }

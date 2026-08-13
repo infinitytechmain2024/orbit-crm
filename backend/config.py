@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     OLLAMA_API_KEY: str = Field(default="ollama", validation_alias="OLLAMA_API_KEY")
 
     # Faster-Whisper
-    WHISPER_MODEL: str = Field(default="base", validation_alias="WHISPER_MODEL")
+    WHISPER_MODEL: str = Field(default="tiny", validation_alias="WHISPER_MODEL")
     WHISPER_DEVICE: str = Field(default="cpu", validation_alias="WHISPER_DEVICE")
     WHISPER_COMPUTE_TYPE: str = Field(default="int8", validation_alias="WHISPER_COMPUTE_TYPE")
     WHISPER_LANGUAGE: str = Field(default="ru", validation_alias="WHISPER_LANGUAGE")
