@@ -31,14 +31,41 @@ class Settings(BaseSettings):
         default="https://integrate.api.nvidia.com/v1",
         validation_alias="NVIDIA_BASE_URL",
     )
+    OPENAI_API_KEY: Optional[str] = Field(default=None, validation_alias="OPENAI_API_KEY")
+    OPENAI_MODEL: str = Field(default="", validation_alias="OPENAI_MODEL")
+    OPENAI_BASE_URL: str = Field(
+        default="https://api.openai.com/v1",
+        validation_alias="OPENAI_BASE_URL",
+    )
     AI_MODEL_CONFIGS_JSON: str = Field(default="", validation_alias="AI_MODEL_CONFIGS_JSON")
     AI_WORKFLOW_AUTORUN: bool = Field(default=True, validation_alias="AI_WORKFLOW_AUTORUN")
+    AI_WORKFLOW_WORKER_ENABLED: bool = Field(
+        default=True,
+        validation_alias="AI_WORKFLOW_WORKER_ENABLED",
+    )
+    AI_WORKFLOW_WORKER_CONCURRENCY: int = Field(
+        default=4,
+        validation_alias="AI_WORKFLOW_WORKER_CONCURRENCY",
+    )
+    AI_WORKFLOW_POLL_INTERVAL_SECONDS: float = Field(
+        default=1.5,
+        validation_alias="AI_WORKFLOW_POLL_INTERVAL_SECONDS",
+    )
+    AI_WORKFLOW_MAX_QA_REVISIONS: int = Field(
+        default=2,
+        validation_alias="AI_WORKFLOW_MAX_QA_REVISIONS",
+    )
     AI_WORKFLOW_TEST_FAIL_MODEL: str = Field(
         default="",
         validation_alias="AI_WORKFLOW_TEST_FAIL_MODEL",
     )
     GEMINI_API_KEY: Optional[str] = Field(default=None, validation_alias="GEMINI_API_KEY")
     GROQ_API_KEY: Optional[str] = Field(default=None, validation_alias="GROQ_API_KEY")
+    GROQ_MODEL: str = Field(default="", validation_alias="GROQ_MODEL")
+    GROQ_BASE_URL: str = Field(
+        default="https://api.groq.com/openai/v1",
+        validation_alias="GROQ_BASE_URL",
+    )
 
     # Ollama / Llama 3.2
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434/v1", validation_alias="OLLAMA_BASE_URL")

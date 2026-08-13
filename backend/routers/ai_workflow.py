@@ -8,13 +8,13 @@ import logging
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field, field_validator
 
-from backend.auth import WorkflowActor, require_workflow_actor
+from backend.auth import WorkflowActor, require_workflow_actor, require_workflow_permission
 from backend.config import settings
-from backend.services.ai_workflow_router import AllModelsFailed, ai_workflow_router
 from backend.services.ai_workflow_store import ai_workflow_store
+from backend.services.orbit_commander import critical_approval, orbit_commander
 from backend.services.stt import stt_service
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,11 @@ router = APIRouter(
 )
 
 TaskStatus = Literal[
+    "planning",
     "queued",
     "in_progress",
+    "paused",
+    "review",
     "approval_required",
     "done",
     "blocked",
@@ -38,9 +41,13 @@ TaskPriority = Literal["low", "medium", "high", "critical"]
 
 class TaskCreateRequest(BaseModel):
     organization_id: str = Field(min_length=36, max_length=36)
-    project_id: str = Field(min_length=36, max_length=36)
+    project_id: str | None = Field(default=None, min_length=36, max_length=36)
     title: str = Field(min_length=1, max_length=240)
+    original_request: str | None = Field(default=None, max_length=12000)
     description: str = Field(default="", max_length=12000)
+    source: Literal["text", "voice", "manual", "project", "note", "client", "api"] = "text"
+    source_entity_type: str | None = Field(default=None, max_length=80)
+    source_entity_id: str | None = Field(default=None, min_length=36, max_length=36)
     priority: TaskPriority = "medium"
     due_at: datetime | None = None
     attachments: list[str] = Field(default_factory=list, max_length=12)
@@ -49,6 +56,7 @@ class TaskCreateRequest(BaseModel):
     agent_id: str | None = Field(default=None, min_length=36, max_length=36)
     auto_assign: bool = True
     requires_approval: bool | None = None
+    related_entities: list[dict[str, str]] = Field(default_factory=list, max_length=30)
 
     @field_validator("title", "description")
     @classmethod
@@ -83,14 +91,24 @@ class ApprovalDecisionRequest(TaskActionRequest):
     decision_comment: str | None = Field(default=None, max_length=2000)
 
 
+class ApprovalRequestDecision(BaseModel):
+    organization_id: str = Field(min_length=36, max_length=36)
+    decision: Literal["approve", "reject", "request_changes"]
+    decision_comment: str | None = Field(default=None, max_length=2000)
+
+
 class RouterAssignRequest(TaskActionRequest):
     task_id: str = Field(min_length=36, max_length=36)
     department_id: str | None = Field(default=None, min_length=36, max_length=36)
     agent_id: str | None = Field(default=None, min_length=36, max_length=36)
 
 
-async def _authorize(organization_id: str, actor: WorkflowActor) -> None:
-    await ai_workflow_store.ensure_membership(organization_id, actor.user_id)
+async def _authorize(
+    organization_id: str,
+    actor: WorkflowActor,
+    permission: str = "workflow.read",
+) -> str:
+    return await require_workflow_permission(organization_id, actor, permission)
 
 
 async def _get_task(organization_id: str, task_id: str) -> dict[str, Any]:
@@ -99,30 +117,6 @@ async def _get_task(organization_id: str, task_id: str) -> dict[str, Any]:
         organization_id=organization_id,
         row_id=task_id,
     )
-
-
-async def _run_task_safely(task: dict[str, Any]) -> None:
-    try:
-        await ai_workflow_router.execute_task(task)
-    except AllModelsFailed:
-        logger.warning("AI Workflow task %s blocked after model fallbacks", task.get("id"))
-    except Exception as error:
-        logger.exception("AI Workflow task %s failed", task.get("id"))
-        try:
-            await ai_workflow_store.update(
-                "ai_tasks",
-                organization_id=task["organization_id"],
-                filters={"id": f"eq.{task['id']}"},
-                payload={"status": "blocked"},
-            )
-            await ai_workflow_router.create_event(
-                task,
-                "blocked",
-                "Выполнение остановлено из-за внутренней ошибки. Задачу можно запустить повторно.",
-                metadata={"error_type": type(error).__name__},
-            )
-        except Exception:
-            logger.exception("Could not persist AI Workflow task failure")
 
 
 async def _ensure_manual_approval(task: dict[str, Any]) -> None:
@@ -134,26 +128,14 @@ async def _ensure_manual_approval(task: dict[str, Any]) -> None:
     )
     if pending:
         return
-    ceo = await ai_workflow_store.select(
-        "ai_agents",
-        organization_id=task["organization_id"],
-        filters={"role": "eq.CEO", "is_active": "eq.true"},
-        limit=1,
-    )
-    await ai_workflow_store.insert(
-        "approval_requests",
-        {
-            "organization_id": task["organization_id"],
-            "task_id": task["id"],
-            "requested_by_agent_id": task.get("agent_id"),
-            "assigned_to_agent_id": ceo[0]["id"] if ceo else None,
-            "status": "pending",
-        },
-    )
-    await ai_workflow_router.create_event(
+    await orbit_commander.request_approval(
         task,
-        "approval_requested",
-        "Задача вручную отправлена CEO на утверждение.",
+        {
+            "action": "Подтвердить критическое действие",
+            "reason": "Пользователь или агент отметил действие как требующее решения.",
+            "risk": "high",
+            "consequences": "Workflow продолжится только после явного решения.",
+        },
     )
 
 
@@ -163,10 +145,23 @@ async def get_overview(
     project_id: str | None = Query(default=None, min_length=36, max_length=36),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(organization_id, actor)
-    await ai_workflow_router.ensure_bootstrap(organization_id, actor.user_id)
+    await _authorize(organization_id, actor, "workflow.create")
+    await orbit_commander.ensure_bootstrap(organization_id, actor.user_id)
     task_filters = {"project_id": f"eq.{project_id}"} if project_id else None
-    departments, agents, tasks, events, artifacts, approvals, projects, models = await asyncio.gather(
+    (
+        departments,
+        agents,
+        tasks,
+        events,
+        artifacts,
+        approvals,
+        projects,
+        models,
+        workflow_runs,
+        dependencies,
+        agent_runs,
+        notifications,
+    ) = await asyncio.gather(
         ai_workflow_store.select("ai_departments", organization_id=organization_id, order="name.asc"),
         ai_workflow_store.select("ai_agents", organization_id=organization_id, order="created_at.asc"),
         ai_workflow_store.select(
@@ -209,6 +204,30 @@ async def get_overview(
             filters={"is_enabled": "eq.true"},
             order="priority.desc",
         ),
+        ai_workflow_store.select(
+            "workflow_runs",
+            organization_id=organization_id,
+            order="updated_at.desc",
+            limit=100,
+        ),
+        ai_workflow_store.select(
+            "task_dependencies",
+            organization_id=organization_id,
+            limit=500,
+        ),
+        ai_workflow_store.select(
+            "agent_runs",
+            organization_id=organization_id,
+            order="created_at.desc",
+            limit=100,
+        ),
+        ai_workflow_store.select(
+            "notifications",
+            organization_id=organization_id,
+            filters={"read_at": "is.null"},
+            order="created_at.desc",
+            limit=50,
+        ),
     )
     task_ids = {task["id"] for task in tasks}
     if project_id:
@@ -222,10 +241,25 @@ async def get_overview(
         "approval_requests": approvals,
         "projects": projects,
         "model_configs": models,
+        "workflow_runs": workflow_runs,
+        "task_dependencies": dependencies,
+        "agent_runs": agent_runs,
+        "notifications": notifications,
         "provider": {
             "nvidia_configured": bool(settings.NVIDIA_API_KEY),
+            "configured": [
+                provider
+                for provider, enabled in {
+                    "nvidia": bool(settings.NVIDIA_API_KEY),
+                    "openai": bool(settings.OPENAI_API_KEY),
+                    "groq": bool(settings.GROQ_API_KEY),
+                    "ollama": bool(settings.OLLAMA_API_KEY),
+                }.items()
+                if enabled
+            ],
             "voice_configured": bool(settings.WHISPER_MODEL),
             "autorun": settings.AI_WORKFLOW_AUTORUN,
+            "worker_enabled": settings.AI_WORKFLOW_WORKER_ENABLED,
         },
     }
 
@@ -233,16 +267,16 @@ async def get_overview(
 @router.post("/tasks", status_code=201)
 async def create_task(
     request: TaskCreateRequest,
-    background_tasks: BackgroundTasks,
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(request.organization_id, actor)
-    await ai_workflow_router.ensure_bootstrap(request.organization_id, actor.user_id)
-    await ai_workflow_store.one(
-        "projects",
-        organization_id=request.organization_id,
-        row_id=request.project_id,
-    )
+    await _authorize(request.organization_id, actor, "workflow.create")
+    await orbit_commander.ensure_bootstrap(request.organization_id, actor.user_id)
+    if request.project_id:
+        await ai_workflow_store.one(
+            "projects",
+            organization_id=request.organization_id,
+            row_id=request.project_id,
+        )
     if request.department_id:
         await ai_workflow_store.one(
             "ai_departments",
@@ -258,6 +292,7 @@ async def create_task(
     input_data: dict[str, Any] = {
         "attachments": request.attachments,
         "links": request.links,
+        "related_entities": request.related_entities,
         "auto_assign": request.auto_assign,
     }
     if request.requires_approval is not None:
@@ -270,24 +305,28 @@ async def create_task(
             "department_id": request.department_id,
             "agent_id": request.agent_id,
             "title": request.title,
+            "original_request": (request.original_request or request.description or request.title).strip(),
             "description": request.description,
-            "status": "queued",
+            "source": request.source,
+            "source_entity_type": request.source_entity_type,
+            "source_entity_id": request.source_entity_id,
+            "status": "planning",
             "priority": request.priority,
             "due_at": request.due_at.isoformat() if request.due_at else None,
             "input_data": input_data,
+            "approval_required": bool(request.requires_approval),
+            "goal": request.title,
             "created_by": actor.user_id,
         },
     )
     task = rows[0]
-    await ai_workflow_router.create_event(task, "created", "Пользователь создал новую задачу.")
-    task = await ai_workflow_router.assign_task(
-        task,
-        requested_department_id=request.department_id,
-        requested_agent_id=request.agent_id,
-    )
-    if settings.AI_WORKFLOW_AUTORUN:
-        background_tasks.add_task(_run_task_safely, task)
-    return {"task": task, "queued_for_execution": settings.AI_WORKFLOW_AUTORUN}
+    await orbit_commander.create_event(task, "created", "Пользователь создал новую задачу.")
+    task, run = await orbit_commander.create_workflow(task)
+    return {
+        "task": task,
+        "workflow_run": run,
+        "queued_for_execution": True,
+    }
 
 
 @router.get("/tasks")
@@ -334,7 +373,7 @@ async def patch_task(
     request: TaskPatchRequest,
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(request.organization_id, actor)
+    await _authorize(request.organization_id, actor, "workflow.control")
     current = await _get_task(request.organization_id, task_id)
     payload: dict[str, Any] = {}
     for field in ("title", "description", "status", "priority", "department_id", "agent_id"):
@@ -351,6 +390,12 @@ async def patch_task(
         input_data = dict(current.get("input_data") or {})
         input_data["requires_approval"] = request.requires_approval
         payload["input_data"] = input_data
+        payload["approval_required"] = request.requires_approval
+    if payload.get("status") == "done" and current.get("qa_status") != "passed":
+        raise HTTPException(
+            status_code=409,
+            detail="Задача может быть завершена только после успешной проверки QA.",
+        )
     if not payload:
         raise HTTPException(status_code=422, detail="No task fields to update")
     rows = await ai_workflow_store.update(
@@ -362,7 +407,7 @@ async def patch_task(
     if not rows:
         raise HTTPException(status_code=404, detail="Task not found")
     task = rows[0]
-    await ai_workflow_router.create_event(
+    await orbit_commander.create_event(
         task,
         "updated",
         "Параметры задачи обновлены.",
@@ -377,12 +422,21 @@ async def patch_task(
 async def run_task(
     task_id: str,
     request: TaskActionRequest,
-    background_tasks: BackgroundTasks,
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(request.organization_id, actor)
+    await _authorize(request.organization_id, actor, "workflow.control")
     task = await _get_task(request.organization_id, task_id)
-    background_tasks.add_task(_run_task_safely, task)
+    if task.get("workflow_run_id"):
+        if task["status"] == "paused":
+            task = await orbit_commander.resume(task, actor.user_id)
+        elif task["status"] in ("blocked", "revisions_requested", "cancelled"):
+            task = await orbit_commander.retry(task, actor.user_id)
+        else:
+            root, run = await orbit_commander._root_and_run(task)
+            await orbit_commander.enqueue_ready(run)
+            task = root if task["id"] == root["id"] else task
+    else:
+        task, _ = await orbit_commander.create_workflow(task)
     return {"task": task, "queued_for_execution": True}
 
 
@@ -392,18 +446,24 @@ async def approve_task(
     request: ApprovalDecisionRequest,
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(request.organization_id, actor)
-    await _get_task(request.organization_id, task_id)
-    decision = await ai_workflow_store.rpc(
-        "resolve_ai_approval",
-        {
-            "p_organization_id": request.organization_id,
-            "p_task_id": task_id,
-            "p_decision": "approved",
-            "p_comment": request.decision_comment,
-        },
+    await _authorize(request.organization_id, actor, "approval.decide")
+    task = await _get_task(request.organization_id, task_id)
+    pending = await ai_workflow_store.select(
+        "approval_requests",
+        organization_id=request.organization_id,
+        filters={"task_id": f"eq.{task_id}", "status": "eq.pending"},
+        limit=1,
     )
-    return {"decision": decision, "task": await _get_task(request.organization_id, task_id)}
+    if not pending:
+        raise HTTPException(status_code=404, detail="Pending approval request not found")
+    decision = await orbit_commander.resolve_approval(
+        pending[0]["id"],
+        request.organization_id,
+        actor.user_id,
+        "approved",
+        request.decision_comment,
+    )
+    return {"decision": decision, "task": await _get_task(request.organization_id, task["id"])}
 
 
 @router.post("/tasks/{task_id}/reject")
@@ -412,18 +472,123 @@ async def reject_task(
     request: ApprovalDecisionRequest,
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(request.organization_id, actor)
-    await _get_task(request.organization_id, task_id)
-    decision = await ai_workflow_store.rpc(
-        "resolve_ai_approval",
-        {
-            "p_organization_id": request.organization_id,
-            "p_task_id": task_id,
-            "p_decision": "rejected",
-            "p_comment": request.decision_comment,
-        },
+    await _authorize(request.organization_id, actor, "approval.decide")
+    task = await _get_task(request.organization_id, task_id)
+    pending = await ai_workflow_store.select(
+        "approval_requests",
+        organization_id=request.organization_id,
+        filters={"task_id": f"eq.{task_id}", "status": "eq.pending"},
+        limit=1,
     )
-    return {"decision": decision, "task": await _get_task(request.organization_id, task_id)}
+    if not pending:
+        raise HTTPException(status_code=404, detail="Pending approval request not found")
+    decision = await orbit_commander.resolve_approval(
+        pending[0]["id"],
+        request.organization_id,
+        actor.user_id,
+        "rejected",
+        request.decision_comment,
+    )
+    return {"decision": decision, "task": await _get_task(request.organization_id, task["id"])}
+
+
+@router.post("/approvals/{approval_id}/decision")
+async def decide_approval(
+    approval_id: str,
+    request: ApprovalRequestDecision,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
+    await _authorize(request.organization_id, actor, "approval.decide")
+    decision_map = {
+        "approve": "approved",
+        "reject": "rejected",
+        "request_changes": "changes_requested",
+    }
+    try:
+        approval = await orbit_commander.resolve_approval(
+            approval_id,
+            request.organization_id,
+            actor.user_id,
+            decision_map[request.decision],
+            request.decision_comment,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return {"approval": approval}
+
+
+@router.get("/tasks/{task_id}/plan")
+async def get_task_plan(
+    task_id: str,
+    organization_id: str = Query(min_length=36, max_length=36),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
+    await _authorize(organization_id, actor)
+    task = await _get_task(organization_id, task_id)
+    root, run = await orbit_commander._root_and_run(task)
+    subtasks, dependencies, runs, messages = await asyncio.gather(
+        ai_workflow_store.select(
+            "ai_tasks",
+            organization_id=organization_id,
+            filters={"parent_task_id": f"eq.{root['id']}"},
+            order="created_at.asc",
+        ),
+        ai_workflow_store.select("task_dependencies", organization_id=organization_id),
+        ai_workflow_store.select(
+            "agent_runs",
+            organization_id=organization_id,
+            filters={"workflow_run_id": f"eq.{run['id']}"},
+            order="created_at.desc",
+        ),
+        ai_workflow_store.select(
+            "agent_messages",
+            organization_id=organization_id,
+            filters={"workflow_run_id": f"eq.{run['id']}"},
+            order="created_at.desc",
+        ),
+    )
+    task_ids = {item["id"] for item in subtasks}
+    return {
+        "task": root,
+        "workflow_run": run,
+        "subtasks": subtasks,
+        "dependencies": [item for item in dependencies if item["task_id"] in task_ids],
+        "agent_runs": runs,
+        "agent_messages": messages,
+    }
+
+
+async def _control_task(
+    action: Literal["pause", "resume", "retry", "cancel"],
+    task_id: str,
+    request: TaskActionRequest,
+    actor: WorkflowActor,
+):
+    await _authorize(request.organization_id, actor, "workflow.control")
+    task = await _get_task(request.organization_id, task_id)
+    handler = getattr(orbit_commander, action)
+    result = await handler(task, actor.user_id)
+    return {"task": result, "action": action}
+
+
+@router.post("/tasks/{task_id}/pause")
+async def pause_task(task_id: str, request: TaskActionRequest, actor: WorkflowActor = Depends(require_workflow_actor)):
+    return await _control_task("pause", task_id, request, actor)
+
+
+@router.post("/tasks/{task_id}/resume")
+async def resume_task(task_id: str, request: TaskActionRequest, actor: WorkflowActor = Depends(require_workflow_actor)):
+    return await _control_task("resume", task_id, request, actor)
+
+
+@router.post("/tasks/{task_id}/retry")
+async def retry_task(task_id: str, request: TaskActionRequest, actor: WorkflowActor = Depends(require_workflow_actor)):
+    return await _control_task("retry", task_id, request, actor)
+
+
+@router.post("/tasks/{task_id}/cancel")
+async def cancel_task(task_id: str, request: TaskActionRequest, actor: WorkflowActor = Depends(require_workflow_actor)):
+    return await _control_task("cancel", task_id, request, actor)
 
 
 @router.get("/agents")
@@ -523,11 +688,46 @@ async def assign_task(
     request: RouterAssignRequest,
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    await _authorize(request.organization_id, actor)
+    await _authorize(request.organization_id, actor, "workflow.control")
     task = await _get_task(request.organization_id, request.task_id)
-    assigned = await ai_workflow_router.assign_task(
-        task,
-        requested_department_id=request.department_id,
-        requested_agent_id=request.agent_id,
+    payload: dict[str, Any] = {}
+    if request.agent_id:
+        agent = await ai_workflow_store.one(
+            "ai_agents",
+            organization_id=request.organization_id,
+            row_id=request.agent_id,
+        )
+        payload["agent_id"] = agent["id"]
+        payload["department_id"] = agent.get("department_id")
+    elif request.department_id:
+        await ai_workflow_store.one(
+            "ai_departments",
+            organization_id=request.organization_id,
+            row_id=request.department_id,
+        )
+        payload["department_id"] = request.department_id
+    else:
+        raise HTTPException(status_code=422, detail="agent_id or department_id is required")
+    rows = await ai_workflow_store.update(
+        "ai_tasks",
+        organization_id=request.organization_id,
+        filters={"id": f"eq.{task['id']}"},
+        payload=payload,
+    )
+    assigned = rows[0]
+    await orbit_commander.create_event(
+        assigned,
+        "reassigned",
+        "Исполнитель этапа изменён пользователем.",
+        metadata={"agent_id": request.agent_id, "department_id": payload.get("department_id")},
+    )
+    await orbit_commander.audit(
+        request.organization_id,
+        actor_type="user",
+        actor_id=actor.user_id,
+        action="task.reassign",
+        entity_type="task",
+        entity_id=task["id"],
+        summary="Исполнитель этапа изменён.",
     )
     return {"task": assigned}

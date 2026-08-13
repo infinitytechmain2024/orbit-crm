@@ -117,6 +117,9 @@ npm run dev
   (`http://127.0.0.1:8000` локально). `RENDER_BACKEND_URL` остаётся общим
   fallback для существующих production-развёртываний.
 - `NVIDIA_API_KEY`, `NVIDIA_MODEL`, опционально `NVIDIA_BASE_URL` — NVIDIA NIM.
+- `GROQ_API_KEY`, опционально `GROQ_WHISPER_MODEL` — server-side голосовая
+  транскрипция (по умолчанию `whisper-large-v3-turbo`); ключ не должен иметь
+  префикс `VITE_`.
 - `AI_MODEL_CONFIGS_JSON` — массив моделей с capability tags (`coding`,
   `reasoning`, `fast`, `long_context`, `writing`, `vision`, `analysis`),
   `priority` и `max_retries`. Новая модель добавляется здесь или строкой в

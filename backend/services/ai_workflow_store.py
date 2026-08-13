@@ -171,6 +171,23 @@ class AIWorkflowStore:
         )
         return result or []
 
+    async def delete(
+        self,
+        table: str,
+        *,
+        organization_id: str,
+        filters: dict[str, str],
+    ) -> list[dict[str, Any]]:
+        params: dict[str, str] = {"organization_id": f"eq.{organization_id}"}
+        params.update(filters)
+        result = await self._request(
+            "DELETE",
+            table,
+            params=params,
+            prefer="return=representation",
+        )
+        return result or []
+
     async def rpc(self, name: str, payload: dict[str, Any]) -> Any:
         return await self._request("POST", f"rpc/{name}", payload=payload)
 
@@ -186,6 +203,20 @@ class AIWorkflowStore:
         )
         if not rows:
             raise HTTPException(status_code=403, detail="You are not a member of this organization")
+
+    async def membership_role(self, organization_id: str, user_id: str) -> str:
+        rows = await self.select(
+            "organization_members",
+            filters={
+                "organization_id": f"eq.{organization_id}",
+                "user_id": f"eq.{user_id}",
+            },
+            columns="role",
+            limit=1,
+        )
+        if not rows:
+            raise HTTPException(status_code=403, detail="You are not a member of this organization")
+        return str(rows[0].get("role") or "member")
 
 
 ai_workflow_store = AIWorkflowStore()

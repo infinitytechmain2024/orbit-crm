@@ -21,7 +21,7 @@ async function proxyRequest(
     process.env.RENDER_BACKEND_URL ||
     process.env.BACKEND_URL ||
     process.env.AI_WORKFLOW_BACKEND_URL ||
-    (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "http://localhost:8000");
+    (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
   if (!base) {
     return Response.json({ error: "Backend URL is not configured on the server" }, { status: 503 });
   }
@@ -75,8 +75,7 @@ async function proxyRequest(
   } catch (error) {
     clearTimeout(timer);
     const reason = error instanceof Error ? error.message : "Unknown upstream error";
-    const isTimeout =
-      error instanceof DOMException && error.name === "AbortError";
+    const isTimeout = error instanceof DOMException && error.name === "AbortError";
     console.error("[backend proxy] upstream request failed", {
       method,
       path: path ?? "",

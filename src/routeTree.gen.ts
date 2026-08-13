@@ -25,6 +25,7 @@ import { Route as ApiNvidiaChatRouteImport } from './routes/api/nvidia-chat'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks.$taskId'
 import { Route as ApiAiWorkflowSplatRouteImport } from './routes/api/ai-workflow/$'
 import { Route as ApiBackendSplatRouteImport } from './routes/api/backend/$'
+import { Route as ApiSpeechTranscribeRouteImport } from './routes/api/speech/transcribe'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -106,6 +107,11 @@ const ApiBackendSplatRoute = ApiBackendSplatRouteImport.update({
   path: '/api/backend/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSpeechTranscribeRoute = ApiSpeechTranscribeRouteImport.update({
+  id: '/api/speech/transcribe',
+  path: '/api/speech/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
+  '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
+  '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
+  '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
     | '/api/backend/$'
+    | '/api/speech/transcribe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
     | '/api/backend/$'
+    | '/api/speech/transcribe'
   id:
     | '__root__'
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
     | '/api/backend/$'
+    | '/api/speech/transcribe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   ApiNvidiaChatRoute: typeof ApiNvidiaChatRoute
   ApiAiWorkflowSplatRoute: typeof ApiAiWorkflowSplatRoute
   ApiBackendSplatRoute: typeof ApiBackendSplatRoute
+  ApiSpeechTranscribeRoute: typeof ApiSpeechTranscribeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -351,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBackendSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/speech/transcribe': {
+      id: '/api/speech/transcribe'
+      path: '/api/speech/transcribe'
+      fullPath: '/api/speech/transcribe'
+      preLoaderRoute: typeof ApiSpeechTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -380,6 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiNvidiaChatRoute: ApiNvidiaChatRoute,
   ApiAiWorkflowSplatRoute: ApiAiWorkflowSplatRoute,
   ApiBackendSplatRoute: ApiBackendSplatRoute,
+  ApiSpeechTranscribeRoute: ApiSpeechTranscribeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

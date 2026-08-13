@@ -21,6 +21,29 @@ class WorkflowActor:
     email: str | None
 
 
+ROLE_PERMISSIONS: dict[str, set[str]] = {
+    "owner": {"*"},
+    "admin": {"*"},
+    "manager": {"workflow.read", "workflow.create", "workflow.control"},
+    "accountant": {"workflow.read", "workflow.create"},
+    "member": {"workflow.read", "workflow.create"},
+}
+
+
+async def require_workflow_permission(
+    organization_id: str,
+    actor: WorkflowActor,
+    permission: str,
+) -> str:
+    """Enforce the organization role before using the service-role store."""
+
+    role = await ai_workflow_store.membership_role(organization_id, actor.user_id)
+    allowed = ROLE_PERMISSIONS.get(role, set())
+    if "*" not in allowed and permission not in allowed:
+        raise HTTPException(status_code=403, detail=f"Permission required: {permission}")
+    return role
+
+
 async def require_workflow_actor(
     authorization: str = Header(default=""),
     x_supabase_authorization: str = Header(

@@ -37,6 +37,7 @@ from backend.routers.whisper_router import router as whisper_router
 from backend.services.stt import stt_service
 from backend.services.ai_dispatcher import ai_dispatcher
 from backend.services.intent_executor import execute_intent, ExecutionResult
+from backend.services.workflow_worker import workflow_worker
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -109,8 +110,10 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Orbit CRM Backend...")
     await ensure_ollama_running()
+    await workflow_worker.start()
     yield
     # Shutdown
+    await workflow_worker.stop()
     logger.info("Shutting down Orbit CRM Backend...")
 
 # ============================
