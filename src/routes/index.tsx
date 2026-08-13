@@ -71,53 +71,17 @@ function makeId() {
   return `parsed-${Date.now()}-${++taskCounter}`;
 }
 
-const AI_ANALYSIS_PROMPT = (
-  text: string,
-) => `Ты — ИИ-ассистент для управления задачами. Проанализируй следующую текстовую заметку пользователя и разбей её на отдельные задачи.
-
-Заметка:
-"""
-${text}
-"""
-
-Инструкции:
-- Выдели каждое отдельное поручение, идею, подзадачу или действие.
-- Для каждой задачи определи: краткое название, подробное описание, приоритет (high/med/low), исполнителя (если упоминается человек), шаги выполнения (чек-лист, если уместно).
-- Если в тексте упоминаются проекты или другие задачи — укажи это в описании.
-- Если действие одно — создай одну задачу. Если несколько — создай несколько.
-- Не создавай задачу "прочитать заметку" или подобную обобщённую — только конкретные действия.
-
-Верни результат СТРОГО в формате JSON (массив объектов):
-[
-  {
-    "title": "Краткое название задачи",
-    "description": "Подробное описание",
-    "priority": "high|med|low",
-    "assignee": "Имя исполнителя или пустая строка",
-    "checklist": ["Шаг 1", "Шаг 2"]
-  }
-]
-
-Только JSON, без markdown, без комментариев.`;
-
-function parseAiResponse(raw: string): Omit<ParsedTask, "id" | "selected" | "expanded">[] {
-  let cleaned = raw.trim();
-  // Strip markdown code fences if present
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
-  }
-  const arr = JSON.parse(cleaned);
-  if (!Array.isArray(arr)) throw new Error("AI returned non-array");
-  return arr.map((t: Record<string, unknown>) => ({
-    title: String(t.title || "Без названия"),
-    description: String(t.description || ""),
-    priority: (["high", "med", "low"].includes(String(t.priority))
-      ? t.priority
-      : "low") as Priority,
-    assignee: String(t.assignee || ""),
-    checklist: Array.isArray(t.checklist) ? t.checklist.map(String) : [],
-  }));
-}
+type AiAnalyzeResponse = {
+  tasks: {
+    title: string;
+    description: string;
+    priority: "high" | "med" | "low";
+    assignee: string;
+    checklist: string[];
+  }[];
+  provider: string;
+  model: string;
+};
 
 function Dashboard() {
   const { tasks, emails, txs, addTask } = useCrm();
@@ -137,81 +101,47 @@ function Dashboard() {
     setParsed([]);
     setAiError(null);
 
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      // Fallback: simple split if no API key
-      setTimeout(() => {
-        const parts = draft
-          .split(/[\n,;.]+/)
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .slice(0, 6);
-        const tasks = (parts.length ? parts : [draft.trim()]).map((p, i) => ({
-          id: makeId(),
-          title: p.charAt(0).toUpperCase() + p.slice(1),
-          description: "",
-          priority: (i === 0 ? "high" : i === 1 ? "med" : "low") as Priority,
-          assignee: "",
-          checklist: [],
-          selected: true,
-          expanded: false,
-        }));
-        setParsed(tasks);
-        setStage("preview");
-      }, 1200);
-      return;
-    }
-
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      const response = await fetch("/api/ai/analyze-tasks", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: AI_ANALYSIS_PROMPT(draft) },
-            { role: "user", content: draft },
-          ],
-          temperature: 0.2,
-          response_format: { type: "json_object" },
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: draft }),
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`OpenAI API error: ${errText}`);
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.error || `Server error ${response.status}`);
       }
 
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      if (!content) throw new Error("Пустой ответ от ИИ");
+      const data: AiAnalyzeResponse = await response.json();
+      console.log(`[Dashboard] AI analysis via ${data.provider} (${data.model}):`, data.tasks);
 
-      const tasks = parseAiResponse(content).map((t) => ({
-        ...t,
+      const tasks: ParsedTask[] = data.tasks.map((t) => ({
         id: makeId(),
+        title: t.title,
+        description: t.description,
+        priority: t.priority,
+        assignee: t.assignee,
+        checklist: t.checklist,
         selected: true,
         expanded: false,
       }));
 
-      setParsed(
-        tasks.length > 0
-          ? tasks
-          : [
-              {
-                id: makeId(),
-                title: draft.trim().charAt(0).toUpperCase() + draft.trim().slice(1),
-                description: "",
-                priority: "low" as Priority,
-                assignee: "",
-                checklist: [],
-                selected: true,
-                expanded: false,
-              },
-            ],
-      );
+      // If AI returned nothing, fallback to treating whole text as one task
+      if (tasks.length === 0) {
+        tasks.push({
+          id: makeId(),
+          title: draft.trim().slice(0, 200),
+          description: "",
+          priority: "low",
+          assignee: "",
+          checklist: [],
+          selected: true,
+          expanded: false,
+        });
+      }
+
+      setParsed(tasks);
       setStage("preview");
     } catch (err) {
       console.error("[Dashboard] AI analysis failed:", err);

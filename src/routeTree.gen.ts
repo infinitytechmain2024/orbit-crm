@@ -24,6 +24,7 @@ import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as ApiNvidiaChatRouteImport } from './routes/api/nvidia-chat'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks.$taskId'
 import { Route as ApiAiWorkflowSplatRouteImport } from './routes/api/ai-workflow/$'
+import { Route as ApiAiAnalyzeTasksRouteImport } from './routes/api/ai/analyze-tasks'
 import { Route as ApiBackendSplatRouteImport } from './routes/api/backend/$'
 import { Route as ApiSpeechTranscribeRouteImport } from './routes/api/speech/transcribe'
 
@@ -102,6 +103,11 @@ const ApiAiWorkflowSplatRoute = ApiAiWorkflowSplatRouteImport.update({
   path: '/api/ai-workflow/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiAnalyzeTasksRoute = ApiAiAnalyzeTasksRouteImport.update({
+  id: '/api/ai/analyze-tasks',
+  path: '/api/ai/analyze-tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBackendSplatRoute = ApiBackendSplatRouteImport.update({
   id: '/api/backend/$',
   path: '/api/backend/$',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
+  '/api/ai/analyze-tasks': typeof ApiAiAnalyzeTasksRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
   '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
+  '/api/ai/analyze-tasks': typeof ApiAiAnalyzeTasksRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
   '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
+  '/api/ai/analyze-tasks': typeof ApiAiAnalyzeTasksRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
   '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
+    | '/api/ai/analyze-tasks'
     | '/api/backend/$'
     | '/api/speech/transcribe'
   fileRoutesByTo: FileRoutesByTo
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
+    | '/api/ai/analyze-tasks'
     | '/api/backend/$'
     | '/api/speech/transcribe'
   id:
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
+    | '/api/ai/analyze-tasks'
     | '/api/backend/$'
     | '/api/speech/transcribe'
   fileRoutesById: FileRoutesById
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   TasksRoute: typeof TasksRouteWithChildren
   ApiNvidiaChatRoute: typeof ApiNvidiaChatRoute
   ApiAiWorkflowSplatRoute: typeof ApiAiWorkflowSplatRoute
+  ApiAiAnalyzeTasksRoute: typeof ApiAiAnalyzeTasksRoute
   ApiBackendSplatRoute: typeof ApiBackendSplatRoute
   ApiSpeechTranscribeRoute: typeof ApiSpeechTranscribeRoute
 }
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiWorkflowSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/analyze-tasks': {
+      id: '/api/ai/analyze-tasks'
+      path: '/api/ai/analyze-tasks'
+      fullPath: '/api/ai/analyze-tasks'
+      preLoaderRoute: typeof ApiAiAnalyzeTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/backend/$': {
       id: '/api/backend/$'
       path: '/api/backend/$'
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   TasksRoute: TasksRouteWithChildren,
   ApiNvidiaChatRoute: ApiNvidiaChatRoute,
   ApiAiWorkflowSplatRoute: ApiAiWorkflowSplatRoute,
+  ApiAiAnalyzeTasksRoute: ApiAiAnalyzeTasksRoute,
   ApiBackendSplatRoute: ApiBackendSplatRoute,
   ApiSpeechTranscribeRoute: ApiSpeechTranscribeRoute,
 }
