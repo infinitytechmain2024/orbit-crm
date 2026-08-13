@@ -3,7 +3,6 @@ import {
   Bot,
   BriefcaseBusiness,
   Bug,
-  Check,
   Code2,
   Database,
   Mail,
@@ -16,7 +15,6 @@ import {
   UserRound,
   UserRoundPlus,
   UsersRound,
-  X,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -40,6 +38,7 @@ const ROLE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   "Content Agent": Mail,
   "Design Agent": Sparkles,
   "Business Analyst": BriefcaseBusiness,
+  CEO: BriefcaseBusiness,
   Frontend: Code2,
   Backend: Database,
   "QA / DevOps": ShieldCheck,
@@ -107,15 +106,18 @@ export function TeamMap({
 }) {
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const agentById = new Map(agents.map((agent) => [agent.id, agent]));
-  const taskById = new Map(tasks.map((task) => [task.id, task]));
   const nextApproval = approvals[0];
-  const approvalTask = nextApproval ? taskById.get(nextApproval.task_id) : undefined;
   const initiator = nextApproval?.requested_by_agent_id
     ? agentById.get(nextApproval.requested_by_agent_id)
     : undefined;
   const activeTransfer = Date.now() - lastRealtimeAt < 6000;
   const commanderDepartments = ["Engineering", "Research", "Operations", "Business"];
-  const legacyDepartments = ["Developer", "Marketer", "HR"];
+  const legacyDepartments = [
+    "CEO",
+    "Chief of Development Department",
+    "Chief Marketing Operation",
+    "HR",
+  ];
   const departmentOrder = departments.some((item) => commanderDepartments.includes(item.name))
     ? commanderDepartments
     : legacyDepartments;
@@ -125,86 +127,13 @@ export function TeamMap({
   const initiatorDepartmentIndex = orderedDepartments.findIndex(
     (department) => department.id === initiator?.department_id,
   );
+  const gridColumns = 4;
   const nodeX = orderedDepartments.map((_, index) =>
-    Math.round(((index + 0.5) / Math.max(1, orderedDepartments.length)) * 1000),
+    Math.round(((index + 0.5) / gridColumns) * 1000),
   );
 
   return (
     <section aria-label="Карта AI-команды" className="relative">
-      <div className="relative z-10 mx-auto max-w-xl rounded-2xl border border-[#245064]/70 bg-[#0b1a26]/90 p-3 shadow-[0_20px_55px_-34px_rgba(24,210,199,.8)] backdrop-blur-xl">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary/35 bg-primary/8 text-primary shadow-[0_0_24px_-10px_rgba(35,211,202,.8)]">
-            <UserRound className="size-4.5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline gap-x-1.5">
-              <h2 className="text-sm font-semibold">Orbit Commander</h2>
-              <span className="text-xs text-muted-foreground">
-                — оркестрация и контроль качества
-              </span>
-            </div>
-            <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.8)]" />
-              {approvalTask ? "Ожидает бизнес-решение пользователя" : "Управляет выполнением и QA"}
-            </p>
-          </div>
-        </div>
-
-        {approvalTask ? (
-          <div className="mt-2 rounded-xl border border-amber-400/30 bg-amber-400/[0.045] px-3 py-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-300">
-                  <Sparkles className="size-3.5" /> Требуется утверждение
-                </p>
-                <p className="mt-1 truncate text-sm font-medium">{approvalTask.title}</p>
-                {nextApproval.action && (
-                  <p className="mt-1 text-[10px] font-medium text-amber-100">
-                    Действие: {nextApproval.action} · риск {nextApproval.risk ?? "high"}
-                  </p>
-                )}
-                {nextApproval.reason && (
-                  <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">
-                    {nextApproval.reason}
-                  </p>
-                )}
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  {initiator?.role ?? "AI-агент"} ·{" "}
-                  {approvalTask.project_id
-                    ? projectById.get(approvalTask.project_id)?.name
-                    : "Без проекта"}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => onApprove(approvalTask)}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#23d7c7] to-[#24bff0] px-3 text-[11px] font-semibold text-[#06222a] transition hover:brightness-110"
-                >
-                  <Check className="size-3.5" /> Утвердить
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onReject(approvalTask)}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-400/50 px-3 text-[11px] font-medium text-red-300 transition hover:bg-red-400/10"
-                >
-                  <X className="size-3.5" /> Отклонить
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-3 flex items-center justify-between rounded-xl border border-border/80 bg-white/[0.02] px-3 py-2.5">
-            <span className="text-[11px] text-muted-foreground">
-              Критических решений от пользователя не требуется
-            </span>
-            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300">
-              Автономная работа
-            </span>
-          </div>
-        )}
-      </div>
-
       <div className="relative mx-auto hidden h-10 max-w-5xl lg:block" aria-hidden="true">
         <svg
           viewBox="0 0 1000 40"
@@ -265,7 +194,7 @@ export function TeamMap({
       </div>
       <div className="mx-auto h-6 w-px bg-gradient-to-b from-primary/70 to-primary/10 lg:hidden" />
 
-      <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {orderedDepartments.map((department) => {
           const departmentTasks = tasks.filter((task) => task.department_id === department.id);
           const departmentAgents = agents.filter(
@@ -291,12 +220,18 @@ export function TeamMap({
               >
                 <div className="flex items-start gap-2.5">
                   <span className="grid size-9 place-items-center rounded-full border border-primary/25 bg-primary/8 text-primary">
-                    {department.name === "Developer" || department.name === "Engineering" ? (
+                    {["Developer", "Engineering", "Chief of Development Department"].includes(
+                      department.name,
+                    ) ? (
                       <Code2 className="size-4" />
-                    ) : department.name === "Marketer" || department.name === "Business" ? (
+                    ) : ["Marketer", "Business", "Chief Marketing Operation", "CMO"].includes(
+                        department.name,
+                      ) ? (
                       <Megaphone className="size-4" />
                     ) : department.name === "Research" ? (
                       <Search className="size-4" />
+                    ) : department.name === "CEO" ? (
+                      <BriefcaseBusiness className="size-4" />
                     ) : (
                       <UsersRound className="size-4" />
                     )}
@@ -338,7 +273,9 @@ export function TeamMap({
               <div
                 className={cn(
                   "grid gap-1.5",
-                  department.name === "Marketer" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2",
+                  department.name === "Marketer" || department.name === "Chief Marketing Operation"
+                    ? "grid-cols-2 sm:grid-cols-3"
+                    : "grid-cols-2",
                 )}
               >
                 {departmentAgents.map((agent) => {

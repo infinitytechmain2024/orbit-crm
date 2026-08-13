@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from backend.auth import WorkflowActor, require_workflow_actor, require_workflow_permission
 from backend.config import settings
+from backend.services.ai_providers import redact_error
 from backend.services.ai_workflow_store import ai_workflow_store
 from backend.services.orbit_commander import orbit_commander
 from backend.services.stt import stt_service
@@ -119,6 +120,25 @@ async def _get_task(organization_id: str, task_id: str) -> dict[str, Any]:
     )
 
 
+async def _gather_safe(coros: list) -> list:
+    """Run the overview queries and never let one missing table 503 the rest.
+
+    The AI Workflow surface is only fully provisioned once the organization
+    multi-tenant foundation and the workflow migrations are applied. Until then
+    individual tables may be absent; we return an empty list for those so the
+    dashboard still renders instead of throwing a gateway 503.
+    """
+    results = await asyncio.gather(*coros, return_exceptions=True)
+    cleaned: list = []
+    for item in results:
+        if isinstance(item, Exception):
+            logger.warning("ai-workflow overview section failed: %s", redact_error(item))
+            cleaned.append([])
+        else:
+            cleaned.append(item or [])
+    return cleaned
+
+
 async def _ensure_manual_approval(task: dict[str, Any]) -> None:
     pending = await ai_workflow_store.select(
         "approval_requests",
@@ -161,7 +181,7 @@ async def get_overview(
         dependencies,
         agent_runs,
         notifications,
-    ) = await asyncio.gather(
+    ) = await _gather_safe([
         ai_workflow_store.select("ai_departments", organization_id=organization_id, order="name.asc"),
         ai_workflow_store.select("ai_agents", organization_id=organization_id, order="created_at.asc"),
         ai_workflow_store.select(
@@ -228,7 +248,7 @@ async def get_overview(
             order="created_at.desc",
             limit=50,
         ),
-    )
+    ])
     task_ids = {task["id"] for task in tasks}
     if project_id:
         approvals = [item for item in approvals if item.get("task_id") in task_ids]
@@ -564,21 +584,29 @@ async def get_workflow_graph_context(
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     await _authorize(organization_id, actor)
-    nodes, edges = await asyncio.gather(
-        ai_workflow_store.select(
-            "knowledge_nodes",
-            organization_id=organization_id,
-            order="created_at.desc",
-            limit=500,
-        ),
-        ai_workflow_store.select(
-            "knowledge_edges",
-            organization_id=organization_id,
-            order="created_at.desc",
-            limit=750,
-        ),
-    )
-    return {"nodes": nodes, "edges": edges}
+    # The durable knowledge graph lives in `graph_nodes` / `graph_relations`.
+    # (`knowledge_nodes` / `knowledge_edges` were drop-in views removed by the
+    # v2 knowledge-graph migration.) Degrade gracefully if the tables are not
+    # yet provisioned so the UI never receives a hard gateway 503.
+    try:
+        nodes, edges = await asyncio.gather(
+            ai_workflow_store.select(
+                "graph_nodes",
+                organization_id=organization_id,
+                order="created_at.desc",
+                limit=500,
+            ),
+            ai_workflow_store.select(
+                "graph_relations",
+                organization_id=organization_id,
+                order="created_at.desc",
+                limit=750,
+            ),
+        )
+    except Exception:
+        logger.exception("graph-context unavailable; returning empty graph")
+        nodes, edges = [], []
+    return {"nodes": nodes or [], "edges": edges or []}
 
 
 async def _control_task(

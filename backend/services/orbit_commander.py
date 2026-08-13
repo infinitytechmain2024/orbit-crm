@@ -144,23 +144,97 @@ def utc_now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def json_object(value: str) -> dict[str, Any] | None:
+def _coerce_text(content: Any) -> str:
+    """Normalize a model message payload into plain text.
+
+    Some OpenAI-compatible providers (e.g. meta/llama-3.3-70b-instruct) return
+    the content as a list of content parts or a JSON array instead of a single
+    string. We normalize every shape to text so downstream parsing never crashes.
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(str(item.get("text") or item.get("content") or ""))
+        return "\n".join(part for part in parts if part)
+    if isinstance(content, (dict, list)):
+        try:
+            return json.dumps(content, ensure_ascii=False)
+        except (TypeError, ValueError):
+            return str(content)
+    return str(content)
+
+
+def _plan_score(obj: dict[str, Any]) -> int:
+    """Heuristic for how "plan/result-like" a dict is."""
+    keys = {
+        "goal",
+        "steps",
+        "summary",
+        "result",
+        "passed",
+        "artifact_name",
+        "content",
+        "checks",
+        "issues",
+    }
+    return sum(1 for key in keys if key in obj)
+
+
+def _extract_json(value: str) -> Any | None:
     cleaned = value.strip()
     if cleaned.startswith("```"):
-        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"\s*```$", "", cleaned)
+        cleaned = re.sub(r"^```[a-zA-Z]*\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned).strip()
     try:
-        parsed = json.loads(cleaned)
-        return parsed if isinstance(parsed, dict) else None
+        return json.loads(cleaned)
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
-        if not match:
-            return None
+        pass
+    # ReAct-style answers embed the payload after Thought/Action/Observation
+    # prose. Collect every {...} span and keep the most plan-like object.
+    spans = re.findall(r"\{[^{}]*\}", cleaned, flags=re.DOTALL)
+    greedy = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+    if greedy:
+        spans.append(greedy.group(0))
+    best: dict[str, Any] | None = None
+    for span in spans:
         try:
-            parsed = json.loads(match.group(0))
-            return parsed if isinstance(parsed, dict) else None
+            parsed = json.loads(span)
         except json.JSONDecodeError:
-            return None
+            continue
+        if isinstance(parsed, dict):
+            if best is None or _plan_score(parsed) > _plan_score(best):
+                best = parsed
+    return best
+
+
+def json_object(value: str) -> dict[str, Any] | None:
+    """Parse a model response into a dict, tolerating arrays and ReAct text.
+
+    Returns ``None`` (never raises) when no usable object can be extracted, so
+    the caller falls back to the deterministic plan/result instead of 500-ing.
+    """
+    if not value:
+        return None
+    text = _coerce_text(value)
+    parsed = _extract_json(text)
+    if isinstance(parsed, dict):
+        return parsed
+    if isinstance(parsed, list):
+        # The model answered with a JSON array — surface the first usable object.
+        for item in parsed:
+            if isinstance(item, dict) and _plan_score(item) > 0:
+                return item
+        for item in parsed:
+            if isinstance(item, dict):
+                return item
+    return None
 
 
 def critical_approval(text: str) -> dict[str, str] | None:
@@ -564,7 +638,7 @@ class OrbitCommander:
                         temperature=0.15,
                         max_tokens=4096,
                     )
-                    if result.content.strip():
+                    if _coerce_text(result.content).strip():
                         return result
                     raise RuntimeError("Empty model response")
                 except Exception as error:

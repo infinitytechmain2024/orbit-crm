@@ -8,6 +8,7 @@ to database configuration, task events, or exception messages.
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -22,6 +23,33 @@ def redact_error(value: Any) -> str:
     message = re.sub(r"(?i)(bearer|api[_ -]?key|token|secret)\s*[:=]?\s*\S+", r"\1 [redacted]", message)
     message = re.sub(r"\b(?:sk|gsk|nvapi)-[A-Za-z0-9_-]+", "[redacted]", message)
     return message[:500]
+
+
+def _coerce_text(content: Any) -> str:
+    """Normalize a chat completion message payload into plain text.
+
+    Some OpenAI-compatible endpoints (e.g. meta/llama-3.3-70b-instruct) return
+    the message content as a list of content parts or a JSON array rather than
+    a single string. We normalize every shape so downstream parsing is stable.
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(str(item.get("text") or item.get("content") or ""))
+        return "\n".join(part for part in parts if part)
+    if isinstance(content, (dict, list)):
+        try:
+            return json.dumps(content, ensure_ascii=False)
+        except (TypeError, ValueError):
+            return str(content)
+    return str(content)
 
 
 @dataclass(frozen=True)
@@ -76,8 +104,8 @@ class OpenAICompatibleProvider:
             usage = getattr(completion, "usage", None)
             return ProviderResult(
                 provider=self.name,
-                model=model,
-                content=str(getattr(message, "content", "") or ""),
+                model=model_name,
+                content=_coerce_text(getattr(message, "content", "") or ""),
                 prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
                 completion_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
             )

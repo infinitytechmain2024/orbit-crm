@@ -27,9 +27,17 @@ const projects = [
 
 const departments = [
   {
+    id: "20000000-0000-4000-8000-000000000004",
+    organization_id: ORG,
+    name: "CEO",
+    color: "#f59e0b",
+    icon: "user-round",
+    created_at: now,
+  },
+  {
     id: "20000000-0000-4000-8000-000000000001",
     organization_id: ORG,
-    name: "Developer",
+    name: "Chief of Development Department",
     color: "#25c8f4",
     icon: "code-2",
     created_at: now,
@@ -37,7 +45,7 @@ const departments = [
   {
     id: "20000000-0000-4000-8000-000000000002",
     organization_id: ORG,
-    name: "Marketer",
+    name: "Chief Marketing Operation",
     color: "#20d4c6",
     icon: "megaphone",
     created_at: now,
@@ -53,22 +61,22 @@ const departments = [
 ];
 
 const agentSeed = [
-  [null, "CEO", "Chief Executive Officer", ["reasoning", "long_context"]],
-  [0, "Frontend", "Интерфейсы и адаптивность", ["coding", "reasoning", "vision"]],
-  [0, "Backend", "API, база данных и авторизация", ["coding", "reasoning"]],
-  [0, "QA / DevOps", "Тесты, CI/CD и мониторинг", ["coding", "analysis", "fast"]],
-  [0, "AI Integrations", "Модели, промпты и пайплайны", ["coding", "reasoning"]],
-  [1, "CMO", "Стратегия и планы роста", ["writing", "analysis", "reasoning"]],
-  [1, "Sales Rep", "Лиды и коммерческие предложения", ["writing", "fast"]],
-  [1, "SEO", "Семантика и контент-планы", ["writing", "analysis", "reasoning"]],
-  [1, "SMM", "Социальные сети и публикации", ["writing", "fast"]],
-  [1, "Рассылка", "Email-цепочки и сегментация", ["writing", "analysis"]],
-  [1, "Парсинг", "Сбор структурированных данных", ["analysis", "fast", "long_context"]],
-  [1, "Data Analyst", "Аналитика, отчёты и KPI", ["analysis", "reasoning"]],
-  [2, "Рекрутинг", "Вакансии и отбор кандидатов", ["writing", "analysis"]],
-  [2, "Онбординг", "Адаптация новых сотрудников", ["writing", "reasoning"]],
-  [2, "People Ops", "Командные процессы", ["analysis", "reasoning"]],
-  [2, "COO", "Операционная координация", ["analysis", "reasoning"]],
+  [0, "CEO", "Chief Executive Officer", ["reasoning", "long_context"]],
+  [1, "Frontend", "Интерфейсы и адаптивность", ["coding", "reasoning", "vision"]],
+  [1, "Backend", "API, база данных и авторизация", ["coding", "reasoning"]],
+  [1, "QA / DevOps", "Тесты, CI/CD и мониторинг", ["coding", "analysis", "fast"]],
+  [1, "AI Integrations", "Модели, промпты и пайплайны", ["coding", "reasoning"]],
+  [2, "CMO", "Стратегия и планы роста", ["writing", "analysis", "reasoning"]],
+  [2, "Sales Rep", "Лиды и коммерческие предложения", ["writing", "fast"]],
+  [2, "SEO", "Семантика и контент-планы", ["writing", "analysis", "reasoning"]],
+  [2, "SMM", "Социальные сети и публикации", ["writing", "fast"]],
+  [2, "Рассылка", "Email-цепочки и сегментация", ["writing", "analysis"]],
+  [2, "Парсинг", "Сбор структурированных данных", ["analysis", "fast", "long_context"]],
+  [2, "Data Analyst", "Аналитика, отчёты и KPI", ["analysis", "reasoning"]],
+  [3, "Рекрутинг", "Вакансии и отбор кандидатов", ["writing", "analysis"]],
+  [3, "Онбординг", "Адаптация новых сотрудников", ["writing", "reasoning"]],
+  [3, "People Ops", "Командные процессы", ["analysis", "reasoning"]],
+  [3, "COO", "Операционная координация", ["analysis", "reasoning"]],
 ] as const;
 
 const agents = agentSeed.map(([departmentIndex, role, description, capabilities], index) => ({
