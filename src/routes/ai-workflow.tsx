@@ -413,6 +413,7 @@ function AIWorkflowPage() {
                 projects={overview.projects}
                 approvals={overview.approval_requests}
                 selectedDepartmentId={departmentId}
+                selectedProjectId={projectId}
                 lastRealtimeAt={workflow.lastRealtimeAt}
                 onDepartmentClick={selectDepartment}
                 onAgentClick={setSelectedAgent}
