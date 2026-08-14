@@ -33,6 +33,7 @@ from backend.routers import agent_router
 from backend.routers.ai_workflow import router as ai_workflow_api_router
 from backend.routers.ai_router import router as ai_router
 from backend.routers.ceo import router as ceo_router
+from backend.routers.websocket import router as websocket_router
 from backend.routers.company_router import router as company_router
 from backend.routers.internal import router as internal_router
 from backend.routers.whisper_router import router as whisper_router
@@ -147,6 +148,7 @@ app.include_router(whisper_router)
 app.include_router(ai_workflow_api_router)
 app.include_router(ceo_router)
 app.include_router(ai_router)
+app.include_router(websocket_router)
 
 
 # ============================
