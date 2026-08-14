@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Crown, Loader2, RefreshCw, Shield, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Crown, Loader2, RefreshCw, Shield, Wifi, WifiOff } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AppShell } from "@/components/crm/AppShell";
@@ -39,6 +39,9 @@ import { ApprovalGateway } from "@/features/ai-ceo/components/ApprovalGateway";
 import { CeoDashboard } from "@/features/ai-ceo/components/CeoDashboard";
 import { dispatchTask, assessRisk, generateChangePackage } from "@/features/ai-ceo/dispatcher";
 import { createApprovalRequest } from "@/features/ai-ceo/api";
+import { useBackendStatus } from "@/features/ai-workflow/use-backend-status";
+import { useWorkflowProgress } from "@/features/ai-workflow/use-workflow-progress";
+import { useCEOStats } from "@/features/ai-workflow/use-ceo-stats";
 
 export const Route = createFileRoute("/ai-workflow")({
   head: () => ({
@@ -95,6 +98,7 @@ function AIWorkflowPage() {
   const [mutationMessage, setMutationMessage] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isMutating, setMutating] = useState(false);
+  const [cancelConfirmTask, setCancelConfirmTask] = useState<WorkflowTask | null>(null);
   const preview =
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
@@ -104,6 +108,11 @@ function AIWorkflowPage() {
   const workflow = useAiWorkflow(accessToken, organizationId, projectId, preview);
   const demoMode = preview || workflow.isDemoFallback;
   const { overview } = workflow;
+  
+  // New hooks for live backend status and progress
+  const backendStatus = useBackendStatus();
+  const workflowProgress = useWorkflowProgress(overview.tasks);
+  const ceoStats = useCEOStats(overview.tasks);
 
   const initialProjectId = projectId === "all" ? (overview.projects[0]?.id ?? "") : projectId;
   const projectById = useMemo(
@@ -424,28 +433,48 @@ function AIWorkflowPage() {
       mainClassName="ai-workflow-page !px-3 !py-4 sm:!px-5 sm:!py-5"
     >
       <div className="mx-auto max-w-[1500px]">
-        {(!overview.provider.nvidia_configured || workflow.isDemoFallback) &&
+        {/* Backend Status Toast - only show when offline */}
+        {backendStatus.status === "offline" && !workflow.isLoading && (
+          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-lg max-w-sm">
+              <div className="flex items-center gap-3">
+                <WifiOff className="h-5 w-5 text-amber-500" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Backend недоступен</p>
+                  <p className="text-xs text-muted-foreground">
+                    Работаем в демо-режиме
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void backendStatus.retry()}
+                  className="rounded-full border border-border px-2 py-1 transition hover:bg-muted"
+                  aria-label="Повторить подключение"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Demo Mode Indicator - compact badge */}
+        {backendStatus.isDemoMode && (
+          <div className="mb-3 flex items-center justify-end gap-2">
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] text-primary flex items-center gap-1">
+              <Wifi className="h-3 w-3" />
+              Demo mode
+            </span>
+          </div>
+        )}
+
+        {/* NVIDIA not configured warning - only show when backend is online */}
+        {backendStatus.status === "online" &&
+          !overview.provider.nvidia_configured &&
           !workflow.isLoading && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-100">
-              <span className="flex items-center gap-2">
-                <Sparkles className="size-3.5" />
-                {workflow.isDemoFallback
-                  ? "Backend пока недоступен — AI Workflow автоматически переключён на рабочий demo-режим."
-                  : "NVIDIA не подключена в локальном backend: маршрутизация и workflow работают, выполнение создаёт demo-результаты."}
-              </span>
-              <span className="flex items-center gap-2">
-                {workflow.isDemoFallback && (
-                  <button
-                    type="button"
-                    onClick={() => void workflow.refresh()}
-                    className="rounded-full border border-amber-400/25 px-2 py-1 transition hover:bg-amber-400/10"
-                    aria-label="Повторить подключение к AI Workflow backend"
-                  >
-                    Проверить backend
-                  </button>
-                )}
-                <span className="rounded-full border border-amber-400/20 px-2 py-1">Demo mode</span>
-              </span>
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-100">
+              <AlertTriangle className="size-3.5" />
+              NVIDIA не подключена: маршрутизация работает, выполнение создаёт demo-результаты.
             </div>
           )}
 
