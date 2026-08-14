@@ -307,10 +307,17 @@ function normalizeSortOrder(value: number): number {
 }
 
 function normalizeLabelNames(values: Array<string | null | undefined>): string[] {
-  const names = values
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
-  return [...new Set(names)];
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const value of values) {
+    const name = value?.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
+  return names;
 }
 
 function sanitizeStorageName(fileName: string): string {
