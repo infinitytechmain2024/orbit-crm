@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Crown, Loader2, RefreshCw, Shield, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AppShell } from "@/components/crm/AppShell";
@@ -35,6 +35,10 @@ import { useAiWorkflow } from "@/features/ai-workflow/use-ai-workflow";
 import { WorkflowToolbar } from "@/features/ai-workflow/WorkflowToolbar";
 import { WorkflowPlanCard } from "@/features/ai-workflow/WorkflowPlanCard";
 import { DEMO_ORGANIZATION_ID, DEMO_USER_ID } from "@/features/ai-workflow/demo-data";
+import { ApprovalGateway } from "@/features/ai-ceo/components/ApprovalGateway";
+import { CeoDashboard } from "@/features/ai-ceo/components/CeoDashboard";
+import { dispatchTask, assessRisk, generateChangePackage } from "@/features/ai-ceo/dispatcher";
+import { createApprovalRequest } from "@/features/ai-ceo/api";
 
 export const Route = createFileRoute("/ai-workflow")({
   head: () => ({
@@ -48,7 +52,13 @@ export const Route = createFileRoute("/ai-workflow")({
 
 function previewRoleForTask(input: Omit<NewWorkflowTask, "organization_id">) {
   const text = `${input.title} ${input.description}`.toLocaleLowerCase();
-  const rules: Array<[RegExp, string]> = [
+  const actionRules: Array<[RegExp, "run" | "change"]> = [
+    [/(запуск|выполнение|старт|execute|run|обработка|стартовать)/i, "run"],
+    [/(создание|создай|создать|новый|добавление|добавь|обновление|изменение|апдейт)/i, "change"],
+  ];
+  const action = actionRules.find(([pattern]) => pattern.test(text))?.[1] ?? "change";
+
+  const roleRules: Array<[RegExp, string]> = [
     [/(ai |ии |модел|nvidia|prompt|промпт|llm|агент)/, "AI Integrations"],
     [/(тест|qa|ci\/cd|деплой|deploy|ошиб|devops)/, "QA / DevOps"],
     [/(api|backend|бэкенд|сервер|database|баз|sql|auth|rls)/, "Backend"],
@@ -65,7 +75,9 @@ function previewRoleForTask(input: Omit<NewWorkflowTask, "organization_id">) {
     [/(стратег|позиционир|рост|бренд)/, "CMO"],
     [/(операцион|координац|регламент|процесс команды)/, "COO"],
   ];
-  return rules.find(([pattern]) => pattern.test(text))?.[1] ?? "COO";
+  const role = roleRules.find(([pattern]) => pattern.test(text))?.[1] ?? "COO";
+
+  return { role, action };
 }
 
 function AIWorkflowPage() {
@@ -142,8 +154,21 @@ function AIWorkflowPage() {
 
   async function handleCreate(input: Omit<NewWorkflowTask, "organization_id">) {
     if (!organizationId) throw new Error("Сессия ещё загружается");
+    const { role, action } = previewRoleForTask(input);
+    
+    // CEO Dispatcher: Classify task and assess risk
+    const fullText = `${input.title} ${input.description}`;
+    const dispatchResult = dispatchTask(fullText, {
+      currentProject: input.project_id ?? undefined,
+      userId: session?.user?.id ?? undefined,
+      allowDestructive: false,
+    });
+    
+    const riskLevel = assessRisk(fullText);
+    const requiresApproval = riskLevel === "critical" || riskLevel === "high";
+    
     if (demoMode) {
-      const agent = overview.agents.find((item) => item.role === previewRoleForTask(input));
+      const agent = overview.agents.find((item) => item.role === role);
       const task: WorkflowTask = {
         id: crypto.randomUUID(),
         organization_id: organizationId,
@@ -153,18 +178,48 @@ function AIWorkflowPage() {
         parent_task_id: null,
         title: input.title,
         description: input.description,
-        status: "queued",
+        status: requiresApproval ? "approval_required" : "queued",
         priority: input.priority,
         due_at: input.due_at,
-        input_data: { preview: true, auto_assign: input.auto_assign },
+        input_data: { 
+          preview: true, 
+          auto_assign: input.auto_assign, 
+          action_type: action,
+          risk_level: riskLevel,
+          requires_approval: requiresApproval,
+        },
         result: null,
         current_model: "nvidia/capability-router",
         created_by: DEMO_USER_ID,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        action_type: action,
+        risk_level: riskLevel,
+        approval_required: requiresApproval,
       };
-      workflow.prependTask(task, `AI Router назначил задачу агенту ${agent?.role ?? "COO"}.`);
-      notify("Demo-задача создана и назначена AI Router");
+      
+      // If approval required, create approval request
+      if (requiresApproval) {
+        const changePackage = generateChangePackage({
+          title: input.title,
+          description: input.description,
+          actionType: action,
+          projectGuess: dispatchResult.taskId ? "Orbit CRM" : null,
+        }, riskLevel);
+        
+        await createApprovalRequest({
+          taskId: task.id,
+          action: action === "run" ? "Execute operational task" : "Create/modify code",
+          reason: `Risk level: ${riskLevel}. Task requires CEO approval before execution.`,
+          riskLevel,
+          changeSummary: changePackage,
+        });
+        
+        notify(`Задача создана и отправлена на CEO-аппрув (риск: ${riskLevel})`);
+      } else {
+        workflow.prependTask(task, `AI Router назначил задачу агенту ${agent?.role ?? "COO"}.`);
+        notify("Demo-задача создана и назначена AI Router");
+      }
       return;
     }
     if (!accessToken) throw new Error("Сессия ещё загружается");
@@ -173,12 +228,33 @@ function AIWorkflowPage() {
         organization_id: organizationId,
         ...input,
       });
+      
+      // If approval required, create approval request
+      if (requiresApproval) {
+        const changePackage = generateChangePackage({
+          title: input.title,
+          description: input.description,
+          actionType: action,
+          projectGuess: dispatchResult.taskId ? "Orbit CRM" : null,
+        }, riskLevel);
+        
+        await createApprovalRequest({
+          taskId: response.task.id,
+          action: action === "run" ? "Execute operational task" : "Create/modify code",
+          reason: `Risk level: ${riskLevel}. Task requires CEO approval before execution.`,
+          riskLevel,
+          changeSummary: changePackage,
+        });
+      }
+      
       workflow.prependTask(
         response.task,
-        "AI Router назначил исполнителя и поставил задачу в очередь.",
+        requiresApproval 
+          ? `Задача создана и отправлена на CEO-аппрув (риск: ${riskLevel})`
+          : "AI Router назначил исполнителя и поставил задачу в очередь.",
       );
       await workflow.refresh(true);
-    }, "Задача создана и передана AI Router");
+    }, requiresApproval ? "Задача создана и отправлена на CEO-аппрув" : "Задача создана и передана AI Router");
   }
 
   async function handlePatch(task: WorkflowTask, patch: Record<string, unknown>, success: string) {
@@ -446,17 +522,37 @@ function AIWorkflowPage() {
                 onControl={(task, action) => void handleControl(task, action)}
               />
             </div>
-            <RightRail
-              events={overview.events}
-              artifacts={overview.artifacts}
-              tasks={overview.tasks}
-              agents={overview.agents}
-              projects={overview.projects}
-              approvals={overview.approval_requests}
-              selectedProjectId={projectId}
-              realtimeConnected={workflow.isRealtimeConnected || preview}
-              onTaskOpen={setSelectedTask}
-            />
+            <div className="space-y-3">
+              <RightRail
+                events={overview.events}
+                artifacts={overview.artifacts}
+                tasks={overview.tasks}
+                agents={overview.agents}
+                projects={overview.projects}
+                approvals={overview.approval_requests}
+                selectedProjectId={projectId}
+                realtimeConnected={workflow.isRealtimeConnected || preview}
+                onTaskOpen={setSelectedTask}
+              />
+              
+              {/* CEO Dashboard */}
+              <div className="rounded-xl border border-border/50 bg-card/50 p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown className="size-4 text-primary" />
+                  <h3 className="text-xs font-medium">CEO Dashboard</h3>
+                </div>
+                <CeoDashboard onRefresh={() => void workflow.refresh(true)} />
+              </div>
+              
+              {/* Approval Gateway */}
+              <div className="rounded-xl border border-border/50 bg-card/50 p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="size-4 text-amber-500" />
+                  <h3 className="text-xs font-medium">Approval Gateway</h3>
+                </div>
+                <ApprovalGateway onRefresh={() => void workflow.refresh(true)} />
+              </div>
+            </div>
           </div>
         )}
       </div>

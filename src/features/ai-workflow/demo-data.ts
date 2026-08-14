@@ -1,4 +1,4 @@
-import type { WorkflowOverview, WorkflowTaskStatus } from "./types";
+import type { WorkflowOverview, WorkflowTask, WorkflowTaskStatus } from "./types";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const USER = "00000000-0000-4000-8000-000000000002";
@@ -126,6 +126,7 @@ const tasks = taskSeed.map(([title, projectIndex, agentIndex, status, priority, 
   status,
   priority,
   due_at: dueAt,
+  action_type: "change",
   input_data: { preview: true },
   result:
     status === "done"
@@ -194,7 +195,7 @@ export function createDemoOverview(projectId = "all"): WorkflowOverview {
   return {
     departments,
     agents,
-    tasks: selectedTasks,
+    tasks: selectedTasks as WorkflowTask[],
     events: timedEvents.filter((event) => selectedIds.has(event.task_id)),
     artifacts: timedArtifacts.filter((artifact) => selectedIds.has(artifact.task_id)),
     approval_requests: selectedIds.has(approvalTask.id)

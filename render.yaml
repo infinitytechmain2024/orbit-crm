@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: aura-crm-backend
+    name: orbit-crm-backend
     runtime: python
     region: ohio
     plan: free
@@ -28,3 +28,7 @@ services:
         value: int8
       - key: WHISPER_LANGUAGE
         value: ru
+      - key: CEO_APPROVAL_REQUIRED_RISK_LEVELS
+        value: "high,critical"
+      - key: CEO_DEPLOYMENT_APPROVAL_REQUIRED
+        value: "true"

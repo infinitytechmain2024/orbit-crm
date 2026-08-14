@@ -78,6 +78,7 @@ export type WorkflowTask = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  action_type: "run" | "change" | null;
 };
 
 export type WorkflowEvent = {

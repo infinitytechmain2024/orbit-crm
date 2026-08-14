@@ -60,6 +60,20 @@ function statusClass(status: WorkflowTaskStatus) {
   return "text-sky-300";
 }
 
+function actionTypeBadge(action: "run" | "change" | null) {
+  if (action === "run") return (
+    <span className="rounded-full border px-2 py-1 text-[8px] bg-primary/20 text-primary">
+      Run
+    </span>
+  );
+  if (action === "change") return (
+    <span className="rounded-full border px-2 py-1 text-[8px] bg-amber/20 text-amber">
+      Change
+    </span>
+  );
+  return null;
+}
+
 function dueLabel(value: string | null) {
   if (!value) return "Без срока";
   const date = new Date(value);
@@ -249,6 +263,7 @@ export function TasksTable({
                   <th className="px-2 py-2.5">Отдел</th>
                   <th className="px-2 py-2.5">Агент</th>
                   <th className="px-2 py-2.5">Статус</th>
+                  <th className="px-2 py-2.5">Тип</th>
                   <th className="px-2 py-2.5">Приоритет</th>
                   <th className="px-2 py-2.5">Срок</th>
                   <th className="w-12 px-3 py-2.5" />
@@ -336,6 +351,9 @@ export function TasksTable({
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td className="px-2 py-2.5 text-[10px] text-muted-foreground">
+                      {actionTypeBadge(task.action_type)}
                     </td>
                     <td className="px-2 py-2.5 text-[10px] text-muted-foreground">
                       {PRIORITY_LABEL[task.priority]}
