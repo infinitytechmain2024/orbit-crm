@@ -18,6 +18,7 @@ import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as GraphRouteImport } from './routes/graph'
 import { Route as LeadSearchRouteImport } from './routes/lead-search'
 import { Route as MailRouteImport } from './routes/mail'
+import { Route as OpenclawTasksRouteImport } from './routes/openclaw-tasks'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as TasksRouteImport } from './routes/tasks'
@@ -71,6 +72,11 @@ const LeadSearchRoute = LeadSearchRouteImport.update({
 const MailRoute = MailRouteImport.update({
   id: '/mail',
   path: '/mail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpenclawTasksRoute = OpenclawTasksRouteImport.update({
+  id: '/openclaw-tasks',
+  path: '/openclaw-tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsRoute = ProjectsRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
+  '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRouteWithChildren
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
+  '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRouteWithChildren
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
+  '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
   '/tasks': typeof TasksRouteWithChildren
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/lead-search'
     | '/mail'
+    | '/openclaw-tasks'
     | '/projects'
     | '/requests'
     | '/tasks'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/lead-search'
     | '/mail'
+    | '/openclaw-tasks'
     | '/projects'
     | '/requests'
     | '/tasks'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/lead-search'
     | '/mail'
+    | '/openclaw-tasks'
     | '/projects'
     | '/requests'
     | '/tasks'
@@ -253,6 +265,7 @@ export interface RootRouteChildren {
   GraphRoute: typeof GraphRoute
   LeadSearchRoute: typeof LeadSearchRoute
   MailRoute: typeof MailRoute
+  OpenclawTasksRoute: typeof OpenclawTasksRoute
   ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
   TasksRoute: typeof TasksRouteWithChildren
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/mail'
       fullPath: '/mail'
       preLoaderRoute: typeof MailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/openclaw-tasks': {
+      id: '/openclaw-tasks'
+      path: '/openclaw-tasks'
+      fullPath: '/openclaw-tasks'
+      preLoaderRoute: typeof OpenclawTasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects': {
@@ -414,6 +434,7 @@ const rootRouteChildren: RootRouteChildren = {
   GraphRoute: GraphRoute,
   LeadSearchRoute: LeadSearchRoute,
   MailRoute: MailRoute,
+  OpenclawTasksRoute: OpenclawTasksRoute,
   ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,
   TasksRoute: TasksRouteWithChildren,
