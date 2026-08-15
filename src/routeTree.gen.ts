@@ -21,6 +21,7 @@ import { Route as MailRouteImport } from './routes/mail'
 import { Route as OpenclawTasksRouteImport } from './routes/openclaw-tasks'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as RequestsRouteImport } from './routes/requests'
+import { Route as SelfDevelopmentRouteImport } from './routes/self-development'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as ApiNvidiaChatRouteImport } from './routes/api/nvidia-chat'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks.$taskId'
@@ -89,6 +90,11 @@ const RequestsRoute = RequestsRouteImport.update({
   path: '/requests',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SelfDevelopmentRoute = SelfDevelopmentRouteImport.update({
+  id: '/self-development',
+  path: '/self-development',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
+  '/self-development': typeof SelfDevelopmentRoute
   '/tasks': typeof TasksRouteWithChildren
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
+  '/self-development': typeof SelfDevelopmentRoute
   '/tasks': typeof TasksRouteWithChildren
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
+  '/self-development': typeof SelfDevelopmentRoute
   '/tasks': typeof TasksRouteWithChildren
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
+    | '/self-development'
     | '/tasks'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
+    | '/self-development'
     | '/tasks'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
+    | '/self-development'
     | '/tasks'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
@@ -268,6 +280,7 @@ export interface RootRouteChildren {
   OpenclawTasksRoute: typeof OpenclawTasksRoute
   ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
+  SelfDevelopmentRoute: typeof SelfDevelopmentRoute
   TasksRoute: typeof TasksRouteWithChildren
   ApiNvidiaChatRoute: typeof ApiNvidiaChatRoute
   ApiAiWorkflowSplatRoute: typeof ApiAiWorkflowSplatRoute
@@ -362,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/self-development': {
+      id: '/self-development'
+      path: '/self-development'
+      fullPath: '/self-development'
+      preLoaderRoute: typeof SelfDevelopmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tasks': {
       id: '/tasks'
       path: '/tasks'
@@ -437,6 +457,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpenclawTasksRoute: OpenclawTasksRoute,
   ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,
+  SelfDevelopmentRoute: SelfDevelopmentRoute,
   TasksRoute: TasksRouteWithChildren,
   ApiNvidiaChatRoute: ApiNvidiaChatRoute,
   ApiAiWorkflowSplatRoute: ApiAiWorkflowSplatRoute,

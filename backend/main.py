@@ -37,6 +37,7 @@ from backend.routers.websocket import router as websocket_router
 from backend.routers.company_router import router as company_router
 from backend.routers.internal import router as internal_router
 from backend.routers.openclaw_tasks import router as openclaw_router
+from backend.routers.openclaw_goals import router as openclaw_goals_router
 from backend.routers.whisper_router import router as whisper_router
 from backend.middleware.rate_limit import WorkflowRateLimitMiddleware
 from backend.services.stt import stt_service
@@ -146,6 +147,7 @@ app.include_router(internal_router)
 app.include_router(agent_router.router)
 app.include_router(company_router)
 app.include_router(openclaw_router)
+app.include_router(openclaw_goals_router)
 app.include_router(whisper_router)
 app.include_router(ai_workflow_api_router)
 app.include_router(ceo_router)
