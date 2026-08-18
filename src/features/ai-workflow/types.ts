@@ -213,6 +213,8 @@ export type WorkflowOverview = {
     voice_configured: boolean;
     autorun: boolean;
     worker_enabled?: boolean;
+    openclaw_configured?: boolean;
+    openclaw_url?: string;
   };
 };
 

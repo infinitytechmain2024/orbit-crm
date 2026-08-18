@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
 # Orbit CRM — Master Startup Script (macOS / Linux)
-# Starts: FastAPI backend + Cloudflare Tunnel + opens browser
+# Starts: OpenClaw Gateway + FastAPI backend + Cloudflare Tunnel + opens browser
 # ============================================================
 
 set -euo pipefail
@@ -13,7 +13,9 @@ VENV_DIR="$BACKEND_DIR/venv"
 LOG_DIR="$PROJECT_DIR/logs"
 BACKEND_LOG="$LOG_DIR/backend.log"
 TUNNEL_LOG="$LOG_DIR/tunnel.log"
+OPENCLAW_LOG="$LOG_DIR/openclaw.log"
 BACKEND_PORT=8000
+OPENCLAW_PORT=18789
 TUNNEL_URL_FILE="$PROJECT_DIR/.tunnel_url"
 # ==========================================================
 
@@ -40,7 +42,6 @@ check_port() {
         warn "Порт $port занят (PID: $pid). Освобождаю..."
         kill "$pid" 2>/dev/null || true
         sleep 2
-        # Force kill if still running
         if lsof -ti tcp:"$port" >/dev/null 2>&1; then
             kill -9 "$pid" 2>/dev/null || true
             sleep 1
@@ -53,35 +54,30 @@ check_port() {
 check_dependencies() {
     log "Проверка зависимостей..."
 
-    # Python
     if ! command -v python3 &>/dev/null; then
         err "Python 3 не найден. Установите: brew install python3"
         exit 1
     fi
     ok "Python 3: $(python3 --version)"
 
-    # Ollama
     if ! command -v ollama &>/dev/null; then
         warn "Ollama не найден. Установите: brew install ollama && ollama pull llama3.2"
     else
         ok "Ollama: $(ollama --version)"
     fi
 
-    # Docker (for gmaps scraper)
     if ! command -v docker &>/dev/null; then
-        warn "Docker не найден. Нужен для Google Maps Scraper: brew install docker"
+        warn "Docker не найден. Нужен для OpenClaw и Google Maps Scraper: brew install docker"
     else
         ok "Docker: $(docker --version)"
     fi
 
-    # cloudflared or ngrok
     if command -v cloudflared &>/dev/null; then
         ok "Cloudflare Tunnel: $(cloudflared --version)"
     elif command -v ngrok &>/dev/null; then
         ok "Ngrok: $(ngrok version 2>&1 | head -1)"
     else
         warn "Ни cloudflared, ни ngrok не найдены. Туннель НЕ запустится."
-        warn "Установите: brew install cloudflared  или  brew install ngrok"
     fi
 }
 
@@ -95,7 +91,6 @@ setup_venv() {
 
     source "$VENV_DIR/bin/activate"
 
-    # Install/upgrade deps if needed
     if [ ! -f "$VENV_DIR/.deps_installed" ] || \
        [ "$BACKEND_DIR/requirements.txt" -nt "$VENV_DIR/.deps_installed" ]; then
         log "Устанавливаю зависимости Python..."
@@ -104,6 +99,46 @@ setup_venv() {
         touch "$VENV_DIR/.deps_installed"
         ok "Зависимости установлены"
     fi
+}
+
+# ------------------- Start OpenClaw -----------------------
+start_openclaw() {
+    log "Запуск OpenClaw Gateway..."
+
+    if [ ! -d "$PROJECT_DIR/services/openclaw" ]; then
+        warn "services/openclaw не найден. OpenClaw не запущен."
+        return 1
+    fi
+
+    check_port "$OPENCLAW_PORT"
+
+    cd "$PROJECT_DIR/services/openclaw"
+
+    # Build image if not exists
+    if ! docker image inspect openclaw:local >/dev/null 2>&1; then
+        log "Собираю Docker image OpenClaw (это может занять время)..."
+        docker compose build 2>&1 | tail -5
+    fi
+
+    # Start gateway
+    OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-}" \
+    docker compose up -d openclaw-gateway 2>&1 | tail -3
+
+    cd "$PROJECT_DIR"
+
+    # Wait for health
+    local retries=45
+    while [ $retries -gt 0 ]; do
+        if curl -s "http://localhost:$OPENCLAW_PORT/healthz" >/dev/null 2>&1; then
+            ok "OpenClaw Gateway запущен (порт $OPENCLAW_PORT)"
+            return 0
+        fi
+        sleep 1
+        retries=$((retries - 1))
+    done
+
+    warn "OpenClaw не ответил за 45 сек. Смотри: $OPENCLAW_LOG"
+    return 1
 }
 
 # ------------------- Start gmaps scraper -------------------
@@ -129,7 +164,6 @@ start_backend() {
     log "Запускаю FastAPI бэкенд на порту $BACKEND_PORT..."
     cd "$BACKEND_DIR"
 
-    # Add project root to PYTHONPATH so "backend.config" works
     PYTHONPATH="$PROJECT_DIR" \
     uvicorn backend.main:app \
         --host 0.0.0.0 \
@@ -140,7 +174,6 @@ start_backend() {
     BACKEND_PID=$!
     echo "$BACKEND_PID" > "$LOG_DIR/backend.pid"
 
-    # Wait for backend to be ready
     local retries=30
     while [ $retries -gt 0 ]; do
         if curl -s "http://localhost:$BACKEND_PORT/api/health" >/dev/null 2>&1; then
@@ -157,7 +190,6 @@ start_backend() {
 
 # ------------------- Start Tunnel --------------------------
 start_tunnel() {
-    # Try cloudflared first, then ngrok
     if command -v cloudflared &>/dev/null; then
         log "Запускаю Cloudflare Tunnel..."
         cloudflared tunnel --url "http://localhost:$BACKEND_PORT" \
@@ -165,7 +197,6 @@ start_tunnel() {
         TUNNEL_PID=$!
         echo "$TUNNEL_PID" > "$LOG_DIR/tunnel.pid"
 
-        # Extract URL from log
         local retries=30
         while [ $retries -gt 0 ]; do
             TUNNEL_URL=$(grep -oP 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | head -1 || true)
@@ -200,7 +231,6 @@ start_tunnel() {
         warn "Ngrok не получил URL за 30 сек. Смотри: $TUNNEL_LOG"
     else
         warn "Ни cloudflared, ни ngrok не найдены. Туннель НЕ запущен."
-        warn "Установите: brew install cloudflared  или  brew install ngrok"
     fi
 }
 
@@ -209,12 +239,6 @@ open_browser() {
     sleep 3
     log "Открываю браузер..."
     open "http://localhost:$BACKEND_PORT/docs" 2>/dev/null || true
-
-    # Also try to open Vercel frontend if deployed
-    if [ -f "$PROJECT_DIR/.vercel_url" ]; then
-        VERCEL_URL=$(cat "$PROJECT_DIR/.vercel_url")
-        open "$VERCEL_URL" 2>/dev/null || true
-    fi
 }
 
 # ------------------- Cleanup on exit ----------------------
@@ -223,11 +247,19 @@ cleanup() {
     warn "Остановка сервисов..."
     [ -f "$LOG_DIR/backend.pid" ] && kill "$(cat "$LOG_DIR/backend.pid")" 2>/dev/null || true
     [ -f "$LOG_DIR/tunnel.pid" ] && kill "$(cat "$LOG_DIR/tunnel.pid")" 2>/dev/null || true
-    # Stop gmaps scraper if we started it
+
+    # Stop OpenClaw
+    if [ -d "$PROJECT_DIR/services/openclaw" ]; then
+        cd "$PROJECT_DIR/services/openclaw" && docker compose down 2>/dev/null || true
+        cd "$PROJECT_DIR"
+    fi
+
+    # Stop gmaps scraper
     if [ -d "$PROJECT_DIR/gmaps_scraper" ]; then
         cd "$PROJECT_DIR/gmaps_scraper" && docker compose down 2>/dev/null || true
         cd "$PROJECT_DIR"
     fi
+
     ok "Сервисы остановлены. Логи: $LOG_DIR"
     exit 0
 }
@@ -243,6 +275,7 @@ echo ""
 
 check_dependencies
 setup_venv
+start_openclaw || warn "OpenClaw запущен с ошибками"
 start_gmaps_scraper
 start_backend
 start_tunnel
@@ -250,6 +283,7 @@ open_browser
 
 echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  🤖 OpenClaw:  ${BLUE}http://localhost:$OPENCLAW_PORT${NC}"
 echo -e "  📡 Backend:    ${BLUE}http://localhost:$BACKEND_PORT${NC}"
 echo -e "  📖 API Docs:   ${BLUE}http://localhost:$BACKEND_PORT/docs${NC}"
 echo -e "  🗺️  GMaps API:   ${BLUE}http://localhost:8080${NC}"
@@ -261,5 +295,4 @@ echo ""
 log "Нажми Ctrl+C для остановки"
 echo ""
 
-# Keep script running
 wait

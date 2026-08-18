@@ -44,6 +44,7 @@ from backend.services.stt import stt_service
 from backend.services.ai_dispatcher import ai_dispatcher
 from backend.services.intent_executor import execute_intent, ExecutionResult
 from backend.services.workflow_worker import workflow_worker
+from backend.services.openclaw_client import openclaw_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -120,6 +121,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     await workflow_worker.stop()
+    await openclaw_client.close()
     logger.info("Shutting down Orbit CRM Backend...")
 
 # ============================

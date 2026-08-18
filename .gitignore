@@ -43,3 +43,7 @@ backend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Docker volumes
+openclaw-state/
+openclaw-workspace/

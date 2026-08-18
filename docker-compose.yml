@@ -1,0 +1,125 @@
+# Orbit CRM — Root Docker Compose
+# Services: OpenClaw Gateway + Orbit Backend + GMaps Scraper
+#
+# Usage:
+#   docker compose up -d                  (all services)
+#   docker compose up -d openclaw         (OpenClaw only)
+#   docker compose up -d orbit-backend    (backend only)
+#
+# Prerequisites:
+#   - services/openclaw/ must be built first or use pre-built image
+#   - .env file with OPENCLAW_GATEWAY_TOKEN, SUPABASE_URL, etc.
+
+services:
+  openclaw:
+    build:
+      context: ./services/openclaw
+      dockerfile: Dockerfile
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    container_name: orbit-openclaw
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      HOME: /home/node
+      OPENCLAW_HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_PATH: /home/node/.openclaw/openclaw.json
+      OPENCLAW_CONFIG_DIR: /home/node/.openclaw
+      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_DISABLE_BONJOUR: "1"
+      TZ: ${OPENCLAW_TZ:-UTC}
+    volumes:
+      - openclaw-state:/home/node/.openclaw
+      - openclaw-workspace:/home/node/.openclaw/workspace
+      # Mount Orbit custom skills (read-only)
+      - ./openclaw/skills:/opt/orbit-skills:ro
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - orbit-net
+
+  orbit-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: orbit-backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      NVIDIA_MODEL: ${NVIDIA_MODEL:-}
+      NVIDIA_BASE_URL: ${NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      # OpenClaw connection (Docker-internal hostname)
+      OPENCLAW_URL: http://openclaw:18789
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      AI_WORKFLOW_AUTORUN: "true"
+      AI_WORKFLOW_WORKER_ENABLED: "true"
+      AI_WORKFLOW_WORKER_CONCURRENCY: "4"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      openclaw:
+        condition: service_healthy
+    networks:
+      - orbit-net
+    restart: unless-stopped
+
+  gmaps-scraper:
+    image: ghcr.io/nicholasgasior/gmaps-scraper:latest
+    container_name: orbit-gmaps
+    ports:
+      - "8080:8080"
+    networks:
+      - orbit-net
+    restart: unless-stopped
+    profiles:
+      - gmaps
+
+volumes:
+  openclaw-state:
+  openclaw-workspace:
+
+networks:
+  orbit-net:
+    driver: bridge

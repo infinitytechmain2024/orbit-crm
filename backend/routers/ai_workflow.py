@@ -280,6 +280,8 @@ async def get_overview(
             "voice_configured": bool(settings.WHISPER_MODEL),
             "autorun": settings.AI_WORKFLOW_AUTORUN,
             "worker_enabled": settings.AI_WORKFLOW_WORKER_ENABLED,
+            "openclaw_configured": bool(settings.OPENCLAW_GATEWAY_TOKEN),
+            "openclaw_url": settings.OPENCLAW_URL,
         },
     }
 

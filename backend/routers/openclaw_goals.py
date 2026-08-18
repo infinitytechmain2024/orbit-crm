@@ -1,16 +1,19 @@
-"""OpenClaw Goals router for Self-Development."""
+"""OpenClaw Goals router for Self-Development.
+
+Uses centralized config and openclaw_client service.
+"""
 
 from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
-import httpx
 
 from backend.config import settings
+from backend.services.openclaw_client import openclaw_client
 from backend.services.supabase_client import supabase_service
 
 logger = logging.getLogger(__name__)
@@ -19,9 +22,6 @@ router = APIRouter(
     prefix="/api/openclaw/goals",
     tags=["OpenClaw Goals"],
 )
-
-OPENCLAW_URL = "http://localhost:18789"
-OPENCLAW_TOKEN = settings.INTERNAL_API_TOKEN
 
 
 class GoalCreate(BaseModel):
@@ -61,30 +61,23 @@ async def create_goal(goal: GoalCreate):
 
     goal_id = result.data[0]["id"]
 
-    # 2. Register with OpenClaw
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{OPENCLAW_URL}/api/command",
-                json={
-                    "command": f"Register self-development goal: {goal.label}",
-                    "context": {
-                        "goal_id": str(goal_id),
-                        "label": goal.label,
-                        "description": goal.description,
-                        "criteria": goal.acceptance_criteria,
-                    },
-                    "tool": "goal_register",
-                },
-                headers={"Authorization": f"Bearer {OPENCLAW_TOKEN}"},
-            )
-            response.raise_for_status()
-    except httpx.ConnectError:
-        logger.warning("OpenClaw gateway is not running, goal created without dispatch")
-    except httpx.HTTPStatusError as e:
-        logger.warning(f"OpenClaw returned {e.response.status_code}")
-    except Exception as e:
-        logger.warning(f"Failed to register goal with OpenClaw: {e}")
+    # 2. Register with OpenClaw via centralized client
+    execution = await openclaw_client.execute_chat(
+        task_id=str(goal_id),
+        message=f"Register self-development goal: {goal.label}",
+        system_prompt=(
+            "You are registering a self-development goal. "
+            "Scan the codebase and suggest improvements."
+        ),
+        context={
+            "label": goal.label,
+            "description": goal.description,
+            "criteria": goal.acceptance_criteria,
+        },
+    )
+
+    if not execution.success:
+        logger.warning("OpenClaw goal registration returned: %s", execution.error)
 
     return {"goal_id": goal_id, "status": "active"}
 
@@ -135,7 +128,7 @@ async def update_goal(goal_id: str, update: GoalUpdate):
     if update.priority is not None:
         update_data["priority"] = update.priority
 
-    result = supabase_service.client.table("openclaw_goals").update(
+    supabase_service.client.table("openclaw_goals").update(
         update_data
     ).eq("id", goal_id).execute()
 
@@ -172,33 +165,25 @@ async def approve_improvement(improvement: ImprovementApprove):
     if not result.data:
         raise HTTPException(status_code=404, detail="Improvement not found")
 
-    # Update status to approved
     supabase_service.client.table("openclaw_improvements").update({
         "status": "approved",
     }).eq("id", improvement.improvement_id).execute()
 
-    # Dispatch to OpenClaw for application
     improvement_data = result.data
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                f"{OPENCLAW_URL}/api/command",
-                json={
-                    "command": f"Apply improvement: {improvement_data.get('suggestion', '')}",
-                    "context": {
-                        "improvement_id": improvement.improvement_id,
-                        "goal_id": improvement_data.get("goal_id"),
-                        "file_path": improvement_data.get("file_path"),
-                        "code_before": improvement_data.get("code_before"),
-                        "code_after": improvement_data.get("code_after"),
-                    },
-                    "tool": "apply_improvement",
-                },
-                headers={"Authorization": f"Bearer {OPENCLAW_TOKEN}"},
-            )
-            response.raise_for_status()
-    except Exception as e:
-        logger.warning(f"Failed to dispatch improvement to OpenClaw: {e}")
+    execution = await openclaw_client.execute_chat(
+        task_id=improvement.improvement_id,
+        message=f"Apply improvement: {improvement_data.get('suggestion', '')}",
+        system_prompt="Apply the approved code improvement.",
+        context={
+            "goal_id": improvement_data.get("goal_id"),
+            "file_path": improvement_data.get("file_path"),
+            "code_before": improvement_data.get("code_before"),
+            "code_after": improvement_data.get("code_after"),
+        },
+    )
+
+    if not execution.success:
+        logger.warning("OpenClaw improvement dispatch returned: %s", execution.error)
 
     return {"status": "approved"}
 

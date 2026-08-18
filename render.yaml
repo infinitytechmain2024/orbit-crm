@@ -32,3 +32,7 @@ services:
         value: "high,critical"
       - key: CEO_DEPLOYMENT_APPROVAL_REQUIRED
         value: "true"
+      - key: OPENCLAW_URL
+        sync: false
+      - key: OPENCLAW_GATEWAY_TOKEN
+        sync: false
