@@ -26,6 +26,7 @@ import {
   uploadTaskFile as uploadRemoteTaskFile,
   type CrmSnapshot,
 } from "@/lib/crm-repository";
+import { fetchEmails } from "@/lib/agentmail";
 import {
   initialEmails,
   type Email,
@@ -193,6 +194,21 @@ export function CrmProvider({
       alive = false;
     };
   }, [applySnapshot, previewSnapshot, user]);
+
+  useEffect(() => {
+    let alive = true;
+    fetchEmails()
+      .then((fetched) => {
+        if (!alive) return;
+        setEmails(fetched);
+      })
+      .catch(() => {
+        // Silently keep mock emails if AgentMail is unavailable
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const runMutation = useCallback(
     async <T,>(successMessage: string, action: () => Promise<T>): Promise<T | null> => {

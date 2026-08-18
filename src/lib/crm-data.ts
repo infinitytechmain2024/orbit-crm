@@ -217,6 +217,7 @@ export type Email = {
   body: string;
   date: string;
   unread: boolean;
+  createdAt?: string;
 };
 
 export type Tx = {

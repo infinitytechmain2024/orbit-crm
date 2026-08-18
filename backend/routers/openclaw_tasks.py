@@ -7,6 +7,7 @@ the openclaw_client service for all Gateway communication.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime
 from typing import Any
 
@@ -31,10 +32,30 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 async def _verify_webhook_token(
     credentials: HTTPAuthorizationCredentials | None = Security(_bearer_scheme),
 ) -> None:
-    """Verify OpenClaw webhook authorization token."""
+    """Verify OpenClaw webhook authorization token.
+
+    Production: fail closed if OPENCLAW_WEBHOOK_TOKEN not configured.
+    Development: warn but allow unauthenticated requests.
+    """
     expected = settings.OPENCLAW_WEBHOOK_TOKEN
+    is_production = not settings.DEBUG and os.environ.get("RENDER")
+
     if not expected:
+        if is_production:
+            logger.error(
+                "OPENCLAW_WEBHOOK_TOKEN not configured in production. "
+                "Webhook requests will be rejected. Set OPENCLAW_WEBHOOK_TOKEN."
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Webhook authentication not configured. Contact administrator.",
+            )
+        logger.warning(
+            "OPENCLAW_WEBHOOK_TOKEN not configured. "
+            "Webhook is unprotected. Set OPENCLAW_WEBHOOK_TOKEN for production."
+        )
         return
+
     if not credentials or credentials.credentials != expected:
         raise HTTPException(status_code=401, detail="Invalid webhook token")
 

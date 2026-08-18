@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Archive, CornerUpLeft, ListPlus, Mail, Sparkles, Trash2 } from "lucide-react";
+import { Archive, CornerUpLeft, ListPlus, Mail, Send, Sparkles, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
+import { sendReply } from "@/lib/agentmail";
 import { cn } from "@/lib/utils";
+
+const INBOX_ID = (import.meta.env["VITE_AGENTMAIL_INBOX"] as string) || "outreach@agentmail.to";
 
 export const Route = createFileRoute("/mail")({
   head: () => ({
@@ -25,6 +28,9 @@ function MailPage() {
   const { emails, markRead, addTask } = useCrm();
   const [selId, setSelId] = useState(emails[0]?.id ?? "");
   const [flash, setFlash] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [isReplyOpen, setIsReplyOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const sel = emails.find((e) => e.id === selId);
 
   const toTask = async () => {
@@ -41,6 +47,22 @@ function MailPage() {
     setTimeout(() => setFlash(null), 2600);
   };
 
+  const handleReply = async () => {
+    if (!sel || !replyText.trim()) return;
+    setIsSending(true);
+    try {
+      await sendReply(INBOX_ID, sel.id, replyText.trim());
+      setFlash("Ответ отправлен");
+      setReplyText("");
+      setIsReplyOpen(false);
+    } catch {
+      setFlash("Ошибка отправки ответа");
+    } finally {
+      setIsSending(false);
+      setTimeout(() => setFlash(null), 2600);
+    }
+  };
+
   return (
     <AppShell title="Почта" subtitle={`${emails.filter((e) => e.unread).length} непрочитанных`}>
       <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
@@ -51,6 +73,8 @@ function MailPage() {
               onClick={() => {
                 setSelId(e.id);
                 markRead(e.id);
+                setIsReplyOpen(false);
+                setReplyText("");
               }}
               className={cn(
                 "flex w-full gap-3 border-b border-border px-4 py-3 text-left transition hover:bg-surface-2/60",
@@ -114,9 +138,53 @@ function MailPage() {
                 </p>
               </div>
 
+              {isReplyOpen && (
+                <div className="mt-4 rounded-xl border border-border bg-surface-2/40 p-4">
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Ответ для <span className="font-medium text-foreground">{sel.from}</span>
+                  </p>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Напишите ответ..."
+                    rows={4}
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => void handleReply()}
+                      disabled={isSending || !replyText.trim()}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-acc-1 to-acc-2 px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+                    >
+                      <Send className="size-4" /> {isSending ? "Отправка…" : "Отправить"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsReplyOpen(false);
+                        setReplyText("");
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-auto flex gap-2 pt-6">
-                <button className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground">
-                  <CornerUpLeft className="size-4" /> Ответить
+                <button
+                  onClick={() => {
+                    setIsReplyOpen(!isReplyOpen);
+                    if (!isReplyOpen) setReplyText("");
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition",
+                    isReplyOpen
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <CornerUpLeft className="size-4" /> {isReplyOpen ? "Скрыть ответ" : "Ответить"}
                 </button>
                 <button className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground">
                   <Archive className="size-4" /> В архив
