@@ -1,0 +1,18 @@
+{
+  "gateway": {
+    "http": {
+      "endpoints": {
+        "chatCompletions": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "skills": {
+    "load": {
+      "extraDirs": [
+        "/opt/orbit-skills"
+      ]
+    }
+  }
+}

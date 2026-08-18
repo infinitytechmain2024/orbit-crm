@@ -458,6 +458,23 @@ function AIWorkflowPage() {
           </div>
         )}
 
+        {/* OpenClaw Status Indicator */}
+        {overview.provider.openclaw_configured && (
+          <div className="mb-3 flex items-center justify-end gap-2">
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              OpenClaw ● Online
+            </span>
+          </div>
+        )}
+        {!overview.provider.openclaw_configured && !workflow.isLoading && (
+          <div className="mb-3 flex items-center justify-end gap-2">
+            <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
+              Local Models Only
+            </span>
+          </div>
+        )}
+
         {/* Demo Mode Indicator - compact badge */}
         {backendStatus.isDemoMode && (
           <div className="mb-3 flex items-center justify-end gap-2">

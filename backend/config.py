@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     # OpenClaw Gateway
     OPENCLAW_URL: str = Field(default="http://127.0.0.1:18789", validation_alias="OPENCLAW_URL")
     OPENCLAW_GATEWAY_TOKEN: str = Field(default="", validation_alias="OPENCLAW_GATEWAY_TOKEN")
-    OPENCLAW_SKILLS_DIR: str = Field(default="", validation_alias="OPENCLAW_SKILLS_DIR")
+    OPENCLAW_WEBHOOK_TOKEN: str = Field(default="", validation_alias="OPENCLAW_WEBHOOK_TOKEN")
     OPENCLAW_REQUEST_TIMEOUT: float = Field(default=120.0, validation_alias="OPENCLAW_REQUEST_TIMEOUT")
 
     # CORS — allow Vercel deployments, ngrok, cloudflare tunnels, and local dev

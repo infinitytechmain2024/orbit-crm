@@ -1,6 +1,6 @@
 """
 AI Router API endpoints
-Provides task routing and model selection
+Provides task routing, model selection, and NVIDIA model registry
 """
 
 import logging
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from backend.services.ai_router import ai_router, TaskType
+from backend.services.nvidia_model_registry import nvidia_model_registry
 
 logger = logging.getLogger(__name__)
 
@@ -86,3 +87,75 @@ async def classify_task_type(title: str, description: str = ""):
     """
     task_type = ai_router.classify_task_type(title, description)
     return {"task_type": task_type.value}
+
+
+# ---------------------------------------------------------------------------
+# NVIDIA Model Registry endpoints
+# ---------------------------------------------------------------------------
+
+
+class NVIDIAModelInfo(BaseModel):
+    display_name: str
+    model_id: str
+    type: str
+    endpoint: str
+    adapter: str
+    stream: bool
+    reasoning: bool
+    status: str
+    deprecated_date: Optional[str] = None
+    declared_limit: str
+    priority: int
+
+
+@router.get("/nvidia/models", response_model=list[NVIDIAModelInfo])
+async def list_nvidia_models(
+    model_type: Optional[str] = None,
+    active_only: bool = True,
+):
+    """List all NVIDIA models from the registry."""
+    from backend.services.nvidia_model_registry import ModelType
+
+    type_filter = None
+    if model_type:
+        try:
+            type_filter = ModelType(model_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid model_type: {model_type}. "
+                f"Valid: {[t.value for t in ModelType]}",
+            )
+
+    if active_only and not type_filter:
+        models = nvidia_model_registry.list_active()
+    elif type_filter:
+        models = nvidia_model_registry.list_by_type(type_filter)
+    else:
+        from backend.services.nvidia_model_registry import NVIDIA_MODELS
+
+        models = NVIDIA_MODELS
+
+    return [NVIDIAModelInfo(**m.__dict__) for m in models]
+
+
+@router.get("/nvidia/models/{display_name}", response_model=NVIDIAModelInfo)
+async def get_nvidia_model(display_name: str):
+    """Get a specific NVIDIA model by display name."""
+    model = nvidia_model_registry.get(display_name)
+    if not model:
+        raise HTTPException(status_code=404, detail=f"Model not found: {display_name}")
+    return NVIDIAModelInfo(**model.__dict__)
+
+
+@router.get("/nvidia/models/{display_name}/source-parameters")
+async def get_nvidia_model_source_params(display_name: str):
+    """Get the exact source parameters for a model (read-only, sacred)."""
+    model = nvidia_model_registry.get(display_name)
+    if not model:
+        raise HTTPException(status_code=404, detail=f"Model not found: {display_name}")
+    return {
+        "display_name": model.display_name,
+        "model_id": model.model_id,
+        "source_parameters": model.source_parameters,
+    }

@@ -7,6 +7,12 @@ import logging
 from typing import Optional
 from enum import Enum
 
+from backend.services.nvidia_model_registry import (
+    nvidia_model_registry,
+    ModelType as NVIDIAModelType,
+    ModelDefinition,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,6 +98,68 @@ AVAILABLE_MODELS = [
         max_tokens=8192,
     ),
 ]
+
+# ---------------------------------------------------------------------------
+# NVIDIA models from registry — active models only, mapped to TaskType strengths
+# ---------------------------------------------------------------------------
+
+_NVIDIA_TASK_MAP: dict[str, list[TaskType]] = {
+    "google/gemma-4-31b-it": [TaskType.REASONING, TaskType.ANALYSIS],
+    "z-ai/glm-5.2": [TaskType.WRITING, TaskType.TRANSLATION],
+    "openai/gpt-oss-120b": [TaskType.CODING, TaskType.REASONING, TaskType.ANALYSIS],
+    "openai/gpt-oss-20b": [TaskType.CODING, TaskType.REASONING],
+    "poolside/laguna-xs-2.1": [TaskType.CODING],
+    "nvidia/nemotron-3.5-lightning-30b-a3b": [TaskType.REASONING, TaskType.ANALYSIS],
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": [TaskType.REASONING, TaskType.ANALYSIS],
+    "nvidia/nemotron-3-super-120b-a12b": [TaskType.REASONING, TaskType.CODING, TaskType.ANALYSIS],
+    "nvidia/nemotron-3-ultra-550b-a55b": [TaskType.REASONING, TaskType.CODING, TaskType.ANALYSIS],
+    "minimaxai/minimax-m3": [TaskType.WRITING, TaskType.TRANSLATION],
+    "mistralai/mistral-nemotron": [TaskType.CODING, TaskType.REASONING],
+    "meta/muse-glimmer-30b": [TaskType.WRITING, TaskType.ANALYSIS],
+    "nvidia/nemotron-mini-4b-instruct": [TaskType.WRITING, TaskType.TRANSLATION],
+    "nvidia/nvidia-nemotron-nano-9b-v2": [TaskType.REASONING],
+}
+
+_NVIDIA_COST_MAP: dict[str, int] = {
+    "google/gemma-4-31b-it": 2,
+    "z-ai/glm-5.2": 2,
+    "openai/gpt-oss-120b": 3,
+    "openai/gpt-oss-20b": 2,
+    "poolside/laguna-xs-2.1": 1,
+    "nvidia/nemotron-3.5-lightning-30b-a3b": 2,
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": 2,
+    "nvidia/nemotron-3-super-120b-a12b": 3,
+    "nvidia/nemotron-3-ultra-550b-a55b": 3,
+    "minimaxai/minimax-m3": 2,
+    "mistralai/mistral-nemotron": 2,
+    "meta/muse-glimmer-30b": 1,
+    "nvidia/nemotron-mini-4b-instruct": 1,
+    "nvidia/nvidia-nemotron-nano-9b-v2": 1,
+}
+
+
+def _build_nvidia_models() -> list[ModelConfig]:
+    """Build ModelConfig entries from the NVIDIA registry for active chat models."""
+    configs: list[ModelConfig] = []
+    for model_def in nvidia_model_registry.list_active():
+        if model_def.type not in (NVIDIAModelType.CHAT, NVIDIAModelType.VLM):
+            continue
+        strengths = _NVIDIA_TASK_MAP.get(model_def.model_id, [TaskType.REASONING])
+        cost_tier = _NVIDIA_COST_MAP.get(model_def.model_id, 2)
+        configs.append(
+            ModelConfig(
+                model_id=model_def.model_id,
+                provider=ModelProvider.NVIDIA,
+                strengths=strengths,
+                cost_tier=cost_tier,
+                max_tokens=model_def.source_parameters.get("max_tokens", 4096),
+                supports_streaming=model_def.stream or True,
+            )
+        )
+    return configs
+
+
+AVAILABLE_MODELS.extend(_build_nvidia_models())
 
 
 # Task type keywords for classification

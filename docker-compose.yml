@@ -34,6 +34,8 @@ services:
     volumes:
       - openclaw-state:/home/node/.openclaw
       - openclaw-workspace:/home/node/.openclaw/workspace
+      # Mount OpenClaw config (enables chatCompletions endpoint + extra skills dirs)
+      - ./services/openclaw/openclaw.json:/home/node/.openclaw/openclaw.json:ro
       # Mount Orbit custom skills (read-only)
       - ./openclaw/skills:/opt/orbit-skills:ro
     cap_drop:
@@ -93,6 +95,7 @@ services:
       # OpenClaw connection (Docker-internal hostname)
       OPENCLAW_URL: http://openclaw:18789
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_WEBHOOK_TOKEN: ${OPENCLAW_WEBHOOK_TOKEN:-}
       AI_WORKFLOW_AUTORUN: "true"
       AI_WORKFLOW_WORKER_ENABLED: "true"
       AI_WORKFLOW_WORKER_CONCURRENCY: "4"

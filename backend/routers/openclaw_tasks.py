@@ -10,7 +10,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from backend.config import settings
@@ -23,6 +24,19 @@ router = APIRouter(
     prefix="/api/openclaw",
     tags=["OpenClaw"],
 )
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+async def _verify_webhook_token(
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer_scheme),
+) -> None:
+    """Verify OpenClaw webhook authorization token."""
+    expected = settings.OPENCLAW_WEBHOOK_TOKEN
+    if not expected:
+        return
+    if not credentials or credentials.credentials != expected:
+        raise HTTPException(status_code=401, detail="Invalid webhook token")
 
 
 class OpenClawTaskCreate(BaseModel):
@@ -41,7 +55,6 @@ class OpenClawWebhookPayload(BaseModel):
 @router.post("/tasks/create")
 async def create_openclaw_task(task: OpenClawTaskCreate):
     """Create a task and send it to OpenClaw for processing."""
-    # 1. Save to database
     result = supabase_service.client.table("openclaw_tasks").insert({
         "title": task.title,
         "description": task.description,
@@ -54,7 +67,6 @@ async def create_openclaw_task(task: OpenClawTaskCreate):
 
     task_id = result.data[0]["id"]
 
-    # 2. Send to OpenClaw via centralized client
     execution = await openclaw_client.execute_chat(
         task_id=str(task_id),
         message=task.description or task.title,
@@ -68,7 +80,6 @@ async def create_openclaw_task(task: OpenClawTaskCreate):
         }).eq("id", task_id).execute()
         raise HTTPException(status_code=503, detail=error_msg)
 
-    # 3. Update with result
     supabase_service.client.table("openclaw_tasks").update({
         "status": "completed",
         "result": {
@@ -139,8 +150,15 @@ async def list_openclaw_agents():
 
 
 @router.post("/webhook")
-async def openclaw_webhook(request: Request):
-    """Webhook endpoint for OpenClaw to send task results."""
+async def openclaw_webhook(
+    request: Request,
+    _auth: None = Depends(_verify_webhook_token),
+):
+    """Webhook endpoint for OpenClaw to send task results.
+
+    Protected by OPENCLAW_WEBHOOK_TOKEN. Must be provided in
+    Authorization: Bearer <token> header.
+    """
     payload = await request.json()
 
     task_id = payload.get("task_id")

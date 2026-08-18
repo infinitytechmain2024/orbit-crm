@@ -9,7 +9,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from backend.config import settings
@@ -22,6 +23,19 @@ router = APIRouter(
     prefix="/api/openclaw/goals",
     tags=["OpenClaw Goals"],
 )
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+async def _verify_webhook_token(
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer_scheme),
+) -> None:
+    """Verify OpenClaw webhook authorization token."""
+    expected = settings.OPENCLAW_WEBHOOK_TOKEN
+    if not expected:
+        return
+    if not credentials or credentials.credentials != expected:
+        raise HTTPException(status_code=401, detail="Invalid webhook token")
 
 
 class GoalCreate(BaseModel):
@@ -205,8 +219,14 @@ async def list_analyses(
 
 
 @router.post("/webhook")
-async def openclaw_goal_webhook(request: Request):
-    """Webhook endpoint for OpenClaw to send goal progress and suggestions."""
+async def openclaw_goal_webhook(
+    request: Request,
+    _auth: None = Depends(_verify_webhook_token),
+):
+    """Webhook endpoint for OpenClaw to send goal progress and suggestions.
+
+    Protected by OPENCLAW_WEBHOOK_TOKEN.
+    """
     payload = await request.json()
 
     action = payload.get("action")
