@@ -44,6 +44,7 @@ class OpenClawExecutionResult:
     actual_model_used: str = ""
     adapter_used: str = ""
     fallback_attempts: list[dict[str, Any]] = field(default_factory=list)
+    reasoning: Optional[str] = None
     result: Any = None
     summary: str = ""
     error: Optional[str]= None
