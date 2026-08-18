@@ -23,21 +23,20 @@ class ExecutionResult:
 async def execute_intent(user_id: str, intent: Intent) -> ExecutionResult:
     """Execute classified intent by calling appropriate handlers."""
     
-    match intent.type:
-        case "CREATE_PROJECT":
-            return await _execute_create_project(user_id, intent)
-        case "ADD_TASK":
-            return await _execute_add_task(user_id, intent)
-        case "CALCULATE_ESTIMATE":
-            return await _execute_calculate_estimate(user_id, intent)
-        case "RUN_LEAD_SEARCH":
-            return await _execute_run_lead_search(user_id, intent)
-        case _:
-            return ExecutionResult(
-                success=False,
-                action="UNKNOWN",
-                error="Неизвестное намерение",
-            )
+    if intent.type == "CREATE_PROJECT":
+        return await _execute_create_project(user_id, intent)
+    elif intent.type == "ADD_TASK":
+        return await _execute_add_task(user_id, intent)
+    elif intent.type == "CALCULATE_ESTIMATE":
+        return await _execute_calculate_estimate(user_id, intent)
+    elif intent.type == "RUN_LEAD_SEARCH":
+        return await _execute_run_lead_search(user_id, intent)
+    else:
+        return ExecutionResult(
+            success=False,
+            action="UNKNOWN",
+            error="Неизвестное намерение",
+        )
 
 
 async def _execute_create_project(user_id: str, intent: Intent) -> ExecutionResult:

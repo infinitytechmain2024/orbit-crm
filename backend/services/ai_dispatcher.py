@@ -142,47 +142,43 @@ class AIDispatcher:
         response = await self._call_llm(text, SYSTEM_PROMPT + context)
         return self._parse_intent(response, text)
 
-    async def generate_suggestions(self, intent: Intent) -> list[str]:
+async def generate_suggestions(self, intent: Intent) -> list[str]:
         """Generate action suggestions based on classified intent."""
         suggestions = []
         entities = intent.entities
 
         if intent.type == "CREATE_PROJECT":
-                name = entities.get("projectName") or entities.get("projectDescription") or "Новый проект"
-                suggestions.append(f"Создать проект «{name}»")
-                suggestions.append("Добавить участников команды")
-                suggestions.append("Настроить этапы и дедлайны")
-
-            case "ADD_TASK":
-                task = entities.get("taskTitle", "Без названия")
-                project = entities.get("projectName", "не указан")
-                suggestions.append(f"Добавить задачу «{task}» в проект «{project}»")
-                suggestions.append("Установить приоритет: высокий")
-                suggestions.append("Назначить ответственного")
-
-            case "CALCULATE_ESTIMATE":
-                project = entities.get("projectName") or entities.get("projectDescription") or "Проект"
-                hours = entities.get("hours", 0)
-                if hours:
-                    base = hours * 10
-                    buffer = base * 0.15
-                    total = base + buffer
-                    suggestions.append(f"Рассчитать смету для «{project}»: {hours}ч × $10 = ${base:.0f} + 15% (${buffer:.0f}) = ${total:.0f}")
-                else:
-                    suggestions.append(f"Рассчитать смету для «{project}» (требуется уточнить часы)")
-                suggestions.append("Сгенерировать отчет по смету")
-                suggestions.append("Сохранить в документы проекта")
-
-            case "RUN_LEAD_SEARCH":
-                city = entities.get("city", "не указан")
-                niche = entities.get("niche", "не указана")
-                max_r = entities.get("maxResults", 20)
-                suggestions.append(f"Запустить поиск лидов: {city} | {niche} (макс. {max_r})")
-                suggestions.append("AI-агент соберет контакты (телефон, email, сайт)")
-                suggestions.append("Результаты появятся в таблице с кнопкой «Перенести в Клиенты»")
-
-            case _:
-                suggestions.append("Не удалось определить намерение. Попробуйте переформулировать.")
+            name = entities.get("projectName") or entities.get("projectDescription") or "Новый проект"
+            suggestions.append(f"Создать проект «{name}»")
+            suggestions.append("Добавить участников команды")
+            suggestions.append("Настроить этапы и дедлайны")
+        elif intent.type == "ADD_TASK":
+            task = entities.get("taskTitle", "Без названия")
+            project = entities.get("projectName", "не указан")
+            suggestions.append(f"Добавить задачу «{task}» в проект «{project}»")
+            suggestions.append("Установить приоритет: высокий")
+            suggestions.append("Назначить ответственного")
+        elif intent.type == "CALCULATE_ESTIMATE":
+            project = entities.get("projectName") or entities.get("projectDescription") or "Проект"
+            hours = entities.get("hours", 0)
+            if hours:
+                base = hours * 10
+                buffer = base * 0.15
+                total = base + buffer
+                suggestions.append(f"Рассчитать смету для «{project}»: {hours}ч × $10 = ${base:.0f} + 15% (${buffer:.0f}) = ${total:.0f}")
+            else:
+                suggestions.append(f"Рассчитать смету для «{project}» (требуется уточнить часы)")
+            suggestions.append("Сгенерировать отчет по смету")
+            suggestions.append("Сохранить в документы проекта")
+        elif intent.type == "RUN_LEAD_SEARCH":
+            city = entities.get("city", "не указан")
+            niche = entities.get("niche", "не указана")
+            max_r = entities.get("maxResults", 20)
+            suggestions.append(f"Запустить поиск лидов: {city} | {niche} (макс. {max_r})")
+            suggestions.append("AI-агент соберет контакты (телефон, email, сайт)")
+            suggestions.append("Результаты появятся в таблице с кнопкой «Перенести в Клиенты»")
+        else:
+            suggestions.append("Не удалось определить намерение. Попробуйте переформулировать.")
 
         return suggestions
 
