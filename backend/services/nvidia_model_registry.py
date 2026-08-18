@@ -43,6 +43,8 @@ class ModelDefinition:
     deprecated_date: str | None = None
     declared_limit: str = ""
     priority: int = 50
+    auto_route: bool = True
+    fallback_only: bool = False
     cooldown_until: str | None = field(default=None, repr=False)
     last_error: str | None = field(default=None, repr=False)
 
@@ -550,9 +552,11 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         },
         stream=False,
         reasoning=False,
-        status="active",
+        status="provider_error",
         declared_limit="2M",
         priority=70,
+        auto_route=False,
+        last_error="NVIDIA API returns HTTP 500 for all valid parameter combinations",
     ),
     ModelDefinition(
         display_name="nvidia-nemotron-nano-9b-v2",
@@ -592,9 +596,11 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         },
         stream=False,
         reasoning=False,
-        status="active",
+        status="configuration_error",
         declared_limit="12K",
         priority=50,
+        auto_route=False,
+        last_error="NVIDIA API validation bug: content field cannot be passed as either string or list format",
     ),
     ModelDefinition(
         display_name="rerank-qa-mistral-4b",
@@ -624,6 +630,7 @@ class NVIDIAModelRegistry:
         self._by_model_id: dict[str, ModelDefinition] = {
             m.model_id: m for m in NVIDIA_MODELS
         }
+        self._runtime_status: dict[str, str] = {}
 
     def get(self, display_name: str) -> ModelDefinition | None:
         return self._models.get(display_name)
@@ -655,6 +662,64 @@ class NVIDIAModelRegistry:
             return None
         return max(candidates, key=lambda m: m.priority)
 
+    def list_by_pool(self, pool: str) -> list[ModelDefinition]:
+        """List models in a production pool: heavy, standard, fast."""
+        pools = {
+            "heavy": [
+                "nemotron-3-ultra-550b-a55b",
+                "nemotron-3-super-120b-a12b",
+                "gpt-oss-120b",
+            ],
+            "standard": [
+                "nemotron-3.5-lightning-30b-a3b",
+                "nemotron-3-nano-30b-a3b",
+                "nemotron-3-nano-omni-30b-a3b-reasoning",
+                "gpt-oss-20b",
+                "glm-5.2",
+            ],
+            "fast": [
+                "nemotron-mini-4b-instruct",
+                "nvidia-nemotron-nano-9b-v2",
+                "minimax-m3",
+                "muse-glimmer-30b",
+                "laguna-xs-2.1",
+            ],
+        }
+        model_names = pools.get(pool, [])
+        return [
+            m for m in NVIDIA_MODELS
+            if m.display_name in model_names and m.auto_route
+        ]
+
+    def get_fallback_chain(
+        self,
+        failed_model: str,
+        model_type: ModelType = ModelType.CHAT,
+    ) -> list[ModelDefinition]:
+        """Get fallback models after a failure, excluding the failed model."""
+        candidates = [
+            m for m in NVIDIA_MODELS
+            if m.type == model_type
+            and m.auto_route
+            and m.display_name != failed_model
+            and m.status == "active"
+        ]
+        candidates.sort(key=lambda m: -m.priority)
+        return candidates
+
+    def update_runtime_status(self, display_name: str, status: str) -> None:
+        self._runtime_status[display_name] = status
+
+    def get_runtime_status(self, display_name: str) -> str:
+        return self._runtime_status.get(display_name, "unknown")
+
+    def mark_unavailable(self, display_name: str, error: str) -> None:
+        model = self.get(display_name)
+        if model:
+            model.auto_route = False
+            model.last_error = error
+            self._runtime_status[display_name] = "unavailable"
+
     def to_dict(self) -> list[dict[str, Any]]:
         return [
             {
@@ -669,6 +734,8 @@ class NVIDIAModelRegistry:
                 "deprecated_date": m.deprecated_date,
                 "declared_limit": m.declared_limit,
                 "priority": m.priority,
+                "auto_route": m.auto_route,
+                "fallback_only": m.fallback_only,
             }
             for m in NVIDIA_MODELS
         ]

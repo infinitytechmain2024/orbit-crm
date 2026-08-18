@@ -49,6 +49,34 @@ function extractPreview(preview?: string): string {
   return stripped.length > 120 ? stripped.slice(0, 120) + "…" : stripped;
 }
 
+export async function createInbox(options?: {
+  username?: string;
+  domain?: string;
+  displayName?: string;
+  clientId?: string;
+}): Promise<{ inboxId: string; email: string }> {
+  const c = getClient();
+  const request: { username?: string; domain?: string; displayName?: string; clientId?: string } = {};
+  if (options?.username) request.username = options.username;
+  if (options?.domain) request.domain = options.domain;
+  if (options?.displayName) request.displayName = options.displayName;
+  if (options?.clientId) request.clientId = options.clientId;
+  const inbox = await c.inboxes.create(request);
+  return { inboxId: inbox.inboxId, email: inbox.email };
+}
+
+export async function listInboxes(): Promise<
+  Array<{ inboxId: string; email: string; displayName?: string }>
+> {
+  const c = getClient();
+  const response = await c.inboxes.list();
+  return (response.inboxes ?? []).map((inbox) => ({
+    inboxId: inbox.inboxId,
+    email: inbox.email,
+    ...(inbox.displayName ? { displayName: inbox.displayName } : {}),
+  }));
+}
+
 export async function fetchEmails(): Promise<Email[]> {
   const c = getClient();
   const response = await c.inboxes.messages.list(INBOX_ID, { limit: 50 });
@@ -66,12 +94,69 @@ export async function fetchEmails(): Promise<Email[]> {
   }));
 }
 
-export async function sendReply(inboxId: string, messageId: string, text: string): Promise<void> {
+export async function sendReply(params: {
+  inboxId: string;
+  messageId: string;
+  text: string;
+  html?: string;
+}): Promise<void> {
   const c = getClient();
-  await c.inboxes.messages.reply(inboxId, messageId, { text });
+  const request: { text: string; html?: string } = { text: params.text };
+  if (params.html) request.html = params.html;
+  await c.inboxes.messages.reply(params.inboxId, params.messageId, request);
 }
 
-export async function sendMessage(to: string, subject: string, text: string): Promise<void> {
+export async function sendMessage(params: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  labels?: string[];
+}): Promise<{ messageId: string }> {
   const c = getClient();
-  await c.inboxes.messages.send(INBOX_ID, { to: [to], subject, text });
+  const request: {
+    to: string[];
+    subject: string;
+    text: string;
+    html?: string;
+    labels?: string[];
+  } = {
+    to: [params.to],
+    subject: params.subject,
+    text: params.text,
+  };
+  if (params.html) request.html = params.html;
+  if (params.labels) request.labels = params.labels;
+  const sent = await c.inboxes.messages.send(INBOX_ID, request);
+  return { messageId: sent.messageId };
+}
+
+export type ThreadSummary = {
+  threadId: string;
+  subject: string;
+  preview: string;
+  senders: string[];
+  recipients: string[];
+  messageCount: number;
+  date: string;
+  unread: boolean;
+  lastMessageId: string;
+};
+
+export async function listThreads(limit = 50): Promise<ThreadSummary[]> {
+  const c = getClient();
+  const response = await c.inboxes.threads.list(INBOX_ID, { limit });
+  const threads = response.threads ?? [];
+
+  return threads.map((t) => ({
+    threadId: t.threadId,
+    subject: t.subject || "(Без темы)",
+    preview: extractPreview(t.preview),
+    senders: t.senders ?? [],
+    recipients: t.recipients ?? [],
+    messageCount: t.messageCount ?? 1,
+    date: formatTimestamp(t.timestamp),
+    unread: t.labels?.includes("unread") ?? true,
+    lastMessageId: t.lastMessageId,
+  }));
 }

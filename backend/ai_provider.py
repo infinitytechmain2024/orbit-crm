@@ -3,9 +3,18 @@
 Preserves the existing chat_completion() and get_embedding() interfaces
 while delegating to model-specific adapters that preserve individual
 source parameters from the NVIDIA examples.
+
+Includes automatic fallback for:
+- 429 rate limiting
+- timeout
+- provider 5xx errors
+- model unavailable
 """
 
 import os
+import time
+import logging
+from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
 from backend.services.nvidia_model_registry import (
@@ -15,6 +24,49 @@ from backend.services.nvidia_model_registry import (
 )
 from backend.services.nvidia_adapters import ADAPTER_MAP
 from backend.services.nvidia_adapters.base import AdapterResult
+
+logger = logging.getLogger(__name__)
+
+
+def classify_nvidia_error(error: str, http_status: Optional[int] = None) -> str:
+    if http_status == 400:
+        return "configuration_error"
+    if http_status in (401, 403):
+        return "auth_error"
+    if http_status == 404:
+        return "model_not_found"
+    if http_status == 410:
+        return "retired"
+    if http_status == 429:
+        return "rate_limited"
+    if http_status and 500 <= http_status < 600:
+        return "provider_error"
+    if "timeout" in error.lower():
+        return "timeout"
+    if "rate" in error.lower() or "limit" in error.lower():
+        return "rate_limited"
+    return "provider_error"
+
+
+@dataclass
+class FallbackAttempt:
+    model: str
+    adapter: str
+    error: Optional[str] = None
+    error_class: Optional[str] = None
+    latency_ms: float = 0
+
+
+@dataclass
+class FallbackResult:
+    success: bool
+    model_used: str = ""
+    adapter_used: str = ""
+    content: str = ""
+    reasoning: Optional[str] = None
+    error: Optional[str] = None
+    attempts: List[FallbackAttempt] = field(default_factory=list)
+    total_latency_ms: float = 0
 
 
 class NVIDIAUnifiedProvider:
@@ -333,6 +385,165 @@ class NVIDIAUnifiedProvider:
             "content": result.content,
             "error": result.error,
         }
+
+    def _invoke_model(
+        self,
+        model_def: ModelDefinition,
+        messages: List[Dict[str, str]],
+        stream: bool = False,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        **overrides: Any,
+    ) -> AdapterResult:
+        import asyncio
+
+        adapter = self._get_adapter(model_def.adapter)
+
+        async def _invoke() -> AdapterResult:
+            return await adapter.invoke(
+                model_def,
+                messages,
+                stream=stream,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **overrides,
+            )
+
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(_invoke())
+        finally:
+            loop.close()
+
+    def chat_completion_with_fallback(
+        self,
+        model_name: str,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        stream: bool = False,
+        use_fallback: bool = True,
+        **overrides: Any,
+    ) -> FallbackResult:
+        """Chat completion with automatic fallback on failure.
+
+        Fallback logic:
+        - 429 rate limit → next model by priority
+        - timeout → next model by priority
+        - provider 5xx → next model by priority
+        - 400 configuration_error → stop (wrong params)
+        - 401/403 auth_error → stop (key problem)
+        - 404/410 model not found → next model
+        """
+        if not self.is_configured:
+            return FallbackResult(
+                success=False, error="NVIDIA_API_KEY is not configured"
+            )
+
+        start_time = time.monotonic()
+        attempts: List[FallbackAttempt] = []
+        stop_errors = {"configuration_error", "auth_error", "retired"}
+
+        primary_def = self._resolve_model(model_name)
+        if not primary_def:
+            fallbacks = nvidia_model_registry.get_fallback_chain(
+                model_name, ModelType.CHAT
+            )
+            if not fallbacks:
+                return FallbackResult(
+                    success=False,
+                    error=f"Model not found: {model_name}",
+                )
+            candidates = fallbacks
+        else:
+            candidates = [primary_def]
+            if use_fallback:
+                fallbacks = nvidia_model_registry.get_fallback_chain(
+                    model_name, primary_def.type
+                )
+                candidates.extend(fallbacks)
+
+        last_error = ""
+
+        for model_def in candidates:
+            if primary_def and model_def.display_name != primary_def.display_name:
+                logger.info(
+                    "Falling back: %s → %s",
+                    primary_def.display_name,
+                    model_def.display_name,
+                )
+
+            attempt = FallbackAttempt(
+                model=model_def.display_name,
+                adapter=model_def.adapter,
+            )
+            attempt_start = time.monotonic()
+
+            try:
+                result = self._invoke_model(
+                    model_def,
+                    messages,
+                    stream=stream,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **overrides,
+                )
+                attempt.latency_ms = (time.monotonic() - attempt_start) * 1000
+
+                if result.success:
+                    attempts.append(attempt)
+                    return FallbackResult(
+                        success=True,
+                        model_used=model_def.display_name,
+                        adapter_used=model_def.adapter,
+                        content=result.content,
+                        reasoning=result.reasoning,
+                        attempts=attempts,
+                        total_latency_ms=(time.monotonic() - start_time) * 1000,
+                    )
+
+                last_error = result.error or "unknown error"
+                attempt.error = last_error
+                attempt.error_class = classify_nvidia_error(last_error)
+                attempts.append(attempt)
+
+                if attempt.error_class in stop_errors:
+                    return FallbackResult(
+                        success=False,
+                        error=f"Stop error ({attempt.error_class}): {last_error}",
+                        attempts=attempts,
+                        total_latency_ms=(time.monotonic() - start_time) * 1000,
+                    )
+
+                nvidia_model_registry.update_runtime_status(
+                    model_def.display_name, "failed"
+                )
+
+            except Exception as e:
+                attempt.latency_ms = (time.monotonic() - attempt_start) * 1000
+                attempt.error = str(e)
+                attempt.error_class = classify_nvidia_error(str(e))
+                attempts.append(attempt)
+                last_error = str(e)
+
+                if attempt.error_class in stop_errors:
+                    return FallbackResult(
+                        success=False,
+                        error=f"Stop error ({attempt.error_class}): {last_error}",
+                        attempts=attempts,
+                        total_latency_ms=(time.monotonic() - start_time) * 1000,
+                    )
+
+                nvidia_model_registry.update_runtime_status(
+                    model_def.display_name, "failed"
+                )
+
+        return FallbackResult(
+            success=False,
+            error=f"All {len(candidates)} models failed. Last: {last_error}",
+            attempts=attempts,
+            total_latency_ms=(time.monotonic() - start_time) * 1000,
+        )
 
 
 nvidia_provider = NVIDIAUnifiedProvider()

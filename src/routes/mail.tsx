@@ -1,9 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Archive, CornerUpLeft, ListPlus, Mail, Send, Sparkles, Trash2 } from "lucide-react";
+import {
+  Archive,
+  CornerUpLeft,
+  ListPlus,
+  Mail,
+  Pencil,
+  Send,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
-import { sendReply } from "@/lib/agentmail";
+import { sendReply, sendMessage } from "@/lib/agentmail";
 import { cn } from "@/lib/utils";
 
 const INBOX_ID = (import.meta.env["VITE_AGENTMAIL_INBOX"] as string) || "outreach@agentmail.to";
@@ -31,6 +41,10 @@ function MailPage() {
   const [replyText, setReplyText] = useState("");
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
   const sel = emails.find((e) => e.id === selId);
 
   const toTask = async () => {
@@ -51,7 +65,7 @@ function MailPage() {
     if (!sel || !replyText.trim()) return;
     setIsSending(true);
     try {
-      await sendReply(INBOX_ID, sel.id, replyText.trim());
+      await sendReply({ inboxId: INBOX_ID, messageId: sel.id, text: replyText.trim() });
       setFlash("Ответ отправлен");
       setReplyText("");
       setIsReplyOpen(false);
@@ -63,10 +77,42 @@ function MailPage() {
     }
   };
 
+  const handleCompose = async () => {
+    if (!composeTo.trim() || !composeSubject.trim() || !composeBody.trim()) return;
+    setIsSending(true);
+    try {
+      await sendMessage({
+        to: composeTo.trim(),
+        subject: composeSubject.trim(),
+        text: composeBody.trim(),
+        labels: ["outreach"],
+      });
+      setFlash("Письмо отправлено");
+      setIsComposeOpen(false);
+      setComposeTo("");
+      setComposeSubject("");
+      setComposeBody("");
+    } catch {
+      setFlash("Ошибка отправки письма");
+    } finally {
+      setIsSending(false);
+      setTimeout(() => setFlash(null), 2600);
+    }
+  };
+
   return (
     <AppShell title="Почта" subtitle={`${emails.filter((e) => e.unread).length} непрочитанных`}>
       <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
         <div className="panel overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <span className="text-sm font-medium">Входящие</span>
+            <button
+              onClick={() => setIsComposeOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-acc-1 to-acc-2 px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
+            >
+              <Pencil className="size-3" /> Написать
+            </button>
+          </div>
           {emails.map((e) => (
             <button
               key={e.id}
@@ -199,6 +245,73 @@ function MailPage() {
           )}
         </div>
       </div>
+
+      {isComposeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Новое письмо</h3>
+              <button
+                onClick={() => setIsComposeOpen(false)}
+                className="rounded-lg p-1 text-muted-foreground transition hover:text-foreground"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">Кому</label>
+                <input
+                  type="email"
+                  value={composeTo}
+                  onChange={(e) => setComposeTo(e.target.value)}
+                  placeholder="recipient@example.com"
+                  className="w-full rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">Тема</label>
+                <input
+                  type="text"
+                  value={composeSubject}
+                  onChange={(e) => setComposeSubject(e.target.value)}
+                  placeholder="Тема письма"
+                  className="w-full rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">Текст</label>
+                <textarea
+                  value={composeBody}
+                  onChange={(e) => setComposeBody(e.target.value)}
+                  placeholder="Напишите сообщение..."
+                  rows={6}
+                  className="w-full rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setIsComposeOpen(false)}
+                className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => void handleCompose()}
+                disabled={
+                  isSending || !composeTo.trim() || !composeSubject.trim() || !composeBody.trim()
+                }
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-acc-1 to-acc-2 px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+              >
+                <Send className="size-4" /> {isSending ? "Отправка…" : "Отправить"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {flash && (
         <div className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-xl border border-primary/40 bg-surface px-4 py-2 text-sm shadow-xl animate-in slide-in-from-bottom-2">
