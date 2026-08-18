@@ -6,7 +6,7 @@ import asyncio
 import logging
 import socket
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Optional, Any
 
 from backend.config import settings
 from backend.services.ai_providers import redact_error

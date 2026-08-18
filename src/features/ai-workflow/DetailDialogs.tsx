@@ -261,6 +261,31 @@ export function TaskDetailDialog({
               <span className="rounded-lg border border-border px-2 py-1">
                 Модель: {task.current_model ?? "выбирается"}
               </span>
+              {task.openclaw_execution && (
+                <span className="rounded-lg border border-border px-2 py-1">
+                  Runtime: {task.openclaw_execution.runtime}
+                </span>
+              )}
+              {task.openclaw_execution && task.openclaw_execution.provider && (
+                <span className="rounded-lg border border-border px-2 py-1">
+                  Provider: {task.openclaw_execution.provider}
+                </span>
+              )}
+              {task.openclaw_execution && task.openclaw_execution.requested_pool && (
+                <span className="rounded-lg border border-border px-2 py-1">
+                  Pool: {task.openclaw_execution.requested_pool}
+                </span>
+              )}
+              {task.openclaw_execution && task.openclaw_execution.actual_model_used && (
+                <span className="rounded-lg border border-border px-2 py-1">
+                  Model: {task.openclaw_execution.actual_model_used}
+                </span>
+              )}
+              {task.openclaw_execution && task.openclaw_execution.fallback_attempts && task.openclaw_execution.fallback_attempts.length > 0 && (
+                <span className="rounded-lg border border-border px-2 py-1 text-[9px] text-muted-foreground">
+                  Fallback: {task.openclaw_execution.fallback_attempts.length} attempt{task.openclaw_execution.fallback_attempts.length > 1 && 's'}
+                </span>
+              )}
               <span className="rounded-lg border border-border px-2 py-1">
                 QA: {task.qa_status ?? "pending"}
               </span>

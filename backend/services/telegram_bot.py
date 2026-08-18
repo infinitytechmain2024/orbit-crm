@@ -17,7 +17,7 @@ class TelegramMessage:
     chat_id: str
     text: str
     parse_mode: str = "HTML"
-    reply_markup: dict | None = None
+    reply_markup: Optional[dict]= None
 
 
 class TelegramBot:
@@ -25,8 +25,8 @@ class TelegramBot:
         self.token = settings.TELEGRAM_BOT_TOKEN
         self.default_chat_id = settings.TELEGRAM_CHAT_ID
         self.webhook_url = settings.TELEGRAM_WEBHOOK_URL
-        self._client: httpx.AsyncClient | None = None
-        self._bot_info: dict | None = None
+        self._client: httpx.Optional[AsyncClient]= None
+        self._bot_info: Optional[dict]= None
 
     @property
     def base_url(self) -> str:
@@ -56,7 +56,7 @@ class TelegramBot:
             self._bot_info = await self._make_request("getMe", {})
         return self._bot_info
 
-    async def set_webhook(self, url: str | None = None) -> bool:
+    async def set_webhook(self, url: Optional[str]= None) -> bool:
         webhook = url or self.webhook_url
         if not webhook:
             logger.warning("No webhook URL configured")
@@ -149,28 +149,28 @@ class TelegramBot:
             f"📄 <b>Отчет:</b> Готов к просмотру"
         )
 
-    async def notify_project_created(self, project: dict, chat_id: str | None = None) -> dict:
+    async def notify_project_created(self, project: dict, chat_id: Optional[str]= None) -> dict:
         text = self._format_project_created(project)
         return await self.send_message(TelegramMessage(
             chat_id=chat_id or self.default_chat_id,
             text=text,
         ))
 
-    async def notify_task_added(self, task: dict, project_name: str, chat_id: str | None = None) -> dict:
+    async def notify_task_added(self, task: dict, project_name: str, chat_id: Optional[str]= None) -> dict:
         text = self._format_task_added(task, project_name)
         return await self.send_message(TelegramMessage(
             chat_id=chat_id or self.default_chat_id,
             text=text,
         ))
 
-    async def notify_estimate(self, project: dict, estimate: dict, chat_id: str | None = None) -> dict:
+    async def notify_estimate(self, project: dict, estimate: dict, chat_id: Optional[str]= None) -> dict:
         text = self._format_estimate(project, estimate)
         return await self.send_message(TelegramMessage(
             chat_id=chat_id or self.default_chat_id,
             text=text,
         ))
 
-    async def notify_leads_found(self, job: dict, leads_count: int, chat_id: str | None = None) -> dict:
+    async def notify_leads_found(self, job: dict, leads_count: int, chat_id: Optional[str]= None) -> dict:
         text = self._format_leads_found(job, leads_count)
         return await self.send_message(TelegramMessage(
             chat_id=chat_id or self.default_chat_id,
@@ -181,7 +181,7 @@ class TelegramBot:
         self,
         project_id: str,
         report_filename: str,
-        chat_id: str | None = None,
+        chat_id: Optional[str]= None,
     ) -> dict:
         """Download report from Supabase and send to Telegram."""
         files = await supabase_service.list_project_files(project_id)

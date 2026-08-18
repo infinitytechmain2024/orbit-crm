@@ -29,7 +29,7 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def _verify_webhook_token(
-    credentials: HTTPAuthorizationCredentials | None = Security(_bearer_scheme),
+    credentials: Optional[HTTPAuthorizationCredentials]= Security(_bearer_scheme),
 ) -> None:
     """Verify OpenClaw webhook authorization token.
 
@@ -64,14 +64,14 @@ class GoalCreate(BaseModel):
     description: str = Field(default="", max_length=12000)
     acceptance_criteria: list[str] = Field(default_factory=list)
     priority: str = Field(default="normal", pattern="^(low|normal|high|critical)$")
-    organization_id: str | None = Field(default=None, max_length=36)
+    organization_id: Optional[str]= Field(default=None, max_length=36)
 
 
 class GoalUpdate(BaseModel):
-    status: str | None = Field(default=None, pattern="^(active|paused|completed|error|cancelled)$")
-    label: str | None = Field(default=None, min_length=1, max_length=240)
-    description: str | None = Field(default=None, max_length=12000)
-    priority: str | None = Field(default=None, pattern="^(low|normal|high|critical)$")
+    status: Optional[str]= Field(default=None, pattern="^(active|paused|completed|error|cancelled)$")
+    label: Optional[str]= Field(default=None, min_length=1, max_length=240)
+    description: Optional[str]= Field(default=None, max_length=12000)
+    priority: Optional[str]= Field(default=None, pattern="^(low|normal|high|critical)$")
 
 
 class ImprovementApprove(BaseModel):
@@ -119,7 +119,7 @@ async def create_goal(goal: GoalCreate):
 
 @router.get("/list")
 async def list_goals(
-    status: str | None = None,
+    status: Optional[str]= None,
     limit: int = 20,
 ):
     """List self-development goals."""
@@ -172,8 +172,8 @@ async def update_goal(goal_id: str, update: GoalUpdate):
 
 @router.get("/improvements/list")
 async def list_improvements(
-    goal_id: str | None = None,
-    status: str | None = None,
+    goal_id: Optional[str]= None,
+    status: Optional[str]= None,
     limit: int = 50,
 ):
     """List improvement suggestions."""
@@ -225,7 +225,7 @@ async def approve_improvement(improvement: ImprovementApprove):
 
 @router.get("/analyses/list")
 async def list_analyses(
-    goal_id: str | None = None,
+    goal_id: Optional[str]= None,
     limit: int = 20,
 ):
     """List analyses for goals."""

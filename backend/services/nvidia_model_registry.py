@@ -40,13 +40,13 @@ class ModelDefinition:
     stream: bool = False
     reasoning: bool = False
     status: str = "active"
-    deprecated_date: str | None = None
+    deprecated_date: Optional[str]= None
     declared_limit: str = ""
     priority: int = 50
     auto_route: bool = True
     fallback_only: bool = False
-    cooldown_until: str | None = field(default=None, repr=False)
-    last_error: str | None = field(default=None, repr=False)
+    cooldown_until: Optional[str]= field(default=None, repr=False)
+    last_error: Optional[str]= field(default=None, repr=False)
 
 
 NVIDIA_MODELS: list[ModelDefinition] = [
@@ -660,7 +660,7 @@ class NVIDIAModelRegistry:
 
     def select_best(
         self,
-        model_type: ModelType | None = None,
+        model_type: Optional[ModelType]= None,
         exclude_deprecated: bool = True,
     ) -> ModelDefinition | None:
         candidates = NVIDIA_MODELS

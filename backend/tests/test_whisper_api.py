@@ -68,7 +68,7 @@ class WhisperApiTests(TestCase):
         self.assertEqual(response.json()["detail"], "Uploaded audio file is empty")
 
     def test_empty_transcript_returns_422_and_deletes_temporary_file(self) -> None:
-        temporary_path: Path | None = None
+        temporary_path: Optional[Path]= None
 
         def empty_transcription(path: Path) -> tuple[str, str]:
             nonlocal temporary_path
@@ -90,7 +90,7 @@ class WhisperApiTests(TestCase):
         self.assertFalse(temporary_path.exists())
 
     def test_success_response_contract_and_temporary_file_cleanup(self) -> None:
-        temporary_path: Path | None = None
+        temporary_path: Optional[Path]= None
 
         def successful_transcription(path: Path) -> tuple[str, str]:
             nonlocal temporary_path

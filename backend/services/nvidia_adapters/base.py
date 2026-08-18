@@ -18,13 +18,13 @@ logger = logging.getLogger(__name__)
 class AdapterResult:
     success: bool
     content: str = ""
-    reasoning: str | None = None
+    reasoning: Optional[str]= None
     model: str = ""
     provider: str = "nvidia"
     prompt_tokens: int = 0
     completion_tokens: int = 0
     raw_response: Any = field(default=None, repr=False)
-    error: str | None = None
+    error: Optional[str]= None
     stream_object: Any = field(default=None, repr=False)
 
 
@@ -54,7 +54,7 @@ class NVIDIAAdapter(abc.ABC):
         model_def: ModelDefinition,
         messages: list[dict[str, Any]],
         *,
-        stream: bool | None = None,
+        stream: Optional[bool]= None,
         **overrides: Any,
     ) -> AdapterResult:
         """Invoke the model using its source parameters.

@@ -143,13 +143,20 @@ CRITICAL_ACTIONS: tuple[tuple[tuple[str, ...], str, str], ...] = (
 
 # ── Orbit Agent → OpenClaw mapping ──────────────────────────────────
 # Maps workflow agent roles to OpenClaw agent IDs and allowed tools/skills.
-# Model policy is prepared for NVIDIA integration — values are empty by default.
+# Model policy is populated from NVIDIA registry pools (step 6).
+# Orbit Model Router selects actual model from the configured pool.
 OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "Backend Engineer": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
         "allowed_skills": ["github", "coding-agent"],
@@ -158,8 +165,14 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "Frontend Engineer": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
         "allowed_skills": ["github", "coding-agent"],
@@ -168,8 +181,14 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "AI Engineer": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
         "allowed_skills": ["coding-agent", "github"],
@@ -178,8 +197,14 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "DevOps / Ops Agent": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
         "allowed_skills": ["github", "coding-agent"],
@@ -188,8 +213,14 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "Research Agent": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
         "allowed_skills": ["web-search", "notion"],
@@ -198,8 +229,14 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "Business Analyst": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
         "allowed_skills": ["notion"],
@@ -208,8 +245,14 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "Content Agent": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
         "allowed_skills": ["notion"],
@@ -218,11 +261,16 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "Design Agent": {
         "openclaw_agent_id": "openclaw/default",
         "preferred_pool": "standard",
-        "primary_models": [],
-        "fallback_models": [],
+        "primary_models": [
+            "nemotron-3.5-lightning-30b-a3b",
+            "nemotron-3-nano-30b-a3b",
+        ],
+        "fallback_models": [
+            "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "glm-5.2",
+        ],
         "cooldown": None,
         "rate_limit_status": "unknown",
-        "allowed_skills": [],
         "allowed_tools": ["file_read"],
     },
 }
@@ -457,7 +505,7 @@ class OrbitCommander:
         event_type: str,
         message: str,
         *,
-        agent_id: str | None = None,
+        agent_id: Optional[str]= None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         rows = await self.store.insert(
@@ -479,10 +527,10 @@ class OrbitCommander:
         organization_id: str,
         *,
         actor_type: str,
-        actor_id: str | None,
+        actor_id: Optional[str],
         action: str,
         entity_type: str,
-        entity_id: str | None,
+        entity_id: Optional[str],
         summary: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
@@ -1058,7 +1106,7 @@ class OrbitCommander:
         organization_id: str,
         actor_id: str,
         decision: Literal["approved", "rejected", "changes_requested"],
-        comment: str | None,
+        comment: Optional[str],
     ) -> dict[str, Any]:
         requests = await self.store.select(
             "approval_requests",
@@ -1924,9 +1972,9 @@ class OrbitCommander:
         self,
         task: dict[str, Any],
         source_type: str,
-        source_id: str | None,
+        source_id: Optional[str],
         target_type: str,
-        target_id: str | None,
+        target_id: Optional[str],
         relation_type: str,
     ) -> None:
         if not source_id or not target_id:

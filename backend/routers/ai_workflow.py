@@ -45,21 +45,21 @@ TaskPriority = Literal["low", "medium", "high", "critical"]
 
 class TaskCreateRequest(BaseModel):
     organization_id: str = Field(min_length=36, max_length=36)
-    project_id: str | None = Field(default=None, min_length=36, max_length=36)
+    project_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
     title: str = Field(min_length=1, max_length=240)
-    original_request: str | None = Field(default=None, max_length=12000)
+    original_request: Optional[str]= Field(default=None, max_length=12000)
     description: str = Field(default="", max_length=12000)
     source: Literal["text", "voice", "manual", "project", "note", "client", "api"] = "text"
-    source_entity_type: str | None = Field(default=None, max_length=80)
-    source_entity_id: str | None = Field(default=None, min_length=36, max_length=36)
+    source_entity_type: Optional[str]= Field(default=None, max_length=80)
+    source_entity_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
     priority: TaskPriority = "medium"
-    due_at: datetime | None = None
+    due_at: Optional[datetime]= None
     attachments: list[str] = Field(default_factory=list, max_length=12)
     links: list[str] = Field(default_factory=list, max_length=12)
-    department_id: str | None = Field(default=None, min_length=36, max_length=36)
-    agent_id: str | None = Field(default=None, min_length=36, max_length=36)
+    department_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
+    agent_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
     auto_assign: bool = True
-    requires_approval: bool | None = None
+    requires_approval: Optional[bool]= None
     related_entities: list[dict[str, str]] = Field(default_factory=list, max_length=30)
 
     @field_validator("title", "description")
@@ -75,16 +75,16 @@ class TaskCreateRequest(BaseModel):
 
 class TaskPatchRequest(BaseModel):
     organization_id: str = Field(min_length=36, max_length=36)
-    title: str | None = Field(default=None, min_length=1, max_length=240)
-    description: str | None = Field(default=None, max_length=12000)
-    status: TaskStatus | None = None
-    priority: TaskPriority | None = None
-    due_at: datetime | None = None
+    title: Optional[str]= Field(default=None, min_length=1, max_length=240)
+    description: Optional[str]= Field(default=None, max_length=12000)
+    status: Optional[TaskStatus]= None
+    priority: Optional[TaskPriority]= None
+    due_at: Optional[datetime]= None
     clear_due_at: bool = False
-    department_id: str | None = Field(default=None, min_length=36, max_length=36)
-    agent_id: str | None = Field(default=None, min_length=36, max_length=36)
+    department_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
+    agent_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
     clear_agent: bool = False
-    requires_approval: bool | None = None
+    requires_approval: Optional[bool]= None
 
 
 class TaskActionRequest(BaseModel):
@@ -92,19 +92,19 @@ class TaskActionRequest(BaseModel):
 
 
 class ApprovalDecisionRequest(TaskActionRequest):
-    decision_comment: str | None = Field(default=None, max_length=2000)
+    decision_comment: Optional[str]= Field(default=None, max_length=2000)
 
 
 class ApprovalRequestDecision(BaseModel):
     organization_id: str = Field(min_length=36, max_length=36)
     decision: Literal["approve", "reject", "request_changes"]
-    decision_comment: str | None = Field(default=None, max_length=2000)
+    decision_comment: Optional[str]= Field(default=None, max_length=2000)
 
 
 class RouterAssignRequest(TaskActionRequest):
     task_id: str = Field(min_length=36, max_length=36)
-    department_id: str | None = Field(default=None, min_length=36, max_length=36)
-    agent_id: str | None = Field(default=None, min_length=36, max_length=36)
+    department_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
+    agent_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
 
 
 async def _authorize(
@@ -165,7 +165,7 @@ async def _ensure_manual_approval(task: dict[str, Any]) -> None:
 @router.get("/overview")
 async def get_overview(
     organization_id: str = Query(min_length=36, max_length=36),
-    project_id: str | None = Query(default=None, min_length=36, max_length=36),
+    project_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     await _authorize(organization_id, actor)
@@ -432,10 +432,10 @@ async def create_task(
 @router.get("/tasks")
 async def get_tasks(
     organization_id: str = Query(min_length=36, max_length=36),
-    project_id: str | None = Query(default=None, min_length=36, max_length=36),
-    department_id: str | None = Query(default=None, min_length=36, max_length=36),
-    agent_id: str | None = Query(default=None, min_length=36, max_length=36),
-    status: TaskStatus | None = None,
+    project_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
+    department_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
+    agent_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
+    status: Optional[TaskStatus]= None,
     search: str = Query(default="", max_length=120),
     limit: int = Query(default=100, ge=1, le=250),
     actor: WorkflowActor = Depends(require_workflow_actor),
@@ -725,7 +725,7 @@ async def cancel_task(task_id: str, request: TaskActionRequest, actor: WorkflowA
 @router.get("/agents")
 async def get_agents(
     organization_id: str = Query(min_length=36, max_length=36),
-    department_id: str | None = Query(default=None, min_length=36, max_length=36),
+    department_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     await _authorize(organization_id, actor)
@@ -748,7 +748,7 @@ async def get_agents(
 @router.get("/events")
 async def get_events(
     organization_id: str = Query(min_length=36, max_length=36),
-    project_id: str | None = Query(default=None, min_length=36, max_length=36),
+    project_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
     limit: int = Query(default=50, ge=1, le=200),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
@@ -767,7 +767,7 @@ async def get_events(
 @router.get("/artifacts")
 async def get_artifacts(
     organization_id: str = Query(min_length=36, max_length=36),
-    project_id: str | None = Query(default=None, min_length=36, max_length=36),
+    project_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
     limit: int = Query(default=50, ge=1, le=200),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):

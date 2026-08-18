@@ -37,7 +37,7 @@ class ChatAdapter(NVIDIAAdapter):
         model_def: ModelDefinition,
         messages: list[dict[str, Any]],
         *,
-        stream: bool | None = None,
+        stream: Optional[bool]= None,
         **overrides: Any,
     ) -> AdapterResult:
         params = dict(model_def.source_parameters)

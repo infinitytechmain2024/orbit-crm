@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class STTService:
     def __init__(self):
-        self._model: Any | None = None
+        self._model: Optional[Any]= None
         self._model_name = settings.WHISPER_MODEL
         self._device = settings.WHISPER_DEVICE
         self._compute_type = settings.WHISPER_COMPUTE_TYPE

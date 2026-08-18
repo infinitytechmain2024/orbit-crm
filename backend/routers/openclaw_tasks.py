@@ -30,7 +30,7 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def _verify_webhook_token(
-    credentials: HTTPAuthorizationCredentials | None = Security(_bearer_scheme),
+    credentials: Optional[HTTPAuthorizationCredentials]= Security(_bearer_scheme),
 ) -> None:
     """Verify OpenClaw webhook authorization token.
 
@@ -63,14 +63,14 @@ async def _verify_webhook_token(
 class OpenClawTaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=240)
     description: str = Field(default="", max_length=12000)
-    organization_id: str | None = Field(default=None, max_length=36)
+    organization_id: Optional[str]= Field(default=None, max_length=36)
 
 
 class OpenClawWebhookPayload(BaseModel):
     task_id: str
     status: str = "completed"
     result: Any = None
-    error: str | None = None
+    error: Optional[str]= None
 
 
 @router.post("/tasks/create")
@@ -149,7 +149,7 @@ async def get_task_status(task_id: str):
 
 @router.get("/tasks")
 async def list_tasks(
-    status: str | None = None,
+    status: Optional[str]= None,
     limit: int = 20,
 ):
     """List recent OpenClaw tasks."""

@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 class ExecutionResult:
     success: bool
     action: str
-    result: dict | None = None
-    error: str | None = None
+    result: Optional[dict]= None
+    error: Optional[str]= None
 
 
 async def execute_intent(user_id: str, intent: Intent) -> ExecutionResult:

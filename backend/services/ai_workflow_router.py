@@ -231,7 +231,7 @@ class AIWorkflowRouter:
         event_type: str,
         message: str,
         *,
-        agent_id: str | None = None,
+        agent_id: Optional[str]= None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         rows = await self.store.insert(
@@ -307,7 +307,7 @@ class AIWorkflowRouter:
         if not models:
             raise AllModelsFailed("No enabled NVIDIA models match this organization")
 
-        previous_model: str | None = None
+        previous_model: Optional[str]= None
         failures = 0
         for config in models:
             model_name = str(config["model_name"])
@@ -376,8 +376,8 @@ class AIWorkflowRouter:
         self,
         task: dict[str, Any],
         *,
-        requested_department_id: str | None = None,
-        requested_agent_id: str | None = None,
+        requested_department_id: Optional[str]= None,
+        requested_agent_id: Optional[str]= None,
     ) -> dict[str, Any]:
         agents = await self.store.select(
             "ai_agents",

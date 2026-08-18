@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class SupabaseService:
     def __init__(self):
-        self._client: Client | None = None
+        self._client: Optional[Client]= None
         self.bucket_name = settings.SUPABASE_STORAGE_BUCKET
 
     @property
@@ -59,7 +59,7 @@ class SupabaseService:
         project_id: str,
         file: BinaryIO,
         filename: str,
-        content_type: str | None = None,
+        content_type: Optional[str]= None,
     ) -> dict:
         """
         Upload file to Supabase Storage.
@@ -103,7 +103,7 @@ class SupabaseService:
         project_id: str,
         content: bytes,
         filename: str,
-        content_type: str | None = None,
+        content_type: Optional[str]= None,
     ) -> dict:
         """Upload bytes to Supabase Storage."""
         import io

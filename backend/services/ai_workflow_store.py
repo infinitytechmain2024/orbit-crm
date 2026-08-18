@@ -16,7 +16,7 @@ from backend.config import settings
 
 class AIWorkflowStore:
     def __init__(self) -> None:
-        self._client: httpx.AsyncClient | None = None
+        self._client: httpx.Optional[AsyncClient]= None
 
     @property
     def configured(self) -> bool:
@@ -27,7 +27,7 @@ class AIWorkflowStore:
             self._client = httpx.AsyncClient(timeout=30.0)
         return self._client
 
-    def _service_headers(self, prefer: str | None = None) -> dict[str, str]:
+    def _service_headers(self, prefer: Optional[str]= None) -> dict[str, str]:
         if not self.configured:
             raise HTTPException(status_code=503, detail="Supabase backend is not configured")
         headers = {
@@ -46,7 +46,7 @@ class AIWorkflowStore:
         *,
         params: dict[str, str | int] | None = None,
         payload: Any = None,
-        prefer: str | None = None,
+        prefer: Optional[str]= None,
     ) -> Any:
         client = await self.client()
         response = await client.request(
@@ -94,11 +94,11 @@ class AIWorkflowStore:
         self,
         table: str,
         *,
-        organization_id: str | None = None,
+        organization_id: Optional[str]= None,
         filters: dict[str, str] | None = None,
         columns: str = "*",
-        order: str | None = None,
-        limit: int | None = None,
+        order: Optional[str]= None,
+        limit: Optional[int]= None,
     ) -> list[dict[str, Any]]:
         params: dict[str, str | int] = {"select": columns}
         if organization_id:
@@ -137,7 +137,7 @@ class AIWorkflowStore:
         payload: dict[str, Any] | list[dict[str, Any]],
         *,
         upsert: bool = False,
-        on_conflict: str | None = None,
+        on_conflict: Optional[str]= None,
     ) -> list[dict[str, Any]]:
         params = {"on_conflict": on_conflict} if on_conflict else None
         prefer = "return=representation"

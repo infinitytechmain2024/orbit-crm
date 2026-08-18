@@ -36,8 +36,8 @@ local_whisper_path = str(LOCAL_WHISPER_ROOT)
 if local_whisper_path not in sys.path:
     sys.path.insert(0, local_whisper_path)
 
-whisper_model: Any | None = None
-model_initialization_error: Exception | None = None
+whisper_model: Optional[Any]= None
+model_initialization_error: Optional[Exception]= None
 model_lock = threading.Lock()
 
 
@@ -114,7 +114,7 @@ async def transcribe_speech(audio: UploadFile = File(...)) -> TranscriptionRespo
     if not suffix or len(suffix) > 10 or not suffix[1:].isalnum():
         suffix = ".webm"
 
-    temporary_path: Path | None = None
+    temporary_path: Optional[Path]= None
 
     try:
         uploaded_bytes = 0

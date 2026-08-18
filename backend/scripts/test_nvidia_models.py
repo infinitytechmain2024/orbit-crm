@@ -45,25 +45,25 @@ class TestResult:
     adapter: str
     endpoint: str
     deprecated: bool
-    http_status: int | None = None
+    http_status: Optional[int]= None
     status: str = "pending"
     latency_ms: float = 0
     content: str = ""
-    reasoning: str | None = None
-    error: str | None = None
-    error_class: str | None = None
+    reasoning: Optional[str]= None
+    error: Optional[str]= None
+    error_class: Optional[str]= None
     streaming: bool = False
-    first_chunk_latency_ms: float | None = None
+    first_chunk_latency_ms: Optional[float]= None
     number_of_chunks: int = 0
     reasoning_detected: bool = False
     content_detected: bool = False
-    embedding_dimension: int | None = None
+    embedding_dimension: Optional[int]= None
     rerank_scores: list[dict] | None = None
-    safety_result: str | None = None
+    safety_result: Optional[str]= None
     params_used: dict = field(default_factory=dict)
 
 
-def classify_error(error: str, http_status: int | None = None) -> str:
+def classify_error(error: str, http_status: Optional[int]= None) -> str:
     if http_status == 400:
         return "configuration_error"
     if http_status in (401, 403):

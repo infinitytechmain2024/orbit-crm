@@ -7,7 +7,7 @@ from __future__ import annotations
 структурированные результаты работы каждого «отдела» корпорации.
 """
 
-from typing import Dict, Any
+from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends
 

@@ -26,7 +26,7 @@ class RerankAdapter(NVIDIAAdapter):
         model_def: ModelDefinition,
         messages: list[dict[str, Any]],
         *,
-        stream: bool | None = None,
+        stream: Optional[bool]= None,
         query: str = "",
         passages: list[dict[str, str]] | None = None,
         **overrides: Any,

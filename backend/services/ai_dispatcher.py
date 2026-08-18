@@ -68,7 +68,7 @@ class AIDispatcher:
     def __init__(self):
         self.ollama_url = settings.OLLAMA_BASE_URL
         self.model = settings.OLLAMA_MODEL
-        self._client: httpx.AsyncClient | None = None
+        self._client: httpx.Optional[AsyncClient]= None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
@@ -133,7 +133,7 @@ class AIDispatcher:
                 confidence=0.0,
             )
 
-    async def classify_intent(self, text: str, user_context: dict | None = None) -> Intent:
+    async def classify_intent(self, text: str, user_context: Optional[dict]= None) -> Intent:
         """Classify user intent from text using Llama 3.2 via Ollama."""
         context = ""
         if user_context:
@@ -147,8 +147,7 @@ class AIDispatcher:
         suggestions = []
         entities = intent.entities
 
-        match intent.type:
-            case "CREATE_PROJECT":
+        if intent.type == "CREATE_PROJECT":
                 name = entities.get("projectName") or entities.get("projectDescription") or "Новый проект"
                 suggestions.append(f"Создать проект «{name}»")
                 suggestions.append("Добавить участников команды")

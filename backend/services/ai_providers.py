@@ -66,7 +66,7 @@ class ProviderUnavailable(RuntimeError):
 
 
 class OpenAICompatibleProvider:
-    def __init__(self, name: str, base_url: str, api_key: str | None) -> None:
+    def __init__(self, name: str, base_url: str, api_key: Optional[str]) -> None:
         self.name = name
         self.base_url = base_url
         self.api_key = api_key

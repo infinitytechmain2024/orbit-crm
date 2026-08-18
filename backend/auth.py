@@ -20,9 +20,7 @@ async def require_internal_token(authorization: str = Header(default="")):
 @dataclass(frozen=True)
 class WorkflowActor:
     user_id: str
-    email: str | None
-
-
+    email: Optional[str]
 ROLE_PERMISSIONS: dict[str, set[str]] = {
     "owner": {"*"},
     "admin": {"*"},
