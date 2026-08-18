@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 """Authenticated API surface for Orbit CRM AI Workflow."""
 
-from __future__ import annotations
 
 import asyncio
 import io
 import logging
+import os
 from datetime import datetime
-from typing import Any, Literal
+from typing import Optional, Any, Dict, List, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field, field_validator
@@ -17,6 +19,7 @@ from backend.services.ai_providers import redact_error
 from backend.services.ai_workflow_store import ai_workflow_store
 from backend.services.orbit_commander import orbit_commander
 from backend.services.stt import stt_service
+from backend.services.nvidia_model_registry import nvidia_model_registry
 
 logger = logging.getLogger(__name__)
 
@@ -265,24 +268,99 @@ async def get_overview(
         "task_dependencies": dependencies,
         "agent_runs": agent_runs,
         "notifications": notifications,
-        "provider": {
-            "nvidia_configured": bool(settings.NVIDIA_API_KEY),
-            "configured": [
-                provider
-                for provider, enabled in {
-                    "nvidia": bool(settings.NVIDIA_API_KEY),
-                    "openai": bool(settings.OPENAI_API_KEY),
-                    "groq": bool(settings.GROQ_API_KEY),
-                    "ollama": bool(settings.OLLAMA_API_KEY),
-                }.items()
-                if enabled
-            ],
-            "voice_configured": bool(settings.WHISPER_MODEL),
-            "autorun": settings.AI_WORKFLOW_AUTORUN,
-            "worker_enabled": settings.AI_WORKFLOW_WORKER_ENABLED,
-            "openclaw_configured": bool(settings.OPENCLAW_GATEWAY_TOKEN),
-            "openclaw_url": settings.OPENCLAW_URL,
+}
+@router.get("/system-status", include_in_schema=False)
+async def get_system_status():
+    """Return detailed system status for AI Workflow diagnostics.
+
+    Never returns secret values. Only returns variable names in "missing"
+    array, never their values.
+    """
+    from backend.services.openclaw_client import openclaw_client
+
+    # Supabase check
+    supabase_configured = bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY)
+    supabase_missing: List[str] = []
+    if not settings.SUPABASE_URL:
+        supabase_missing.append("SUPABASE_URL")
+    if not settings.SUPABASE_SERVICE_ROLE_KEY:
+        supabase_missing.append("SUPABASE_SERVICE_ROLE_KEY")
+
+    # NVIDIA check
+    nvidia_api_key = settings.NVIDIA_API_KEY
+    nvidia_configured = bool(nvidia_api_key)
+    nvidia_missing: List[str] = []
+    if not nvidia_api_key:
+        nvidia_missing.append("NVIDIA_API_KEY")
+
+    # Count healthy/total models from registry
+    all_models = nvidia_model_registry.NVIDIA_MODELS
+    total_models = len(all_models)
+    healthy_models = len(nvidia_model_registry.list_active())
+
+    # OpenClaw check
+    openclaw_configured = bool(settings.OPENCLAW_GATEWAY_TOKEN)
+    openclaw_missing: List[str] = []
+    if not settings.OPENCLAW_GATEWAY_TOKEN:
+        openclaw_missing.append("OPENCLAW_GATEWAY_TOKEN")
+
+    # Determine online/offline for backend based on health check
+    # The /api/health endpoint just checks if the app is running
+    backend_online = True
+
+    # Build missing vars list across all providers
+    all_missing: List[str] = []
+    if supabase_missing:
+        all_missing.extend(supabase_missing)
+    if nvidia_missing:
+        all_missing.extend(nvidia_missing)
+    if openclaw_missing:
+        all_missing.extend(openclaw_missing)
+
+    # Determine per-provider status messages for UI
+    supabase_status: Dict[str, any] = {
+        "configured": supabase_configured,
+        "connected": supabase_configured,  # connected = configured (URL + key set)
+        "missing": supabase_missing if supabase_missing else [],
+    }
+
+    nvidia_status: Dict[str, any] = {
+        "configured": nvidia_configured,
+        "connected": nvidia_configured,
+        "healthy_models": healthy_models,
+        "total_models": total_models,
+        "missing": nvidia_missing if nvidia_missing else [],
+    }
+
+    openclaw_status: Dict[str, any] = {
+        "configured": openclaw_configured,
+        "connected": openclaw_configured,
+        "missing": openclaw_missing if openclaw_missing else [],
+    }
+
+    # Determine if workflow should fall back to available providers
+    # Don't put entire workflow in demo mode if only one optional provider is missing
+    workflow_degraded = False
+    if not nvidia_configured and supabase_configured and openclaw_configured:
+        # NVIDIA is the only missing optional provider - workflow continues via fallback
+        workflow_degraded = False
+    elif not supabase_configured:
+        # Supabase is required - workflow cannot continue without it
+        workflow_degraded = True
+    elif not openclaw_configured:
+        # OpenClaw is optional - workflow continues without it
+        workflow_degraded = False
+    else:
+        workflow_degraded = False
+
+    return {
+        "backend": {
+            "configured": True,
+            "online": backend_online,
         },
+        "supabase": supabase_status,
+        "nvidia": nvidia_status,
+        "openclaw": openclaw_status,
     }
 
 

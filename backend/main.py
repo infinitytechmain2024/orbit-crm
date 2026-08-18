@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Orbit CRM Backend — FastAPI application.
 
 Endpoints:

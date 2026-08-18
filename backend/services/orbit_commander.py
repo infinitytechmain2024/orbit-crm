@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Orbit Commander orchestration service.
 
 The commander owns planning, dependency scheduling, approval gates and quality
@@ -5,12 +7,11 @@ control. Specialized agents only execute bounded subtasks. Durable jobs live in
 Postgres so a process restart does not lose work.
 """
 
-from __future__ import annotations
 
 import json
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Literal
 
 from backend.config import settings

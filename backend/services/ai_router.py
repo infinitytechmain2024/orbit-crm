@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 AI Router - Multi-model routing service
 Routes tasks to optimal AI models based on task type and capabilities

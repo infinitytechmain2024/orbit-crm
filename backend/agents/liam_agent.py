@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Liam Agent — PraisonAI orchestrator for Orbit CRM lead generation."""
 
 import json

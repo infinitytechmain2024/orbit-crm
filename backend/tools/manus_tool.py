@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """OpenManus Web Intelligence Tool — wraps OpenManus for deep web research."""
 
 import json

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 CEO Router - AI-CEO specific endpoints for multi-project management
 Handles approval requests, deployment queue, and CEO dashboard

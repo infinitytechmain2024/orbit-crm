@@ -65,9 +65,11 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         },
         stream=False,
         reasoning=True,
-        status="active",
+        status="unavailable",
         declared_limit="6M",
         priority=90,
+        auto_route=False,
+        last_error="Timeout after 76s — NVIDIA API not responding",
     ),
     ModelDefinition(
         display_name="glm-5.2",
@@ -200,6 +202,8 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         deprecated_date="2026-08-25",
         declared_limit="1M",
         priority=0,
+        auto_route=False,
+        last_error="Timeout (deprecated model)",
     ),
     ModelDefinition(
         display_name="llama-3.1-nemotron-nano-vl-8b-v1",
@@ -220,6 +224,8 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         deprecated_date="2026-08-25",
         declared_limit="14M",
         priority=0,
+        auto_route=False,
+        last_error="Blocked (requires separate auth) — uses /v1/vlm/ endpoint",
     ),
     ModelDefinition(
         display_name="llama-3.2-1b-instruct",
@@ -258,6 +264,8 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         deprecated_date="2026-08-25",
         declared_limit="27K",
         priority=0,
+        auto_route=False,
+        last_error="Timeout (deprecated model)",
     ),
     ModelDefinition(
         display_name="llama-3.3-70b-instruct",
@@ -319,6 +327,8 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         deprecated_date="2026-08-25",
         declared_limit="6M",
         priority=0,
+        auto_route=False,
+        last_error="Timeout (deprecated model)",
     ),
     ModelDefinition(
         display_name="llama-guard-4-12b",
@@ -337,6 +347,7 @@ NVIDIA_MODELS: list[ModelDefinition] = [
         status="active",
         declared_limit="357K",
         priority=60,
+        last_error="Timeout after 75s for chat completion (works for safety checks with short prompts)",
     ),
     ModelDefinition(
         display_name="minimax-m3",

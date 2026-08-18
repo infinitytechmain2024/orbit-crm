@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Google Maps Scraper Tool — wraps gmaps_scraper for lead generation."""
 
 import csv

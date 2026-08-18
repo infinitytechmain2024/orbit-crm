@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """NVIDIA model adapters — each model's source parameters are sacred."""
 
 from backend.services.nvidia_adapters.base import NVIDIAAdapter, AdapterResult

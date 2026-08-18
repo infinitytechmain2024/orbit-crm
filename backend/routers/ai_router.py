@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 AI Router API endpoints
 Provides task routing, model selection, and NVIDIA model registry

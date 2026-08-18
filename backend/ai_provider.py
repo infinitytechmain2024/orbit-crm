@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """NVIDIA Unified Provider — routes model calls through registry + adapters.
 
 Preserves the existing chat_completion() and get_embedding() interfaces

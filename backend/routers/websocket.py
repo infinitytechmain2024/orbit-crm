@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 WebSocket Activity Stream endpoint
 Provides real-time task and workflow updates to the frontend
