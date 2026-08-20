@@ -138,7 +138,7 @@ export function AIWorkflowIntegration({
             className={cn(
               "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium",
               backendStatus.status === "online"
-                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                ? "bg-badge-green-bg text-badge-green border border-badge-green/20"
                 : backendStatus.status === "checking"
                   ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                   : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
@@ -236,7 +236,7 @@ export function AIWorkflowIntegration({
           icon={Bot}
           label="Active Agents"
           value={agents.filter((a) => a.status === "working").length}
-          color="text-emerald-400"
+          color="text-badge-green"
         />
         <StatCard
           icon={Zap}

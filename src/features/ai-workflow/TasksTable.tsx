@@ -452,7 +452,7 @@ function TaskMenu({
         <button
           type="button"
           aria-label={`Действия с задачей ${task.title}`}
-          className="grid size-7 place-items-center rounded-lg text-muted-foreground hover:bg-white/5 hover:text-foreground"
+          className="grid size-7 place-items-center rounded-lg text-muted-foreground hover:bg-surface-2 hover:text-foreground"
         >
           <MoreHorizontal className="size-4" />
         </button>
@@ -481,7 +481,7 @@ function TaskMenu({
           </DropdownMenuItem>
         )}
         {!["done", "cancelled"].includes(task.status) && (
-          <DropdownMenuItem onSelect={() => onControl(task, "cancel")} className="text-red-300">
+          <DropdownMenuItem onSelect={() => onControl(task, "cancel")} className="text-badge-red">
             <Ban className="size-3.5" /> Отменить
           </DropdownMenuItem>
         )}

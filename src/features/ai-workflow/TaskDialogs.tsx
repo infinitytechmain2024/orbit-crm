@@ -288,7 +288,7 @@ export function CreateTaskDialog({
                 </span>
               </span>
               <span
-                className={`relative h-5 w-9 rounded-full transition ${requiresApproval ? "bg-amber-400" : "bg-surface-2"}`}
+                className={`relative h-5 w-9 rounded-full transition ${requiresApproval ? "bg-badge-yellow" : "bg-surface-2"}`}
               >
                 <span
                   className={`absolute top-0.5 size-4 rounded-full bg-white transition ${requiresApproval ? "left-[18px]" : "left-0.5"}`}
@@ -460,7 +460,7 @@ export function VoiceTaskDialog({
                       ? () => recorderRef.current?.stop()
                       : () => void startRecording()
                   }
-                  className={`grid size-16 place-items-center rounded-full border transition ${phase === "recording" ? "border-red-400/50 bg-red-400/15 text-red-300 shadow-[0_0_30px_rgba(248,113,113,.2)]" : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"}`}
+                  className={`grid size-16 place-items-center rounded-full border transition ${phase === "recording" ? "border-badge-red/50 bg-badge-red-bg text-badge-red shadow-[0_0_30px_rgba(248,113,113,.2)]" : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"}`}
                   aria-label={phase === "recording" ? "Остановить запись" : "Начать запись"}
                 >
                   {phase === "recording" ? (
@@ -510,7 +510,7 @@ export function VoiceTaskDialog({
             />
           </label>
           {error && (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+            <div className="flex items-start gap-2 rounded-xl border border-badge-yellow/25 bg-badge-yellow-bg px-3 py-2 text-xs text-badge-yellow">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -589,7 +589,7 @@ export function RejectTaskDialog({
                 setComment("");
               });
             }}
-            className="h-10 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 text-xs font-semibold text-amber-200 disabled:opacity-50"
+            className="h-10 rounded-xl border border-badge-yellow/40 bg-badge-yellow-bg px-4 text-xs font-semibold text-badge-yellow disabled:opacity-50"
           >
             Запросить изменения
           </button>
@@ -603,7 +603,7 @@ export function RejectTaskDialog({
                 setComment("");
               });
             }}
-            className="h-10 rounded-xl border border-red-400/40 bg-red-400/10 px-4 text-xs font-semibold text-red-300 disabled:opacity-50"
+            className="h-10 rounded-xl border border-badge-red/40 bg-badge-red-bg px-4 text-xs font-semibold text-badge-red disabled:opacity-50"
           >
             Отклонить действие
           </button>

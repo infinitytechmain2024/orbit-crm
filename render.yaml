@@ -23,10 +23,16 @@ services:
         value: /home/node/.openclaw/workspace
       - key: OPENCLAW_GATEWAY_TOKEN
         sync: false
+      - key: PORT
+        value: "18789"
       - key: OPENCLAW_GATEWAY_BIND
         value: lan
+      - key: OPENCLAW_GATEWAY_PORT
+        value: "18789"
       - key: OPENCLAW_DISABLE_BONJOUR
         value: "1"
+      - key: OPENCLAW_EXTENSIONS
+        value: "groq"
       - key: NVIDIA_API_KEY
         sync: false
       - key: OPENCLAW_DEFAULT_MODEL
@@ -50,11 +56,11 @@ services:
       - key: NVIDIA_API_KEY
         sync: false
       - key: SUPABASE_URL
-        value: "https://qavfajsflzbefgegkwjt.supabase.co"
+        value: "https://sygledntdpakcgvtixle.supabase.co"
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
-        value: "sb_publishable_fnQ0662SlLKcgbyqzqVpJg_maswNByX"
+        value: "sb_publishable_FiHskZ3h_BpUu_vmuAqj8w_W25ZMQcT"
       - key: INTERNAL_API_TOKEN
         sync: false
       - key: WHISPER_MODEL

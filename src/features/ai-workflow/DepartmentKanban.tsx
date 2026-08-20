@@ -37,7 +37,7 @@ const COLUMN_CONFIG: Array<{
   {
     status: ["done"],
     title: "Готово",
-    color: "text-emerald-400",
+    color: "text-badge-green",
   },
 ];
 

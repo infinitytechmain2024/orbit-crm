@@ -304,9 +304,9 @@ export function TaskDetailDialog({
               </p>
             </section>
             {Boolean(task.execution_plan && Object.keys(task.execution_plan).length) && (
-              <section className="rounded-xl border border-cyan-400/20 bg-cyan-400/[0.025] p-3">
+              <section className="rounded-xl border border-badge-blue/20 bg-badge-blue-bg p-3">
                 <h3 className="flex items-center gap-2 text-xs font-semibold">
-                  <Sparkles className="size-4 text-cyan-300" /> Что будет сделано
+                  <Sparkles className="size-4 text-badge-blue" /> Что будет сделано
                 </h3>
                 <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-[10px] leading-5 text-muted-foreground">
                   {JSON.stringify(task.execution_plan, null, 2)}
@@ -314,15 +314,15 @@ export function TaskDetailDialog({
               </section>
             )}
             {task.blocker_reason && (
-              <section className="rounded-xl border border-red-400/25 bg-red-400/[0.04] p-3 text-xs text-red-200">
+              <section className="rounded-xl border border-badge-red/25 bg-badge-red-bg p-3 text-xs text-badge-red">
                 <strong className="block">Причина блокировки</strong>
                 <p className="mt-1 leading-5">{task.blocker_reason}</p>
               </section>
             )}
             {task.qa_report && (
-              <section className="rounded-xl border border-violet-400/20 bg-violet-400/[0.03] p-3">
+              <section className="rounded-xl border border-badge-purple/20 bg-badge-purple-bg p-3">
                 <h3 className="flex items-center gap-2 text-xs font-semibold">
-                  <CheckCircle2 className="size-4 text-violet-300" /> QA-отчёт
+                  <CheckCircle2 className="size-4 text-badge-purple" /> QA-отчёт
                 </h3>
                 <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap text-[10px] leading-5 text-muted-foreground">
                   {JSON.stringify(task.qa_report, null, 2)}
@@ -371,7 +371,7 @@ export function TaskDetailDialog({
               <Clock3 className="size-3.5" /> Обновлено{" "}
               {new Date(task.updated_at).toLocaleString("ru-RU")}
               {task.status === "done" && (
-                <CheckCircle2 className="ml-auto size-4 text-emerald-300" />
+                <CheckCircle2 className="ml-auto size-4 text-badge-green" />
               )}
             </div>
           </div>
@@ -389,7 +389,7 @@ export function TaskDetailDialog({
               <button
                 type="button"
                 onClick={() => onApproval(task)}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-amber-400/30 px-4 text-xs text-amber-200"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-badge-yellow/30 px-4 text-xs text-badge-yellow"
               >
                 <Send className="size-4" /> На утверждение
               </button>
