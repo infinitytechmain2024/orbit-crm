@@ -15,10 +15,10 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/ceo/:path*", "destination": "/api/ceo" },
-    { "source": "/api/ai-workflow/:path*", "destination": "/api/ai-workflow" }
+    { "source": "/api/:path*", "destination": "/api/[...proxy]" }
   ],
   "env": {
+    "BACKEND_URL": "@backend-url",
     "SUPABASE_URL": "@supabase-url",
     "SUPABASE_SERVICE_ROLE_KEY": "@supabase-service-role-key",
     "SUPABASE_PUBLISHABLE_KEY": "@supabase-publishable-key",

@@ -6,22 +6,6 @@ import { fetchWorkflowOverview } from "./api";
 import { createDemoOverview } from "./demo-data";
 import type { WorkflowOverview, WorkflowTask } from "./types";
 
-const EMPTY_OVERVIEW: WorkflowOverview = {
-  departments: [],
-  agents: [],
-  tasks: [],
-  events: [],
-  artifacts: [],
-  approval_requests: [],
-  projects: [],
-  model_configs: [],
-  workflow_runs: [],
-  task_dependencies: [],
-  agent_runs: [],
-  notifications: [],
-  provider: { nvidia_configured: false, voice_configured: false, autorun: false },
-};
-
 function canUseDemoFallback(message: string) {
   const normalized = message.toLocaleLowerCase();
   return [
