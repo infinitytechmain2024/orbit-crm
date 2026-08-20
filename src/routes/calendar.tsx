@@ -52,11 +52,11 @@ const DAYS_FULL = [
 ];
 
 const STATUS_COLORS: Record<BookingStatus, string> = {
-  new: "border-l-blue-400 bg-blue-400/10",
-  pending: "border-l-yellow-400 bg-yellow-400/10",
-  confirmed: "border-l-green-400 bg-green-400/10",
-  completed: "border-l-gray-400 bg-gray-400/10",
-  cancelled: "border-l-red-400 bg-red-400/10",
+  new: "border-l-badge-blue bg-badge-blue-bg",
+  pending: "border-l-badge-yellow bg-badge-yellow-bg",
+  confirmed: "border-l-badge-green bg-badge-green-bg",
+  completed: "border-l-badge-gray bg-badge-gray-bg",
+  cancelled: "border-l-badge-red bg-badge-red-bg",
 };
 
 const STATUS_LABELS: Record<BookingStatus, string> = {

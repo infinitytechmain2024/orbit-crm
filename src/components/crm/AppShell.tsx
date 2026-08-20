@@ -69,7 +69,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="pointer-events-none fixed inset-0 opacity-70 [background:radial-gradient(60rem_40rem_at_15%_-10%,color-mix(in_oklab,var(--acc-1)_16%,transparent),transparent),radial-gradient(50rem_40rem_at_95%_10%,color-mix(in_oklab,var(--acc-2)_14%,transparent),transparent)]" />
+      <div className="pointer-events-none fixed inset-0 opacity-70 dark:opacity-70 light:opacity-40 [background:radial-gradient(60rem_40rem_at_15%_-10%,color-mix(in_oklab,var(--acc-1)_16%,transparent),transparent),radial-gradient(50rem_40rem_at_95%_10%,color-mix(in_oklab,var(--acc-2)_14%,transparent),transparent)]" />
 
       <aside
         className={cn(

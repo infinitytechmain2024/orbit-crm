@@ -91,7 +91,7 @@ export function RightRail({
 
   return (
     <aside className="space-y-3 xl:sticky xl:top-28">
-      <section className="rounded-2xl border border-[#254252]/75 bg-[#0b1925]/90 p-4 backdrop-blur-xl">
+      <section className="rounded-2xl border border-border/50 bg-surface/90 p-4 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Лента выполнения</h2>
           <span
@@ -148,7 +148,7 @@ export function RightRail({
         )}
       </section>
 
-      <section className="rounded-2xl border border-[#254252]/75 bg-[#0b1925]/90 p-4 backdrop-blur-xl">
+      <section className="rounded-2xl border border-border/50 bg-surface/90 p-4 backdrop-blur-xl">
         <h2 className="text-sm font-semibold">Последние артефакты</h2>
         {artifacts.length ? (
           <div className="aiwf-plain-list mt-3 space-y-1">
@@ -163,7 +163,7 @@ export function RightRail({
                   href={artifact.url}
                   className="group flex items-center gap-2.5 rounded-xl p-2 transition hover:bg-white/[0.035]"
                 >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-[#0a1722] text-primary">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-surface-2 text-primary">
                     <ArtifactIcon type={artifact.type} />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -187,7 +187,7 @@ export function RightRail({
         )}
       </section>
 
-      <section className="rounded-2xl border border-[#254252]/75 bg-[#0b1925]/90 p-4 backdrop-blur-xl">
+      <section className="rounded-2xl border border-border/50 bg-surface/90 p-4 backdrop-blur-xl">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <BarChart3 className="size-4 text-primary" /> AI-сводка
         </h2>

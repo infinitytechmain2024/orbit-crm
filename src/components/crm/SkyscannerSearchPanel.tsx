@@ -220,7 +220,7 @@ export function SkyscannerSearchPanel({ onSearch, isSearching }: SkyscannerSearc
                 "flex-1 rounded-xl px-3 py-2.5 text-xs font-medium transition",
                 filters.websiteStatus === opt.value
                   ? opt.priority
-                    ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
+                    ? "bg-badge-orange-bg text-badge-orange border border-badge-orange/30"
                     : "bg-primary text-primary-foreground"
                   : "border border-border bg-surface-2/40 text-muted-foreground hover:text-foreground",
               )}

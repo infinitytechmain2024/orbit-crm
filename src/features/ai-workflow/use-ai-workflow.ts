@@ -27,14 +27,15 @@ export function useAiWorkflow(
   projectId: string,
   preview = false,
 ) {
-  const [overview, setOverview] = useState<WorkflowOverview>(EMPTY_OVERVIEW);
-  const [isLoading, setIsLoading] = useState(true);
+  const [overview, setOverview] = useState<WorkflowOverview>(() => createDemoOverview(projectId));
+  const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDemoFallback, setDemoFallback] = useState(false);
+  const [isDemoFallback, setDemoFallback] = useState(true);
   const [isRealtimeConnected, setRealtimeConnected] = useState(false);
   const [lastRealtimeAt, setLastRealtimeAt] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const toastShownRef = useRef(false);
 
   const refresh = useCallback(
     async (quiet = false) => {
@@ -58,27 +59,18 @@ export function useAiWorkflow(
         setOverview(data);
         setError(null);
         setDemoFallback(false);
+        toastShownRef.current = false;
       } catch (unknownError) {
         const message =
           unknownError instanceof Error ? unknownError.message : "Не удалось загрузить AI Workflow";
         if (canUseDemoFallback(message)) {
-          const demo = createDemoOverview(projectId);
-          setOverview({
-            ...demo,
-            provider: {
-              nvidia_configured: false,
-              configured: [],
-              voice_configured: false,
-              autorun: false,
-              worker_enabled: false,
-            },
-          });
-          setError(null);
-          setDemoFallback(true);
-          toast.warning("AI Workflow backend недоступен", {
-            description: "Показан демо-режим. Настройте AI_WORKFLOW_BACKEND_URL для работы с реальными данными.",
-            duration: 8000,
-          });
+          if (!toastShownRef.current) {
+            toastShownRef.current = true;
+            toast.warning("AI Workflow backend недоступен", {
+              description: "Показан демо-режим. Настройте AI_WORKFLOW_BACKEND_URL для работы с реальными данными.",
+              duration: 8000,
+            });
+          }
         } else {
           setError(message);
           setDemoFallback(false);
@@ -93,7 +85,7 @@ export function useAiWorkflow(
   );
 
   useEffect(() => {
-    void refresh();
+    void refresh(true);
   }, [refresh]);
 
   useEffect(() => {

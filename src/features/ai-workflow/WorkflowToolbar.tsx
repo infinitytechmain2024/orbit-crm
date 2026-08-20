@@ -26,7 +26,7 @@ export function WorkflowToolbar({
         <select
           value={projectId}
           onChange={(event) => onProjectChange(event.target.value)}
-          className="h-10 w-full appearance-none rounded-xl border border-border bg-[#0c1924]/90 px-3 pr-8 text-xs font-medium text-foreground outline-none transition focus:border-primary/70 focus:ring-2 focus:ring-primary/15 sm:w-40"
+          className="h-10 w-full appearance-none rounded-xl border border-border bg-surface-2/90 px-3 pr-8 text-xs font-medium text-foreground outline-none transition focus:border-primary/70 focus:ring-2 focus:ring-primary/15 sm:w-40"
         >
           <option value="all">Все проекты</option>
           {projects.map((project) => (
@@ -46,7 +46,7 @@ export function WorkflowToolbar({
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Поиск задач, проектов, агентов…"
-          className="h-10 w-full rounded-xl border border-border bg-[#0c1924]/90 pl-9 pr-12 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-primary/70 focus:ring-2 focus:ring-primary/15"
+          className="h-10 w-full rounded-xl border border-border bg-surface-2/90 pl-9 pr-12 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-primary/70 focus:ring-2 focus:ring-primary/15"
         />
         <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-[9px] text-muted-foreground">
           ⌘K
@@ -64,7 +64,7 @@ export function WorkflowToolbar({
       <button
         type="button"
         onClick={onVoice}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-[#0c1924]/90 px-4 text-xs font-medium text-foreground transition hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-surface-2/90 px-4 text-xs font-medium text-foreground transition hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <Mic className="size-4" />
         <span className="hidden sm:inline">Записать задачу</span>

@@ -25,17 +25,17 @@ interface LeadDetailDrawerProps {
 }
 
 const PRIORITY_CONFIG = {
-  High: { color: "text-red-400", bg: "bg-red-400/12", icon: Star },
-  Middle: { color: "text-yellow-400", bg: "bg-yellow-400/12", icon: Star },
-  Low: { color: "text-green-400", bg: "bg-green-400/12", icon: Star },
+  High: { color: "text-badge-red", bg: "bg-badge-red-bg", icon: Star },
+  Middle: { color: "text-badge-yellow", bg: "bg-badge-yellow-bg", icon: Star },
+  Low: { color: "text-badge-green", bg: "bg-badge-green-bg", icon: Star },
 };
 
 const STATUS_CONFIG = {
-  Lead: { color: "text-blue-400", bg: "bg-blue-400/12" },
-  New: { color: "text-purple-400", bg: "bg-purple-400/12" },
-  "In Progress": { color: "text-yellow-400", bg: "bg-yellow-400/12" },
-  Rejected: { color: "text-red-400", bg: "bg-red-400/12" },
-  Archived: { color: "text-gray-400", bg: "bg-gray-400/12" },
+  Lead: { color: "text-badge-blue", bg: "bg-badge-blue-bg" },
+  New: { color: "text-badge-purple", bg: "bg-badge-purple-bg" },
+  "In Progress": { color: "text-badge-yellow", bg: "bg-badge-yellow-bg" },
+  Rejected: { color: "text-badge-red", bg: "bg-badge-red-bg" },
+  Archived: { color: "text-badge-gray", bg: "bg-badge-gray-bg" },
 };
 
 export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDetailDrawerProps) {
@@ -167,7 +167,7 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                       title="Copy phone"
                     >
                       {copiedField === "phone" ? (
-                        <Check className="size-3.5 text-green-400" />
+                        <Check className="size-3.5 text-badge-green" />
                       ) : (
                         <Copy className="size-3.5" />
                       )}
@@ -197,7 +197,7 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                       title="Copy email"
                     >
                       {copiedField === "email" ? (
-                        <Check className="size-3.5 text-green-400" />
+                        <Check className="size-3.5 text-badge-green" />
                       ) : (
                         <Copy className="size-3.5" />
                       )}
@@ -231,7 +231,7 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                       title="Copy URL"
                     >
                       {copiedField === "website" ? (
-                        <Check className="size-3.5 text-green-400" />
+                        <Check className="size-3.5 text-badge-green" />
                       ) : (
                         <Copy className="size-3.5" />
                       )}
@@ -259,10 +259,10 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                   className={cn(
                     "rounded-full px-2 py-0.5 text-xs font-medium",
                     client.whatsappStatus === "Verified"
-                      ? "bg-green-400/12 text-green-400"
-                      : client.whatsappStatus === "Not Available"
-                        ? "bg-red-400/12 text-red-400"
-                        : "bg-yellow-400/12 text-yellow-400",
+                      ? "bg-badge-green-bg text-badge-green"
+                        : client.whatsappStatus === "Not Available"
+                          ? "bg-badge-red-bg text-badge-red"
+                          : "bg-badge-yellow-bg text-badge-yellow",
                   )}
                 >
                   {client.whatsappStatus === "Verified" ? (
@@ -287,20 +287,20 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                 className={cn(
                   "rounded-xl border px-4 py-3",
                   client.websiteStatusType === "no_website"
-                    ? "border-orange-500/30 bg-orange-500/10"
-                    : client.websiteStatusType === "needs_upgrade"
-                      ? "border-yellow-500/30 bg-yellow-500/10"
-                      : "border-green-500/30 bg-green-500/10",
+                    ? "border-badge-orange/30 bg-badge-orange-bg"
+                      : client.websiteStatusType === "needs_upgrade"
+                        ? "border-badge-yellow/30 bg-badge-yellow-bg"
+                        : "border-badge-green/30 bg-badge-green-bg",
                 )}
               >
                 <span
                   className={cn(
                     "text-sm font-medium",
                     client.websiteStatusType === "no_website"
-                      ? "text-orange-400"
+                      ? "text-badge-orange"
                       : client.websiteStatusType === "needs_upgrade"
-                        ? "text-yellow-400"
-                        : "text-green-400",
+                        ? "text-badge-yellow"
+                        : "text-badge-green",
                   )}
                 >
                   {client.websiteStatusType === "no_website"

@@ -19,17 +19,17 @@ interface LeadRowProps {
 }
 
 const PRIORITY_BADGES = {
-  High: "bg-red-400/15 text-red-400",
-  Middle: "bg-yellow-400/15 text-yellow-400",
-  Low: "bg-green-400/15 text-green-400",
+  High: "bg-badge-red-bg text-badge-red",
+  Middle: "bg-badge-yellow-bg text-badge-yellow",
+  Low: "bg-badge-green-bg text-badge-green",
 };
 
 const STATUS_BADGES: Record<LeadStatus, string> = {
-  Lead: "bg-blue-400/15 text-blue-400",
-  New: "bg-purple-400/15 text-purple-400",
-  "In Progress": "bg-orange-400/15 text-orange-400",
-  Rejected: "bg-red-400/15 text-red-400",
-  Archived: "bg-gray-400/15 text-gray-400",
+  Lead: "bg-badge-blue-bg text-badge-blue",
+  New: "bg-badge-purple-bg text-badge-purple",
+  "In Progress": "bg-badge-orange-bg text-badge-orange",
+  Rejected: "bg-badge-red-bg text-badge-red",
+  Archived: "bg-badge-gray-bg text-badge-gray",
 };
 
 export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
@@ -72,7 +72,7 @@ export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition"
           >
             {copiedField === "phone" ? (
-              <Check className="size-3 text-green-400" />
+              <Check className="size-3 text-badge-green" />
             ) : (
               <Copy className="size-3" />
             )}
@@ -94,7 +94,7 @@ export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition"
           >
             {copiedField === "email" ? (
-              <Check className="size-3 text-green-400" />
+              <Check className="size-3 text-badge-green" />
             ) : (
               <Copy className="size-3" />
             )}
@@ -129,8 +129,8 @@ export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
           className={cn(
             "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
             client.whatsappStatus === "Verified"
-              ? "bg-green-400/15 text-green-400"
-              : "bg-gray-400/15 text-gray-400"
+              ? "bg-badge-green-bg text-badge-green"
+              : "bg-badge-gray-bg text-badge-gray"
           )}
         >
           {client.whatsappStatus}

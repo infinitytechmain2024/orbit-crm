@@ -29,7 +29,7 @@ import type {
 } from "./types";
 
 const controlClass =
-  "h-10 w-full rounded-xl border border-border bg-[#0a1722] px-3 text-xs outline-none focus:border-primary/60";
+  "h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-xs outline-none focus:border-primary/60";
 
 export function AgentProfileDialog({
   agent,
@@ -68,7 +68,7 @@ export function AgentProfileDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border bg-[#0b1823]">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border bg-surface">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <span className="grid size-10 place-items-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
@@ -241,7 +241,7 @@ export function TaskDetailDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border bg-[#0b1823]">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border bg-surface">
         <DialogHeader>
           <DialogTitle className="pr-8 text-lg">{task?.title}</DialogTitle>
           <DialogDescription>

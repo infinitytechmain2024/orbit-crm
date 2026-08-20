@@ -51,13 +51,13 @@ const PRIORITY_LABEL = {
 };
 
 function statusClass(status: WorkflowTaskStatus) {
-  if (status === "done") return "text-emerald-300";
-  if (status === "in_progress" || status === "planning") return "text-cyan-300";
-  if (status === "review") return "text-violet-300";
-  if (status === "paused") return "text-slate-300";
-  if (status === "approval_required") return "text-amber-300";
-  if (status === "blocked" || status === "revisions_requested") return "text-red-300";
-  return "text-sky-300";
+  if (status === "done") return "text-badge-green";
+  if (status === "in_progress" || status === "planning") return "text-badge-blue";
+  if (status === "review") return "text-badge-purple";
+  if (status === "paused") return "text-badge-gray";
+  if (status === "approval_required") return "text-badge-yellow";
+  if (status === "blocked" || status === "revisions_requested") return "text-badge-red";
+  return "text-badge-blue";
 }
 
 function actionTypeBadge(action: "run" | "change" | null) {
@@ -158,7 +158,7 @@ export function TasksTable({
   return (
     <section
       id="ai-workflow-tasks"
-      className="rounded-2xl border border-[#254252]/75 bg-[#0b1925]/88 backdrop-blur-xl"
+      className="rounded-2xl border border-border/50 bg-surface/88 backdrop-blur-xl"
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 px-4 py-3">
         <div>
@@ -178,7 +178,7 @@ export function TasksTable({
               <X className="size-3" />
             </button>
           )}
-          <label className="flex items-center gap-2 rounded-lg border border-border bg-[#0a1722] px-2.5 py-1.5 text-[10px] text-muted-foreground">
+          <label className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-[10px] text-muted-foreground">
             <ArrowUpDown className="size-3.5" />
             <select
               value={sort}
@@ -216,7 +216,7 @@ export function TasksTable({
                   "whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[10px] transition",
                   tab === item.value
                     ? "border-primary/35 bg-primary/12 text-primary"
-                    : "border-border bg-[#0a1722] text-muted-foreground hover:text-foreground",
+                    : "border-border bg-surface-2 text-muted-foreground hover:text-foreground",
                 )}
               >
                 {item.label}
@@ -409,7 +409,7 @@ export function TasksTable({
                       onStatusChange(task, event.target.value as WorkflowTaskStatus)
                     }
                     className={cn(
-                      "rounded-lg border border-border bg-[#0a1722] px-2 py-1.5 text-[10px]",
+                      "rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-[10px]",
                       statusClass(task.status),
                     )}
                   >
@@ -457,7 +457,7 @@ function TaskMenu({
           <MoreHorizontal className="size-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="border-border bg-[#0b1925] text-xs">
+      <DropdownMenuContent align="end" className="border-border bg-surface text-xs">
         <DropdownMenuItem onSelect={() => onOpen(task)}>Открыть задачу</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => onRun(task)}>

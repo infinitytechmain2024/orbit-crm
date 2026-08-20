@@ -41,17 +41,17 @@ export const Route = createFileRoute("/clients")({
 });
 
 const STATUS_CONFIG = {
-  Lead: { color: "text-blue-400", bg: "bg-blue-400/12" },
-  New: { color: "text-purple-400", bg: "bg-purple-400/12" },
-  "In Progress": { color: "text-yellow-400", bg: "bg-yellow-400/12" },
-  Rejected: { color: "text-red-400", bg: "bg-red-400/12" },
-  Archived: { color: "text-gray-400", bg: "bg-gray-400/12" },
+  Lead: { color: "text-badge-blue", bg: "bg-badge-blue-bg" },
+  New: { color: "text-badge-purple", bg: "bg-badge-purple-bg" },
+  "In Progress": { color: "text-badge-yellow", bg: "bg-badge-yellow-bg" },
+  Rejected: { color: "text-badge-red", bg: "bg-badge-red-bg" },
+  Archived: { color: "text-badge-gray", bg: "bg-badge-gray-bg" },
 };
 
 const PRIORITY_CONFIG = {
-  High: { color: "text-red-400", bg: "bg-red-400/12" },
-  Middle: { color: "text-yellow-400", bg: "bg-yellow-400/12" },
-  Low: { color: "text-green-400", bg: "bg-green-400/12" },
+  High: { color: "text-badge-red", bg: "bg-badge-red-bg" },
+  Middle: { color: "text-badge-yellow", bg: "bg-badge-yellow-bg" },
+  Low: { color: "text-badge-green", bg: "bg-badge-green-bg" },
 };
 
 function ClientsPage() {
@@ -252,7 +252,7 @@ function ClientsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {group.clients.some((c) => c.priority === "High") && (
-                        <span className="flex items-center gap-1 rounded-full bg-red-400/12 px-2 py-0.5 text-xs text-red-400">
+                        <span className="flex items-center gap-1 rounded-full bg-badge-red-bg px-2 py-0.5 text-xs text-badge-red">
                           <Star className="size-3" />
                           {group.clients.filter((c) => c.priority === "High").length} High
                         </span>
@@ -362,10 +362,10 @@ function ClientsPage() {
                                     className={cn(
                                       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
                                       client.whatsappStatus === "Verified"
-                                        ? "bg-green-400/12 text-green-400"
+                                        ? "bg-badge-green-bg text-badge-green"
                                         : client.whatsappStatus === "Not Available"
-                                          ? "bg-red-400/12 text-red-400"
-                                          : "bg-yellow-400/12 text-yellow-400",
+                                          ? "bg-badge-red-bg text-badge-red"
+                                          : "bg-badge-yellow-bg text-badge-yellow",
                                     )}
                                   >
                                     <MessageSquare className="size-3" />

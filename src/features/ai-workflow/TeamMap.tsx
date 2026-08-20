@@ -180,7 +180,7 @@ export function TeamMap({
       <div className="mx-auto max-w-5xl">
         <article
           className={cn(
-            "relative mx-auto w-full max-w-3xl rounded-2xl border bg-gradient-to-b from-[#1a1407]/85 to-[#0b1925]/88 p-4 backdrop-blur-xl transition",
+            "relative mx-auto w-full max-w-3xl rounded-2xl border bg-gradient-to-b from-[#1a1407]/85 to-surface/88 p-4 backdrop-blur-xl transition",
             selectedDepartmentId === ceoDepartment?.id
               ? "border-amber-300/60 shadow-[0_0_45px_-18px_rgba(245,158,11,.85)]"
               : "border-amber-400/30 hover:border-amber-300/45 shadow-[0_0_40px_-22px_rgba(245,158,11,.7)]",
@@ -251,7 +251,7 @@ export function TeamMap({
                 {childDepartments.map((department) => (
                   <span
                     key={department.id}
-                    className="rounded-full border border-border/70 bg-[#0c1d2a]/70 px-2 py-0.5 text-[9px] text-muted-foreground"
+                    className="rounded-full border border-border/70 bg-surface-2/70 px-2 py-0.5 text-[9px] text-muted-foreground"
                   >
                     {department.name}
                   </span>
@@ -333,10 +333,10 @@ export function TeamMap({
               <article
                 key={department.id}
                 className={cn(
-                  "relative rounded-2xl border bg-[#0b1925]/88 p-2.5 backdrop-blur-xl transition",
+                  "relative rounded-2xl border bg-surface/88 p-2.5 backdrop-blur-xl transition",
                   isSelected
                     ? "border-primary/60 shadow-[0_0_35px_-22px_rgba(35,211,202,.9)]"
-                    : "border-[#254252]/75 hover:border-primary/35",
+                    : "border-border/50 hover:border-primary/35",
                 )}
               >
                 <button
@@ -419,7 +419,7 @@ export function TeamMap({
                         key={agent.id}
                         type="button"
                         onClick={() => onAgentClick(agent)}
-                        className="h-[5.25rem] overflow-hidden rounded-xl border border-border/80 bg-[#0c1d2a]/80 p-2 text-left transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="h-[5.25rem] overflow-hidden rounded-xl border border-border/80 bg-surface-2/80 p-2 text-left transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <div className="flex items-center gap-1.5">
                           <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#103b56] to-[#122841] text-[#35c9f4]">

@@ -36,7 +36,7 @@ const newTaskSchema = z.object({
 });
 
 const fieldClass =
-  "w-full rounded-xl border border-border bg-[#0a1722] px-3 py-2.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/10";
+  "w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/10";
 
 export function CreateTaskDialog({
   open,
@@ -127,7 +127,7 @@ export function CreateTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0b1823] p-0 shadow-[0_28px_90px_rgba(0,0,0,.55)]">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-surface p-0 shadow-[0_28px_90px_rgba(0,0,0,.55)]">
         <DialogHeader className="border-b border-border px-6 py-5">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -435,7 +435,7 @@ export function VoiceTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border-border bg-[#0b1823]">
+      <DialogContent className="max-w-lg border-border bg-surface">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Radio className="size-5 text-primary" /> Голосовая задача
@@ -445,7 +445,7 @@ export function VoiceTaskDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid place-items-center rounded-2xl border border-border bg-[#07131d] px-4 py-7 text-center">
+          <div className="grid place-items-center rounded-2xl border border-border bg-surface-2 px-4 py-7 text-center">
             {phase === "transcribing" ? (
               <>
                 <Loader2 className="mb-3 size-10 animate-spin text-primary" />
@@ -556,7 +556,7 @@ export function RejectTaskDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="border-border bg-[#0b1823]">
+      <DialogContent className="border-border bg-surface">
         <DialogHeader>
           <DialogTitle>Решение по критическому действию</DialogTitle>
           <DialogDescription>{task?.title}</DialogDescription>

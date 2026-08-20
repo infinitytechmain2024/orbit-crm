@@ -81,11 +81,11 @@ const mockBookings: Booking[] = [
 ];
 
 const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: string }> = {
-  new: { label: "Новая", color: "text-blue-400", bg: "bg-blue-400/12" },
-  pending: { label: "Ожидает", color: "text-yellow-400", bg: "bg-yellow-400/12" },
-  confirmed: { label: "Подтверждена", color: "text-green-400", bg: "bg-green-400/12" },
-  completed: { label: "Завершена", color: "text-gray-400", bg: "bg-gray-400/12" },
-  cancelled: { label: "Отменена", color: "text-red-400", bg: "bg-red-400/12" },
+  new: { label: "Новая", color: "text-badge-blue", bg: "bg-badge-blue-bg" },
+  pending: { label: "Ожидает", color: "text-badge-yellow", bg: "bg-badge-yellow-bg" },
+  confirmed: { label: "Подтверждена", color: "text-badge-green", bg: "bg-badge-green-bg" },
+  completed: { label: "Завершена", color: "text-badge-gray", bg: "bg-badge-gray-bg" },
+  cancelled: { label: "Отменена", color: "text-badge-red", bg: "bg-badge-red-bg" },
 };
 
 type Tab = "incoming" | "confirmed" | "archive";

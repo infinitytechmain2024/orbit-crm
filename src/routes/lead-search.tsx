@@ -208,33 +208,33 @@ function LeadSearchPage() {
           </div>
           <div className="flex items-center gap-1.5">
             {systemStatus?.ollama.available ? (
-              <span className="flex items-center gap-1 rounded-full bg-green-400/12 px-2 py-0.5 text-xs text-green-400">
+              <span className="flex items-center gap-1 rounded-full bg-badge-green-bg px-2 py-0.5 text-xs text-badge-green">
                 <CheckCircle className="size-3" /> Llama 3.2
               </span>
             ) : (
-              <span className="flex items-center gap-1 rounded-full bg-red-400/12 px-2 py-0.5 text-xs text-red-400">
+              <span className="flex items-center gap-1 rounded-full bg-badge-red-bg px-2 py-0.5 text-xs text-badge-red">
                 <AlertCircle className="size-3" /> Ollama offline
               </span>
             )}
           </div>
           <div className="flex items-center gap-1.5">
             {systemStatus?.notion?.configured ? (
-              <span className="flex items-center gap-1 rounded-full bg-green-400/12 px-2 py-0.5 text-xs text-green-400">
+              <span className="flex items-center gap-1 rounded-full bg-badge-green-bg px-2 py-0.5 text-xs text-badge-green">
                 <Database className="size-3" /> Notion
               </span>
             ) : (
-              <span className="flex items-center gap-1 rounded-full bg-yellow-400/12 px-2 py-0.5 text-xs text-yellow-400">
+              <span className="flex items-center gap-1 rounded-full bg-badge-yellow-bg px-2 py-0.5 text-xs text-badge-yellow">
                 <Database className="size-3" /> Notion not configured
               </span>
             )}
           </div>
           <div className="flex items-center gap-1.5">
             {systemStatus?.gmaps?.available ? (
-              <span className="flex items-center gap-1 rounded-full bg-green-400/12 px-2 py-0.5 text-xs text-green-400">
+              <span className="flex items-center gap-1 rounded-full bg-badge-green-bg px-2 py-0.5 text-xs text-badge-green">
                 <CheckCircle className="size-3" /> Google Maps
               </span>
             ) : (
-              <span className="flex items-center gap-1 rounded-full bg-yellow-400/12 px-2 py-0.5 text-xs text-yellow-400">
+              <span className="flex items-center gap-1 rounded-full bg-badge-yellow-bg px-2 py-0.5 text-xs text-badge-yellow">
                 <AlertCircle className="size-3" /> GMaps offline
               </span>
             )}
@@ -256,7 +256,7 @@ function LeadSearchPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-400">
+          <div className="rounded-xl border border-badge-red/30 bg-badge-red-bg p-4 text-sm text-badge-red">
             {error}
           </div>
         )}
@@ -266,10 +266,10 @@ function LeadSearchPage() {
           <div className="rounded-xl border border-border bg-surface-2/40 p-6">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Clock className="size-4 animate-spin text-blue-400" />
+                <Clock className="size-4 animate-spin text-badge-blue" />
                 Job #{currentJob.job_id.slice(0, 8)}
               </h3>
-              <span className="rounded-full bg-blue-400/12 px-2 py-0.5 text-xs font-medium text-blue-400">
+              <span className="rounded-full bg-badge-blue-bg px-2 py-0.5 text-xs font-medium text-badge-blue">
                 Running
               </span>
             </div>

@@ -489,7 +489,7 @@ function AIWorkflowPage() {
         {backendStatus.status === "online" &&
           !overview.provider.nvidia_configured &&
           !workflow.isLoading && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-100">
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-600 dark:text-amber-100">
               <AlertTriangle className="size-3.5" />
               {overview.provider.nvidia_missing.length > 0
                 ? "NVIDIA API key не настроен: Отсутствует: " + ", ".join(overview.provider.nvidia_missing)
@@ -550,7 +550,7 @@ function AIWorkflowPage() {
           )}
 
         {workflow.isLoading ? (
-          <div className="grid min-h-[65vh] place-items-center rounded-2xl border border-border bg-[#0b1925]/75">
+          <div className="grid min-h-[65vh] place-items-center rounded-2xl border border-border bg-surface/75">
             <div className="text-center">
               <Loader2 className="mx-auto size-8 animate-spin text-primary" />
               <p className="mt-3 text-xs text-muted-foreground">Собираю AI-команду…</p>
@@ -735,7 +735,7 @@ function AIWorkflowPage() {
 
       {(mutationMessage || mutationError || isMutating) && (
         <div
-          className={`fixed bottom-5 right-5 z-[70] flex max-w-sm items-center gap-2 rounded-xl border px-4 py-3 text-xs shadow-2xl backdrop-blur-xl ${mutationError ? "border-destructive/35 bg-[#261319] text-red-200" : "border-primary/30 bg-[#0b2028] text-primary"}`}
+          className={`fixed bottom-5 right-5 z-[70] flex max-w-sm items-center gap-2 rounded-xl border px-4 py-3 text-xs shadow-2xl backdrop-blur-xl ${mutationError ? "border-destructive/35 bg-destructive/10 text-red-200" : "border-primary/30 bg-primary/10 text-primary"}`}
         >
           {isMutating ? (
             <Loader2 className="size-4 animate-spin" />

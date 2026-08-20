@@ -278,8 +278,8 @@ function KnowledgeNodeView({ data }: NodeProps<KnowledgeNode>) {
       >
         <p
           className={cn(
-            "truncate text-[12px] font-medium text-[#f5f7fa] drop-shadow-[0_2px_8px_rgba(0,0,0,1)]",
-            data.entity.type === "project" && "text-[14px] font-semibold text-white",
+            "truncate text-[12px] font-medium text-foreground drop-shadow-[0_2px_8px_rgba(0,0,0,1)]",
+            data.entity.type === "project" && "text-[14px] font-semibold text-foreground",
           )}
         >
           {data.entity.title}
@@ -337,7 +337,7 @@ function MiniMapNode({
   const diameter = Math.min(width, height);
   const cx = x + width / 2;
   const cy = y + height / 2;
-  return <circle cx={cx} cy={cy} r={diameter / 2} fill={color ?? "#456878"} />;
+  return <circle cx={cx} cy={cy} r={diameter / 2} fill={color ?? "var(--muted-foreground)"} />;
 }
 
 function KnowledgeGraphWorkspace() {
@@ -694,7 +694,7 @@ function KnowledgeGraphWorkspace() {
           relation.relationType === "adapted_for" ||
           (relation.relationType === "related_to" && relation.sourceType === "project");
         const clusterColor = edgeColorForRelation(relation, model);
-        const stroke = selectedEdge ? clusterColor : secondary ? "#5bcfc4" : "#456878";
+        const stroke = selectedEdge ? clusterColor : secondary ? "var(--acc-1)" : "var(--muted-foreground)";
         const makeEdge = (
           edgeId: string,
           edgeSource: string,
@@ -948,7 +948,7 @@ function KnowledgeGraphWorkspace() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-8.75rem)] min-h-[560px] overflow-hidden rounded-2xl border border-border bg-[#071722]/80 shadow-[0_24px_80px_-48px_rgba(0,0,0,.95)]">
+    <div className="relative h-[calc(100vh-8.75rem)] min-h-[560px] overflow-hidden rounded-2xl border border-border bg-surface/80 shadow-[0_24px_80px_-48px_rgba(0,0,0,.95)]">
       <div
         className={cn(
           "h-full min-w-0 transition-[width]",
@@ -988,8 +988,8 @@ function KnowledgeGraphWorkspace() {
           />
 
           <Panel position="top-left" className="!m-4">
-            <div className="hidden items-center gap-2 rounded-xl border border-white/8 bg-[#091923]/76 px-3 py-2 text-[11px] text-slate-300 backdrop-blur-xl 2xl:flex">
-              <Info className="size-4 text-slate-300" />
+            <div className="hidden items-center gap-2 rounded-xl border border-border/30 bg-surface-2/76 px-3 py-2 text-[11px] text-muted-foreground backdrop-blur-xl 2xl:flex">
+              <Info className="size-4 text-muted-foreground" />
               Выберите точку, чтобы увидеть связи
             </div>
           </Panel>
@@ -997,25 +997,25 @@ function KnowledgeGraphWorkspace() {
           <Panel position="top-right" className="!m-4 max-w-[calc(100%-2rem)]">
             <div className="flex flex-wrap justify-end gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" />
+                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Найти объект"
-                  className="h-9 w-44 rounded-xl border border-white/10 bg-[#091923]/88 pl-9 pr-8 text-xs text-white outline-none backdrop-blur-xl transition focus:w-56 focus:border-primary/60"
+                  className="h-9 w-44 rounded-xl border border-border/40 bg-surface-2/88 pl-9 pr-8 text-xs text-foreground outline-none backdrop-blur-xl transition focus:w-56 focus:border-primary/60"
                 />
                 {search ? (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-foreground"
                     aria-label="Очистить поиск"
                   >
                     <X className="size-3.5" />
                   </button>
                 ) : null}
                 {search ? (
-                  <div className="absolute right-0 top-11 z-40 w-72 overflow-hidden rounded-xl border border-white/10 bg-[#0b1b26]/98 p-1.5 shadow-2xl backdrop-blur-xl">
+                  <div className="absolute right-0 top-11 z-40 w-72 overflow-hidden rounded-xl border border-border/40 bg-card/98 p-1.5 shadow-2xl backdrop-blur-xl">
                     {searchResults.length ? (
                       searchResults.map((entity) => {
                         const color = GRAPH_TYPE_COLORS[entity.type];
@@ -1024,17 +1024,17 @@ function KnowledgeGraphWorkspace() {
                             key={graphNodeId(entity.type, entity.id)}
                             type="button"
                             onClick={() => selectSearchEntity(entity)}
-                            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/6"
+                            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-accent"
                           >
                             <span
                               className="size-2.5 shrink-0 rounded-full"
                               style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}` }}
                             />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-xs text-white">
+                              <span className="block truncate text-xs text-foreground">
                                 {entity.title}
                               </span>
-                              <span className="text-[10px] text-slate-500">
+                              <span className="text-[10px] text-muted-foreground/70">
                                 {GRAPH_OBJECT_LABELS[entity.type]}
                               </span>
                             </span>
@@ -1042,7 +1042,7 @@ function KnowledgeGraphWorkspace() {
                         );
                       })
                     ) : (
-                      <p className="px-3 py-4 text-center text-xs text-slate-500">
+                      <p className="px-3 py-4 text-center text-xs text-muted-foreground/70">
                         Ничего не найдено
                       </p>
                     )}
@@ -1055,7 +1055,7 @@ function KnowledgeGraphWorkspace() {
                   type="button"
                   onClick={() => setFiltersOpen((value) => !value)}
                   className={cn(
-                    "flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-[#091923]/88 px-3 text-xs text-slate-300 backdrop-blur-xl transition hover:text-white",
+                    "flex h-9 items-center gap-2 rounded-xl border border-border/40 bg-surface-2/88 px-3 text-xs text-muted-foreground backdrop-blur-xl transition hover:text-foreground",
                     filtersOpen && "border-primary/50 text-primary",
                   )}
                 >
@@ -1063,7 +1063,7 @@ function KnowledgeGraphWorkspace() {
                   Фильтры
                 </button>
                 {filtersOpen ? (
-                  <div className="absolute right-0 top-11 z-40 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1b26]/98 p-2 shadow-2xl backdrop-blur-xl">
+                  <div className="absolute right-0 top-11 z-40 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-border/40 bg-card/98 p-2 shadow-2xl backdrop-blur-xl">
                     {FILTER_GROUPS.map((group) => {
                       const active = group.types.every((type) => enabledTypes.has(type));
                       return (
@@ -1071,24 +1071,24 @@ function KnowledgeGraphWorkspace() {
                           key={group.id}
                           type="button"
                           onClick={() => toggleFilterGroup(group)}
-                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-slate-300 transition hover:bg-white/6 hover:text-white"
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
                         >
                           <span
                             className={cn(
-                              "grid size-4 place-items-center rounded border border-white/15",
+                              "grid size-4 place-items-center rounded border border-border/50",
                               active && "border-primary bg-primary text-primary-foreground",
                             )}
                           >
                             {active ? <Check className="size-3" /> : null}
                           </span>
-                          <group.icon className="size-3.5 text-slate-500" />
+                          <group.icon className="size-3.5 text-muted-foreground/70" />
                           {group.label}
                         </button>
                       );
                     })}
-                    <div className="my-2 border-t border-white/8" />
+                    <div className="my-2 border-t border-border/30" />
                     <div className="flex items-center justify-between px-2.5 py-1">
-                      <span className="text-[9px] uppercase tracking-[0.12em] text-slate-600">
+                      <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50">
                         Проекты
                       </span>
                       <button
@@ -1119,11 +1119,11 @@ function KnowledgeGraphWorkspace() {
                               return next;
                             })
                           }
-                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-slate-300 transition hover:bg-white/6 hover:text-white"
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
                         >
                           <span
                             className={cn(
-                              "grid size-4 place-items-center rounded border border-white/15",
+                              "grid size-4 place-items-center rounded border border-border/50",
                               active && "border-primary bg-primary text-primary-foreground",
                             )}
                           >
@@ -1141,14 +1141,14 @@ function KnowledgeGraphWorkspace() {
                 ) : null}
               </div>
 
-              <div className="flex h-9 items-center rounded-xl border border-white/10 bg-[#091923]/88 p-1 backdrop-blur-xl">
+              <div className="flex h-9 items-center rounded-xl border border-border/40 bg-surface-2/88 p-1 backdrop-blur-xl">
                 {[1, 2, 3].map((value) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setDepth(value as 1 | 2 | 3)}
                     className={cn(
-                      "grid h-7 min-w-7 place-items-center rounded-lg px-2 text-[11px] text-slate-500 transition",
+                      "grid h-7 min-w-7 place-items-center rounded-lg px-2 text-[11px] text-muted-foreground/70 transition",
                       depth === value && "bg-primary/14 text-primary",
                     )}
                     title={`${value} уровень связей`}
@@ -1165,7 +1165,7 @@ function KnowledgeGraphWorkspace() {
           </Panel>
 
           <MiniMap
-            className="!bottom-4 !left-4 !m-0 !h-[92px] !w-[168px] !rounded-xl !border !border-white/10 !bg-[#091923]/84 backdrop-blur-xl"
+            className="!bottom-4 !left-4 !m-0 !h-[92px] !w-[168px] !rounded-xl !border !border-border/40 !bg-surface-2/84 backdrop-blur-xl"
             nodeColor={(node) => {
               const knowledgeNode = node as KnowledgeNode;
               return GRAPH_TYPE_COLORS[knowledgeNode.data.entity.type];
@@ -1182,7 +1182,7 @@ function KnowledgeGraphWorkspace() {
       </div>
 
       {schemaWarning ? (
-        <div className="absolute bottom-4 left-1/2 z-20 flex max-w-[calc(100%-26rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-amber-400/20 bg-[#19170f]/92 px-3 py-2 text-[10px] text-amber-100 shadow-xl backdrop-blur-xl xl:mr-[338px]">
+        <div className="absolute bottom-4 left-1/2 z-20 flex max-w-[calc(100%-26rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-amber-400/20 bg-yellow-400/12 px-3 py-2 text-[10px] text-amber-100 shadow-xl backdrop-blur-xl xl:mr-[338px]">
           <AlertTriangle className="size-3.5 shrink-0 text-amber-400" />
           {schemaWarning}
           <button type="button" onClick={() => setSchemaWarning(null)} aria-label="Закрыть">
@@ -1195,7 +1195,7 @@ function KnowledgeGraphWorkspace() {
         <button
           type="button"
           onClick={() => setSoftError(null)}
-          className="absolute bottom-4 left-1/2 z-30 max-w-[min(90%,34rem)] -translate-x-1/2 rounded-xl border border-red-400/20 bg-[#201217]/95 px-4 py-2 text-xs text-red-200 shadow-xl"
+          className="absolute bottom-4 left-1/2 z-30 max-w-[min(90%,34rem)] -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-400/12 px-4 py-2 text-xs text-red-200 shadow-xl"
         >
           {softError}
         </button>
@@ -1245,11 +1245,11 @@ function GraphZoomControls({ zoom }: { zoom: number }) {
   const { zoomIn, zoomOut, fitView } = useGraphViewport();
   return (
     <Panel position="bottom-right" className="!bottom-4 !right-4 !m-0">
-      <div className="flex h-10 items-center overflow-hidden rounded-xl border border-white/10 bg-[#091923]/88 text-slate-300 shadow-xl backdrop-blur-xl">
+      <div className="flex h-10 items-center overflow-hidden rounded-xl border border-border/40 bg-surface-2/88 text-muted-foreground shadow-xl backdrop-blur-xl">
         <button
           type="button"
           onClick={() => fitView()}
-          className="grid h-full w-10 place-items-center border-r border-white/8 transition hover:bg-white/5 hover:text-primary"
+          className="grid h-full w-10 place-items-center border-r border-border/30 transition hover:bg-accent/80 hover:text-primary"
           title="Уместить граф"
         >
           <Maximize2 className="size-4" />
@@ -1257,18 +1257,18 @@ function GraphZoomControls({ zoom }: { zoom: number }) {
         <button
           type="button"
           onClick={() => zoomOut()}
-          className="grid h-full w-10 place-items-center border-r border-white/8 transition hover:bg-white/5 hover:text-white"
+          className="grid h-full w-10 place-items-center border-r border-border/30 transition hover:bg-accent/80 hover:text-foreground"
           aria-label="Уменьшить"
         >
           <Minus className="size-4" />
         </button>
-        <span className="min-w-14 px-2 text-center text-[11px] text-white">
+        <span className="min-w-14 px-2 text-center text-[11px] text-foreground">
           {Math.round(zoom * 100)}%
         </span>
         <button
           type="button"
           onClick={() => zoomIn()}
-          className="grid h-full w-10 place-items-center border-l border-white/8 transition hover:bg-white/5 hover:text-white"
+          className="grid h-full w-10 place-items-center border-l border-border/30 transition hover:bg-accent/80 hover:text-foreground"
           aria-label="Увеличить"
         >
           <Plus className="size-4" />
@@ -1296,7 +1296,7 @@ function GraphLegend() {
     { type: "client", label: "Клиент" },
   ];
   return (
-    <div className="flex items-center gap-5 rounded-xl border border-white/8 bg-[#091923]/76 px-4 py-2.5 text-[10px] text-slate-400 backdrop-blur-xl">
+    <div className="flex items-center gap-5 rounded-xl border border-border/30 bg-surface-2/76 px-4 py-2.5 text-[10px] text-muted-foreground backdrop-blur-xl">
       {items.map((item) => (
         <span key={item.type} className="flex items-center gap-2">
           <span
@@ -1397,9 +1397,9 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
   const color = GRAPH_TYPE_COLORS[props.entity.type];
 
   return (
-    <aside className="absolute inset-y-0 right-0 z-20 flex w-[min(338px,calc(100%-1rem))] flex-col border-l border-white/8 bg-[#0a1a25]/96 shadow-[-24px_0_60px_-42px_rgba(0,0,0,.95)] backdrop-blur-xl xl:w-[338px]">
+    <aside className="absolute inset-y-0 right-0 z-20 flex w-[min(338px,calc(100%-1rem))] flex-col border-l border-border/30 bg-surface-2/96 shadow-[-24px_0_60px_-42px_rgba(0,0,0,.95)] backdrop-blur-xl xl:w-[338px]">
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
           <span>{project ? "Проекты" : GRAPH_OBJECT_LABELS[props.entity.type]}</span>
           {project ? (
             <>
@@ -1410,7 +1410,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
           <button
             type="button"
             onClick={props.onClose}
-            className="ml-auto grid size-7 place-items-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-white"
+            className="ml-auto grid size-7 place-items-center rounded-lg text-muted-foreground/70 transition hover:bg-accent/80 hover:text-foreground"
             aria-label="Закрыть панель"
           >
             <PanelRightClose className="size-4" />
@@ -1425,10 +1425,10 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
             <Icon className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="break-words text-[16px] font-semibold leading-tight text-white">
+            <h2 className="break-words text-[16px] font-semibold leading-tight text-foreground">
               {props.entity.title}
             </h2>
-            <p className="mt-1 text-[10px] text-slate-500">
+            <p className="mt-1 text-[10px] text-muted-foreground/70">
               {GRAPH_OBJECT_LABELS[props.entity.type]} ·{" "}
               {formatConnectionCount(directEntities.length)}
             </p>
@@ -1436,25 +1436,25 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
         </div>
 
         {props.entity.subtitle ? (
-          <p className="mt-4 line-clamp-3 text-[11px] leading-5 text-slate-400">
+          <p className="mt-4 line-clamp-3 text-[11px] leading-5 text-muted-foreground">
             {props.entity.subtitle}
           </p>
         ) : null}
 
         {props.entity.type !== "project" ? (
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/7 bg-white/[0.025] p-3 text-[9px]">
-            <span className="text-slate-600">Создан</span>
-            <span className="text-right text-slate-400">
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-border/25 bg-surface-2/50 p-3 text-[9px]">
+            <span className="text-muted-foreground/50">Создан</span>
+            <span className="text-right text-muted-foreground">
               {props.entity.createdAt
                 ? new Date(props.entity.createdAt).toLocaleDateString("ru-RU")
                 : "—"}
             </span>
-            <span className="text-slate-600">Исходный проект</span>
-            <span className="truncate text-right text-slate-400">
+            <span className="text-muted-foreground/50">Исходный проект</span>
+            <span className="truncate text-right text-muted-foreground">
               {project?.title ?? "Без проекта"}
             </span>
-            <span className="text-slate-600">Статус</span>
-            <span className="truncate text-right text-slate-400">
+            <span className="text-muted-foreground/50">Статус</span>
+            <span className="truncate text-right text-muted-foreground">
               {props.entity.status ?? "Активен"}
             </span>
           </div>
@@ -1462,17 +1462,17 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
 
         {props.entity.type === "project" ? (
           <section className="mt-5">
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               <span>Прогресс проекта</span>
-              <span className="text-slate-200">{progress}%</span>
+              <span className="text-foreground">{progress}%</span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/6">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/25">
               <div
                 className="h-full rounded-full bg-primary shadow-[0_0_14px_rgba(31,224,202,.55)]"
                 style={{ width: `${Math.max(2, progress)}%` }}
               />
             </div>
-            <p className="mt-1.5 text-[9px] text-slate-500">
+            <p className="mt-1.5 text-[9px] text-muted-foreground/70">
               Выполнено {String(props.entity.metadata?.["completedTasks"] ?? 0)} из{" "}
               {String(props.entity.metadata?.["taskCount"] ?? 0)} задач
             </p>
@@ -1487,12 +1487,12 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                   className="size-2.5 rounded-full"
                   style={{ backgroundColor: GRAPH_TYPE_COLORS[type] }}
                 />
-                <span className="flex-1 text-slate-300">{GRAPH_OBJECT_LABELS[type]}</span>
-                <span className="text-slate-500">{count}</span>
+                <span className="flex-1 text-muted-foreground">{GRAPH_OBJECT_LABELS[type]}</span>
+                <span className="text-muted-foreground/70">{count}</span>
               </div>
             ))
           ) : (
-            <p className="text-[10px] text-slate-500">Прямых связей пока нет.</p>
+            <p className="text-[10px] text-muted-foreground/70">Прямых связей пока нет.</p>
           )}
         </PanelSection>
 
@@ -1504,7 +1504,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                   className="size-2.5 rounded-full"
                   style={{ backgroundColor: GRAPH_TYPE_COLORS.project }}
                 />
-                <span className="truncate text-slate-300">{item.title}</span>
+                <span className="truncate text-muted-foreground">{item.title}</span>
               </div>
             ))}
           </PanelSection>
@@ -1518,7 +1518,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
               return (
                 <div key={relation.id} className="flex items-center gap-2 py-1.5 text-[10px]">
                   <span className="size-2 rounded-full bg-primary/80" />
-                  <span className="min-w-0 flex-1 truncate text-slate-400">
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
                     {other?.title ?? "Связанный объект"}
                   </span>
                   <ArrowRightLeft className="size-3 text-primary/70" />
@@ -1539,7 +1539,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                   className="size-2.5 rounded-full"
                   style={{ backgroundColor: GRAPH_TYPE_COLORS[item.type] }}
                 />
-                <span className="min-w-0 flex-1 truncate text-slate-300">{item.title}</span>
+                <span className="min-w-0 flex-1 truncate text-muted-foreground">{item.title}</span>
               </div>
             ))}
           </PanelSection>
@@ -1566,15 +1566,15 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                 return (
                   <div
                     key={relation.id}
-                    className="rounded-lg border border-white/7 bg-white/[0.02] px-2.5 py-2"
+                    className="rounded-lg border border-border/25 bg-surface-2/40 px-2.5 py-2"
                   >
                     <div className="flex items-center gap-2 text-[9px]">
-                      <span className="min-w-0 flex-1 truncate text-slate-400">
+                      <span className="min-w-0 flex-1 truncate text-muted-foreground">
                         {other?.title ?? "Связанный объект"}
                       </span>
                       {locked ? (
                         <span
-                          className="flex items-center gap-1 text-slate-600"
+                          className="flex items-center gap-1 text-muted-foreground/50"
                           title="Автоматическая связь"
                         >
                           <Lock className="size-3" />
@@ -1585,7 +1585,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                           type="button"
                           disabled={busy}
                           onClick={() => props.onDeleteRelation(relation)}
-                          className="text-slate-600 transition hover:text-red-300 disabled:opacity-40"
+                          className="text-muted-foreground/50 transition hover:text-red-300 disabled:opacity-40"
                           aria-label="Удалить ручную связь"
                         >
                           {busy ? (
@@ -1597,7 +1597,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                       )}
                     </div>
                     {locked ? (
-                      <p className="mt-1 text-[9px] text-slate-600">
+                      <p className="mt-1 text-[9px] text-muted-foreground/50">
                         {GRAPH_RELATION_LABELS[relation.relationType]}
                       </p>
                     ) : (
@@ -1612,7 +1612,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                               relation.direction,
                             )
                           }
-                          className="h-7 min-w-0 flex-1 rounded-md border border-white/8 bg-[#0a1822] px-1.5 text-[9px] text-slate-300 outline-none"
+                          className="h-7 min-w-0 flex-1 rounded-md border border-border/30 bg-surface-2 px-1.5 text-[9px] text-muted-foreground outline-none"
                         >
                           {RELATION_TYPES.map((type) => (
                             <option key={type} value={type}>
@@ -1631,7 +1631,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                             )
                           }
                           className={cn(
-                            "grid size-7 place-items-center rounded-md border border-white/8 text-slate-500",
+                            "grid size-7 place-items-center rounded-md border border-border/30 text-muted-foreground/70",
                             relation.direction === "two_way" && "border-primary/30 text-primary",
                           )}
                           title={
@@ -1655,23 +1655,23 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
             className="mt-5 rounded-xl border border-primary/25 bg-primary/5 p-3"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-white">Новая связь</h3>
+              <h3 className="text-xs font-semibold text-foreground">Новая связь</h3>
               <button
                 type="button"
                 onClick={() => props.onComposerOpenChange(false)}
-                className="text-slate-500 hover:text-white"
+                className="text-muted-foreground/70 hover:text-foreground"
                 aria-label="Закрыть"
               >
                 <X className="size-3.5" />
               </button>
             </div>
-            <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-slate-500">
+            <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-muted-foreground/70">
               Тип связи
             </label>
             <select
               value={props.linkType}
               onChange={(event) => props.onLinkTypeChange(event.target.value as GraphRelationType)}
-              className="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#0a1822] px-2.5 text-[11px] text-white outline-none focus:border-primary/50"
+              className="mt-1.5 h-9 w-full rounded-lg border border-border/40 bg-surface-2 px-2.5 text-[11px] text-foreground outline-none focus:border-primary/50"
             >
               {RELATION_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -1679,7 +1679,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                 </option>
               ))}
             </select>
-            <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-slate-500">
+            <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-muted-foreground/70">
               Направление
             </label>
             <select
@@ -1687,16 +1687,16 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
               onChange={(event) =>
                 props.onLinkDirectionChange(event.target.value as GraphDirection)
               }
-              className="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#0a1822] px-2.5 text-[11px] text-white outline-none focus:border-primary/50"
+              className="mt-1.5 h-9 w-full rounded-lg border border-border/40 bg-surface-2 px-2.5 text-[11px] text-foreground outline-none focus:border-primary/50"
             >
               <option value="one_way">Односторонняя дуга</option>
               <option value="two_way">Две встречные дуги</option>
             </select>
-            <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-slate-500">
+            <label className="mt-3 block text-[9px] uppercase tracking-[0.12em] text-muted-foreground/70">
               Второй объект
             </label>
             <div className="relative mt-1.5">
-              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-600" />
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
               <input
                 value={props.linkTargetQuery}
                 onChange={(event) => {
@@ -1704,7 +1704,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                   props.onLinkTargetIdChange("");
                 }}
                 placeholder="Название объекта"
-                className="h-9 w-full rounded-lg border border-white/10 bg-[#0a1822] pl-8 pr-2.5 text-[11px] text-white outline-none focus:border-primary/50"
+                className="h-9 w-full rounded-lg border border-border/40 bg-surface-2 pl-8 pr-2.5 text-[11px] text-foreground outline-none focus:border-primary/50"
               />
             </div>
             <div className="mt-2 max-h-36 space-y-1 overflow-y-auto">
@@ -1723,7 +1723,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                       "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[10px] transition",
                       active
                         ? "bg-primary/12 text-primary"
-                        : "text-slate-400 hover:bg-white/5 hover:text-white",
+                        : "text-muted-foreground hover:bg-accent/80 hover:text-foreground",
                     )}
                   >
                     <span
@@ -1731,7 +1731,7 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
                       style={{ backgroundColor: GRAPH_TYPE_COLORS[item.type] }}
                     />
                     <span className="min-w-0 flex-1 truncate">{item.title}</span>
-                    <span className="text-[8px] text-slate-600">
+                    <span className="text-[8px] text-muted-foreground/50">
                       {GRAPH_OBJECT_LABELS[item.type]}
                     </span>
                   </button>
@@ -1754,11 +1754,11 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
         ) : null}
       </div>
 
-      <div className="space-y-2 border-t border-white/8 p-4">
+      <div className="space-y-2 border-t border-border/30 p-4">
         {sourceHref ? (
           <a
             href={sourceHref}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 text-[11px] font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border/40 text-[11px] font-medium text-muted-foreground transition hover:bg-accent/80 hover:text-foreground"
           >
             <ExternalLink className="size-3.5" />
             Открыть исходный объект
@@ -1786,8 +1786,8 @@ function GraphDetailsPanel(props: GraphDetailsPanelProps) {
 
 function PanelSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-5 border-t border-white/8 pt-4">
-      <h3 className="mb-2 text-[11px] font-semibold text-white">{title}</h3>
+    <section className="mt-5 border-t border-border/30 pt-4">
+      <h3 className="mb-2 text-[11px] font-semibold text-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -1992,7 +1992,7 @@ function edgeColorForRelation(relation: GraphRelation, model: GraphModel): strin
   if (target?.type === "project") return projectColorForEntity(target, model);
   if (source) return projectColorForEntity(source, model);
   if (target) return projectColorForEntity(target, model);
-  return "#1fe0ca";
+  return "var(--acc-1)";
 }
 
 function entitySourceHref(entity: GraphEntity): string | null {
