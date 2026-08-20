@@ -3,7 +3,7 @@ services:
     name: orbit-openclaw
     runtime: docker
     region: ohio
-    plan: free
+    plan: starter
     dockerfilePath: ./services/openclaw/Dockerfile
     dockerContext: ./services/openclaw
     healthCheckPath: /healthz
