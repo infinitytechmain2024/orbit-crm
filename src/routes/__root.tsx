@@ -15,6 +15,7 @@ import { CrmProvider } from "../lib/crm-store";
 import type { CrmSnapshot } from "../lib/crm-repository";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { AuthScreen } from "../components/crm/AuthScreen";
+import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -153,6 +154,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ProtectedApp />
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );

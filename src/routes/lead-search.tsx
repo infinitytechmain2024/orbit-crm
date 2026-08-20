@@ -18,6 +18,7 @@ import { SkyscannerSearchPanel } from "@/components/search/SkyscannerSearchPanel
 import type { SearchFilters } from "@/types/search";
 import { bulkCreateLeadClients, type LeadClientInput } from "@/lib/crm-repository";
 import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/lead-search")({
   head: () => ({
@@ -77,9 +78,20 @@ function LeadSearchPage() {
       const res = await fetch(`${LEAD_GEN_API}/api/status`);
       if (res.ok) {
         setSystemStatus(await res.json());
+      } else {
+        toast.error("Ошибка подключения", {
+          description: "Не удалось подключиться к серверу генерации лидов",
+        });
       }
     } catch {
       setSystemStatus(null);
+      toast.error("Сервис недоступен", {
+        description: "Сервер генерации лидов не запущен на " + LEAD_GEN_API,
+        action: {
+          label: "Как запустить?",
+          onClick: () => window.open("https://github.com/your-repo/lead-generator#readme", "_blank"),
+        },
+      });
     }
   }, []);
 
