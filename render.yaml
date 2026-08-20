@@ -50,13 +50,11 @@ services:
       - key: NVIDIA_API_KEY
         sync: false
       - key: SUPABASE_URL
-        sync: false
+        value: "https://qavfajsflzbefgegkwjt.supabase.co"
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
-        sync: false
-      - key: SUPABASE_JWKS_URL
-        sync: false
+        value: "sb_publishable_fnQ0662SlLKcgbyqzqVpJg_maswNByX"
       - key: INTERNAL_API_TOKEN
         sync: false
       - key: WHISPER_MODEL
@@ -72,8 +70,6 @@ services:
       - key: CEO_DEPLOYMENT_APPROVAL_REQUIRED
         value: "true"
       - key: OPENCLAW_URL
-        # Set to the private/internal URL of the orbit-openclaw service
-        # Render provides internal networking between services
         sync: false
       - key: OPENCLAW_GATEWAY_TOKEN
         sync: false

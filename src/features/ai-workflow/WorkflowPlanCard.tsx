@@ -27,12 +27,12 @@ const statusLabel: Record<WorkflowTask["status"], string> = {
 };
 
 function StepIcon({ status }: { status: WorkflowTask["status"] }) {
-  if (status === "done") return <CheckCircle2 className="size-4 text-emerald-300" />;
-  if (status === "review") return <ShieldCheck className="size-4 text-violet-300" />;
+  if (status === "done") return <CheckCircle2 className="size-4 text-badge-green" />;
+  if (status === "review") return <ShieldCheck className="size-4 text-badge-purple" />;
   if (status === "in_progress")
-    return <CircleDashed className="size-4 animate-spin text-cyan-300" />;
+    return <CircleDashed className="size-4 animate-spin text-badge-blue" />;
   if (status === "blocked" || status === "revisions_requested")
-    return <Ban className="size-4 text-red-300" />;
+    return <Ban className="size-4 text-badge-red" />;
   return <Clock3 className="size-4 text-muted-foreground" />;
 }
 
@@ -75,7 +75,7 @@ export function WorkflowPlanCard({
   const plan = root.execution_plan as { summary?: unknown } | undefined;
 
   return (
-    <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-[#0d202b]/95 to-[#0a1722]/95 p-4 shadow-[0_18px_60px_-42px_rgba(35,211,202,.9)]">
+    <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-surface/95 to-surface-2/95 p-4 shadow-[0_18px_60px_-42px_rgba(35,211,202,.9)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
@@ -101,9 +101,9 @@ export function WorkflowPlanCard({
             className={cn(
               "rounded-full border px-2.5 py-1 text-[10px]",
               root.status === "approval_required"
-                ? "border-amber-400/30 text-amber-200"
+                ? "border-badge-yellow/30 text-badge-yellow"
                 : root.status === "blocked"
-                  ? "border-red-400/30 text-red-200"
+                  ? "border-badge-red/30 text-badge-red"
                   : "border-primary/25 text-primary",
             )}
           >
@@ -137,9 +137,9 @@ export function WorkflowPlanCard({
           <span>{run?.current_phase ? `Этап: ${run.current_phase}` : "Подготовка workflow"}</span>
           <span>{progress}%</span>
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400 transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-primary to-primary transition-all"
             style={{ width: `${Math.max(2, progress)}%` }}
           />
         </div>
@@ -154,7 +154,7 @@ export function WorkflowPlanCard({
                 key={step.id}
                 type="button"
                 onClick={() => onOpen(step)}
-                className="flex min-w-0 items-start gap-3 rounded-xl border border-border/80 bg-white/[0.025] p-3 text-left transition hover:border-primary/35 hover:bg-white/[0.04]"
+                className="flex min-w-0 items-start gap-3 rounded-xl border border-border/80 bg-surface-2/50 p-3 text-left transition hover:border-primary/35 hover:bg-surface-2/70"
               >
                 <StepIcon status={step.status} />
                 <span className="min-w-0 flex-1">
@@ -202,7 +202,7 @@ function ControlButton({
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] transition",
         danger
-          ? "border-red-400/25 text-red-200 hover:bg-red-400/10"
+          ? "border-badge-red/25 text-badge-red hover:bg-badge-red-bg"
           : "border-border text-muted-foreground hover:border-primary/35 hover:text-primary",
       )}
     >

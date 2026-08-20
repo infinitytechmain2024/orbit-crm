@@ -67,7 +67,7 @@ function actionTypeBadge(action: "run" | "change" | null) {
     </span>
   );
   if (action === "change") return (
-    <span className="rounded-full border px-2 py-1 text-[8px] bg-amber/20 text-amber">
+    <span className="rounded-full border px-2 py-1 text-[8px] bg-badge-yellow-bg text-badge-yellow">
       Change
     </span>
   );
@@ -271,7 +271,7 @@ export function TasksTable({
               </thead>
               <tbody className="divide-y divide-border/70">
                 {filtered.map((task) => (
-                  <tr key={task.id} className="transition hover:bg-white/[0.025]">
+                  <tr key={task.id} className="transition hover:bg-surface-2/50">
                     <td className="px-4 py-2.5">
                       <input
                         type="checkbox"

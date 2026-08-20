@@ -31,11 +31,11 @@ function relativeTime(value: string) {
 }
 
 function eventColor(type: string) {
-  if (["completed", "approved"].includes(type)) return "bg-emerald-400";
-  if (["blocked", "rejected", "model_failure"].includes(type)) return "bg-red-400";
-  if (["approval_requested", "subtasks_created"].includes(type)) return "bg-amber-400";
-  if (["assigned", "model_fallback"].includes(type)) return "bg-violet-400";
-  return "bg-cyan-400";
+  if (["completed", "approved"].includes(type)) return "bg-badge-green";
+  if (["blocked", "rejected", "model_failure"].includes(type)) return "bg-badge-red";
+  if (["approval_requested", "subtasks_created"].includes(type)) return "bg-badge-yellow";
+  if (["assigned", "model_fallback"].includes(type)) return "bg-badge-purple";
+  return "bg-badge-blue";
 }
 
 function ArtifactIcon({ type }: { type: string }) {
@@ -95,7 +95,7 @@ export function RightRail({
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Лента выполнения</h2>
           <span
-            className={`inline-flex items-center gap-1.5 text-[9px] ${realtimeConnected ? "text-emerald-300" : "text-muted-foreground"}`}
+            className={`inline-flex items-center gap-1.5 text-[9px] ${realtimeConnected ? "text-badge-green" : "text-muted-foreground"}`}
           >
             <Radio className="size-3" />
             {realtimeConnected ? "Realtime" : "Подключение"}
@@ -161,7 +161,7 @@ export function RightRail({
                 <a
                   key={artifact.id}
                   href={artifact.url}
-                  className="group flex items-center gap-2.5 rounded-xl p-2 transition hover:bg-white/[0.035]"
+                  className="group flex items-center gap-2.5 rounded-xl p-2 transition hover:bg-surface-2/50"
                 >
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-surface-2 text-primary">
                     <ArtifactIcon type={artifact.type} />
@@ -198,7 +198,7 @@ export function RightRail({
           </p>
           <p className="flex items-center justify-between">
             <span className="text-muted-foreground">Завершено сегодня</span>
-            <strong className="text-emerald-300">{completedToday}</strong>
+            <strong className="text-badge-green">{completedToday}</strong>
           </p>
           <div>
             <div className="flex items-center justify-between">
@@ -207,21 +207,21 @@ export function RightRail({
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400 transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-primary to-primary transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
           <p className="flex items-center justify-between">
             <span className="text-muted-foreground">Ожидают решения CEO</span>
-            <strong className="text-amber-300">{approvals.length}</strong>
+            <strong className="text-badge-yellow">{approvals.length}</strong>
           </p>
         </div>
         <div
-          className={`mt-3 rounded-xl border px-3 py-2 ${risks.length ? "border-amber-400/25 bg-amber-400/8" : "border-emerald-400/20 bg-emerald-400/8"}`}
+          className={`mt-3 rounded-xl border px-3 py-2 ${risks.length ? "border-badge-yellow/25 bg-badge-yellow-bg" : "border-badge-green/20 bg-badge-green-bg"}`}
         >
           <p
-            className={`flex items-start gap-2 text-[10px] ${risks.length ? "text-amber-200" : "text-emerald-300"}`}
+            className={`flex items-start gap-2 text-[10px] ${risks.length ? "text-badge-yellow" : "text-badge-green"}`}
           >
             {risks.length ? (
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />

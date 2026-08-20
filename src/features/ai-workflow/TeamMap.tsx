@@ -180,10 +180,10 @@ export function TeamMap({
       <div className="mx-auto max-w-5xl">
         <article
           className={cn(
-            "relative mx-auto w-full max-w-3xl rounded-2xl border bg-gradient-to-b from-[#1a1407]/85 to-surface/88 p-4 backdrop-blur-xl transition",
+            "relative mx-auto w-full max-w-3xl rounded-2xl border bg-gradient-to-b from-amber-500/10 to-surface/88 p-4 backdrop-blur-xl transition",
             selectedDepartmentId === ceoDepartment?.id
-              ? "border-amber-300/60 shadow-[0_0_45px_-18px_rgba(245,158,11,.85)]"
-              : "border-amber-400/30 hover:border-amber-300/45 shadow-[0_0_40px_-22px_rgba(245,158,11,.7)]",
+              ? "border-badge-yellow/60 shadow-[0_0_45px_-18px_rgba(245,158,11,.85)]"
+              : "border-badge-yellow/30 hover:border-badge-yellow/45 shadow-[0_0_40px_-22px_rgba(245,158,11,.7)]",
           )}
         >
           <button
@@ -191,13 +191,13 @@ export function TeamMap({
             onClick={() => ceoDepartment && onDepartmentClick(ceoDepartment)}
             className="flex w-full items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <span className="grid size-11 shrink-0 place-items-center rounded-full border border-amber-300/35 bg-amber-400/10 text-amber-300">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full border border-badge-yellow/35 bg-badge-yellow-bg text-badge-yellow">
               <BriefcaseBusiness className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold tracking-tight">CEO</h2>
-                <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-200">
+                <span className="rounded-full border border-badge-yellow/25 bg-badge-yellow-bg px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-badge-yellow">
                   Корневой узел
                 </span>
               </div>
@@ -211,7 +211,7 @@ export function TeamMap({
                 <span className="text-[9px] text-muted-foreground">В очереди</span>
               </div>
               <div>
-                <strong className="block text-sm font-semibold text-emerald-300">
+                <strong className="block text-sm font-semibold text-badge-green">
                   {systemStats.active}
                 </strong>
                 <span className="text-[9px] text-muted-foreground">В работе</span>
@@ -375,8 +375,8 @@ export function TeamMap({
                       className={cn(
                         "mt-1 size-2 rounded-full",
                         stats.active
-                          ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.8)]"
-                          : "bg-slate-500",
+                          ? "bg-badge-green shadow-[0_0_10px_rgba(52,211,153,.8)]"
+                          : "bg-badge-gray",
                       )}
                     />
                   </div>
@@ -422,7 +422,7 @@ export function TeamMap({
                         className="h-[5.25rem] overflow-hidden rounded-xl border border-border/80 bg-surface-2/80 p-2 text-left transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <div className="flex items-center gap-1.5">
-                          <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#103b56] to-[#122841] text-[#35c9f4]">
+                          <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                             <Icon className="size-3" />
                           </span>
                           <span className="min-w-0 flex-1 truncate text-[10px] font-semibold">
@@ -434,9 +434,9 @@ export function TeamMap({
                             className={cn(
                               "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8px]",
                               displayStatus === "working"
-                                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                                ? "border-badge-green/30 bg-badge-green-bg text-badge-green"
                                 : displayStatus === "blocked"
-                                  ? "border-red-400/30 bg-red-400/10 text-red-300"
+                                  ? "border-badge-red/30 bg-badge-red-bg text-badge-red"
                                   : "border-border text-muted-foreground",
                             )}
                           >

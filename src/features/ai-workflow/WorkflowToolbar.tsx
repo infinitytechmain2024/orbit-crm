@@ -56,7 +56,7 @@ export function WorkflowToolbar({
       <button
         type="button"
         onClick={onCreate}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#24d7c8] to-[#27bff4] px-4 text-xs font-semibold text-[#04212a] shadow-[0_0_28px_-12px_rgba(35,211,202,.9)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 text-xs font-semibold text-primary-foreground shadow-[0_0_28px_-12px_rgba(35,211,202,.9)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <Plus className="size-4" />
         Новая задача

@@ -735,7 +735,7 @@ function AIWorkflowPage() {
 
       {(mutationMessage || mutationError || isMutating) && (
         <div
-          className={`fixed bottom-5 right-5 z-[70] flex max-w-sm items-center gap-2 rounded-xl border px-4 py-3 text-xs shadow-2xl backdrop-blur-xl ${mutationError ? "border-destructive/35 bg-destructive/10 text-red-200" : "border-primary/30 bg-primary/10 text-primary"}`}
+          className={`fixed bottom-5 right-5 z-[70] flex max-w-sm items-center gap-2 rounded-xl border px-4 py-3 text-xs shadow-2xl backdrop-blur-xl ${mutationError ? "border-destructive/35 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/10 text-primary"}`}
         >
           {isMutating ? (
             <Loader2 className="size-4 animate-spin" />
