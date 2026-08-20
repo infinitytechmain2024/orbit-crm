@@ -1,13 +1,12 @@
 services:
-  - type: docker
+  - type: web
     name: orbit-openclaw
-    runtime: image
-    image:
-      url: openclaw/openclaw:latest
+    runtime: docker
     region: ohio
     plan: free
     dockerfilePath: ./services/openclaw/Dockerfile
     dockerContext: ./services/openclaw
+    healthCheckPath: /healthz
     envVars:
       - key: HOME
         value: /home/node
@@ -76,7 +75,10 @@ services:
       - key: CEO_DEPLOYMENT_APPROVAL_REQUIRED
         value: "true"
       - key: OPENCLAW_URL
-        sync: false
+        fromService:
+          type: web
+          name: orbit-openclaw
+          property: hostport
       - key: OPENCLAW_GATEWAY_TOKEN
         sync: false
       - key: OPENCLAW_WEBHOOK_TOKEN

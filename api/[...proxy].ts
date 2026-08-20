@@ -1,8 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const BACKEND_URL = process.env.BACKEND_URL || "https://openclaw-ohki.onrender.com";
+const BACKEND_URL = process.env.BACKEND_URL;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!BACKEND_URL) {
+    return res.status(503).json({
+      detail: "BACKEND_URL is not configured",
+    });
+  }
+
   // CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");

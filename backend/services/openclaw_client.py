@@ -72,7 +72,12 @@ class OpenClawClient:
 
     @property
     def _base_url(self) -> str:
-        return settings.OPENCLAW_URL.rstrip("/")
+        value = settings.OPENCLAW_URL.strip().rstrip("/")
+        if not value:
+            return "http://127.0.0.1:18789"
+        if "://" not in value:
+            return f"http://{value}"
+        return value
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
