@@ -172,6 +172,7 @@ class OpenClawClient:
 
         last_error: Optional[str]= None
         fallback_attempts: list[dict[str, Any]] = []
+        requested_pool = "standard"
         for attempt in range(MAX_RETRIES + 1):
             try:
                 client = await self._get_client()
