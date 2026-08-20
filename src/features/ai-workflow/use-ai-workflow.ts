@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { supabase } from "@/lib/supabase/client";
 import { fetchWorkflowOverview } from "./api";
@@ -90,9 +91,14 @@ export function useAiWorkflow(
           });
           setError(null);
           setDemoFallback(true);
+          toast.warning("AI Workflow backend недоступен", {
+            description: "Показан демо-режим. Настройте AI_WORKFLOW_BACKEND_URL для работы с реальными данными.",
+            duration: 8000,
+          });
         } else {
           setError(message);
           setDemoFallback(false);
+          toast.error("Ошибка AI Workflow", { description: message });
         }
       } finally {
         setIsLoading(false);
