@@ -17,6 +17,7 @@ import {
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { useCrm } from "@/lib/crm-store";
 import {
   fetchLeadClientsGroupedByCity,
   type LeadClient,
@@ -56,6 +57,7 @@ const PRIORITY_CONFIG = {
 
 function ClientsPage() {
   const { user } = useAuth();
+  const { organization } = useCrm();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cityGroups, setCityGroups] = useState<CityGroupedClients[]>([]);
@@ -65,12 +67,13 @@ function ClientsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const loadClients = useCallback(async () => {
-    if (!user) return;
+    if (!user || !organization) return;
 
     setIsLoading(true);
     try {
       const groups = await fetchLeadClientsGroupedByCity(
         user.id,
+        organization.id,
         statusFilter === "all" ? undefined : statusFilter,
       );
       setCityGroups(groups);
@@ -85,7 +88,7 @@ function ClientsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, statusFilter]);
+  }, [user, organization, statusFilter]);
 
   useEffect(() => {
     loadClients();

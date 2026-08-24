@@ -21,12 +21,12 @@ interface LlmConfig {
 }
 
 function getConfig(): LlmConfig {
-  const provider = (import.meta.env['VITE_LLM_PROVIDER'] ?? "ollama") as LlmProvider;
+  const provider = (import.meta.env["VITE_LLM_PROVIDER"] ?? "ollama") as LlmProvider;
   return {
     provider,
-    ollamaUrl: import.meta.env['VITE_OLLAMA_URL'] ?? OLLAMA_URL,
-    openaiApiKey: import.meta.env['VITE_OPENAI_API_KEY'],
-    model: import.meta.env['VITE_LLM_MODEL'] ?? "llama3.2",
+    ollamaUrl: import.meta.env["VITE_OLLAMA_URL"] ?? OLLAMA_URL,
+    openaiApiKey: import.meta.env["VITE_OPENAI_API_KEY"],
+    model: import.meta.env["VITE_LLM_MODEL"] ?? "llama3.2",
   };
 }
 
@@ -72,9 +72,7 @@ async function callLlm(prompt: string): Promise<string> {
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-export async function parseUserCommand(
-  text: string
-): Promise<SearchFilters> {
+export async function parseUserCommand(text: string): Promise<SearchFilters> {
   const prompt = `Parse this user command into search filters. Respond ONLY with JSON.
 
 User command: "${text}"
@@ -134,7 +132,7 @@ export async function generateAiOffer(
   businessName: string,
   category: string,
   websiteUrl: string | null,
-  cityLocation: string
+  cityLocation: string,
 ): Promise<{
   audit: string;
   proposal: string;
@@ -176,7 +174,7 @@ Write in English. Be professional but friendly. Focus on how a modern website ca
 
 function getDefaultOffer(
   businessName: string,
-  category: string
+  category: string,
 ): {
   audit: string;
   proposal: string;
@@ -197,7 +195,7 @@ export async function generateCallScript(
   businessName: string,
   category: string,
   cityLocation: string,
-  websiteStatus: "no_website" | "needs_upgrade" | "good" | null
+  websiteStatus: "no_website" | "needs_upgrade" | "good" | null,
 ): Promise<string> {
   const statusContext =
     websiteStatus === "no_website"
@@ -222,9 +220,7 @@ Keep it conversational and under 100 words. Write in English.`;
   return callLlm(prompt);
 }
 
-export async function orchestrateSearch(
-  filters: SearchFilters
-): Promise<LiamResponse> {
+export async function orchestrateSearch(filters: SearchFilters): Promise<LiamResponse> {
   const command: LiamCommand = {
     action: "search",
     filters,
@@ -233,7 +229,7 @@ export async function orchestrateSearch(
   try {
     const result = await callLlm(
       `A user wants to search for leads with these filters: ${JSON.stringify(filters)}. ` +
-        `Confirm the search parameters and suggest any optimizations.`
+        `Confirm the search parameters and suggest any optimizations.`,
     );
 
     return {
@@ -251,8 +247,6 @@ export async function orchestrateSearch(
   }
 }
 
-export async function parseVoiceToFilters(
-  transcript: string
-): Promise<SearchFilters> {
+export async function parseVoiceToFilters(transcript: string): Promise<SearchFilters> {
   return parseUserCommand(transcript);
 }

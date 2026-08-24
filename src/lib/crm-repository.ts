@@ -1845,8 +1845,18 @@ export async function getTaskFileSignedUrl(storagePath: string): Promise<string>
 
 type LeadClientRow = Tables<"lead_clients">;
 
-export type { LeadClient, LeadClientInput, LeadClientPatch, CityGroupedClients } from "@/types/lead";
-import type { LeadClient, LeadClientInput, LeadClientPatch, CityGroupedClients } from "@/types/lead";
+export type {
+  LeadClient,
+  LeadClientInput,
+  LeadClientPatch,
+  CityGroupedClients,
+} from "@/types/lead";
+import type {
+  LeadClient,
+  LeadClientInput,
+  LeadClientPatch,
+  CityGroupedClients,
+} from "@/types/lead";
 
 function mapLeadClient(row: LeadClientRow): LeadClient {
   return {
@@ -1895,12 +1905,14 @@ function leadClientInputToRow(input: LeadClientInput): TablesInsert<"lead_client
 
 export async function fetchLeadClients(
   userId: string,
+  organizationId: string,
   options?: { status?: string; city?: string },
 ): Promise<LeadClient[]> {
   const supabase = getSupabaseClient();
   let query = supabase
     .from("lead_clients")
     .select("*")
+    .eq("organization_id", organizationId)
     .eq("user_id", userId)
     .order("city_location")
     .order("priority")
@@ -1920,69 +1932,32 @@ export async function fetchLeadClients(
 
 export async function fetchLeadClientsGroupedByCity(
   userId: string,
+  organizationId: string,
   status?: string,
 ): Promise<CityGroupedClients[]> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc("get_lead_clients_by_city", {
-    p_user_id: userId,
-    p_status: status || null,
-  });
-
-  if (error) throw toMessage("Не удалось загрузить клиентов по городам", error.message);
-
-  interface CityGroupResponse {
-    city_location: string;
-    clients: Array<{
-      id: string;
-      business_name: string;
-      category: string;
-      contact_phone: string | null;
-      email: string;
-      website_url: string;
-      whatsapp_status: string;
-      google_maps_url: string | null;
-      priority: string;
-      status: string;
-      website_status_type: string | null;
-      ai_offer_script: Json | null;
-      created_at: string;
-    }> | null;
-    client_count: number;
+  const clients = await fetchLeadClients(userId, organizationId, { status });
+  const groups = new Map<string, LeadClient[]>();
+  for (const client of clients) {
+    const group = groups.get(client.cityLocation) ?? [];
+    group.push(client);
+    groups.set(client.cityLocation, group);
   }
-
-  return ((data as CityGroupResponse[]) || []).map((item) => ({
-    cityLocation: item.city_location,
-    clients: (item.clients || []).map((c) => ({
-      id: c.id,
-      businessName: c.business_name,
-      category: c.category,
-      cityLocation: item.city_location,
-      country: "United States",
-      countryFlag: "🇺🇸",
-      contactPhone: c.contact_phone,
-      email: c.email,
-      websiteUrl: c.website_url,
-      whatsappStatus: c.whatsapp_status,
-      googleMapsUrl: c.google_maps_url,
-      priority: c.priority as "High" | "Middle" | "Low",
-      status: c.status as "Lead" | "New" | "In Progress" | "Rejected" | "Archived",
-      websiteStatusType: c.website_status_type as "no_website" | "needs_upgrade" | "good" | null,
-      aiOfferScript: c.ai_offer_script,
-      sourceQuery: null,
-      createdAt: c.created_at,
-      updatedAt: c.created_at,
-    })),
-    clientCount: Number(item.client_count),
+  return [...groups.entries()].map(([cityLocation, cityClients]) => ({
+    cityLocation,
+    clients: cityClients,
+    clientCount: cityClients.length,
   }));
 }
 
 export async function createLeadClient(
   userId: string,
+  organizationId: string,
   input: LeadClientInput,
 ): Promise<LeadClient> {
   const supabase = getSupabaseClient();
   const row = leadClientInputToRow(input);
   row.user_id = userId;
+  row.organization_id = organizationId;
 
   const { data, error } = await supabase.from("lead_clients").insert(row).select().single();
 
@@ -1992,6 +1967,7 @@ export async function createLeadClient(
 
 export async function updateLeadClient(
   userId: string,
+  organizationId: string,
   clientId: string,
   patch: LeadClientPatch,
 ): Promise<LeadClient> {
@@ -2019,6 +1995,7 @@ export async function updateLeadClient(
     .from("lead_clients")
     .update(updateData)
     .eq("id", clientId)
+    .eq("organization_id", organizationId)
     .eq("user_id", userId)
     .select()
     .single();
@@ -2027,12 +2004,17 @@ export async function updateLeadClient(
   return mapLeadClient(ensureData(data, "Supabase не вернул клиента."));
 }
 
-export async function deleteLeadClient(userId: string, clientId: string): Promise<void> {
+export async function deleteLeadClient(
+  userId: string,
+  organizationId: string,
+  clientId: string,
+): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase
     .from("lead_clients")
     .delete()
     .eq("id", clientId)
+    .eq("organization_id", organizationId)
     .eq("user_id", userId);
 
   if (error) throw toMessage("Не удалось удалить клиента", error.message);
@@ -2040,12 +2022,14 @@ export async function deleteLeadClient(userId: string, clientId: string): Promis
 
 export async function bulkCreateLeadClients(
   userId: string,
+  organizationId: string,
   inputs: LeadClientInput[],
 ): Promise<LeadClient[]> {
   const supabase = getSupabaseClient();
   const rows = inputs.map((input) => {
     const row = leadClientInputToRow(input);
     row.user_id = userId;
+    row.organization_id = organizationId;
     return row;
   });
 

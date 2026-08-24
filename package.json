@@ -10,7 +10,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
-    "lint": "eslint .",
+    "lint": "eslint src api e2e vite.config.ts playwright.config.ts eslint.config.js",
     "format": "prettier --write .",
     "supabase:types": "npx supabase@2.113.0 gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > src/lib/supabase/database.types.ts",
     "test:e2e": "playwright test",
@@ -73,7 +73,7 @@
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
-    "zod": "^3.24.2"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

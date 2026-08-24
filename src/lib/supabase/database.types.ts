@@ -6,6 +6,55 @@ export type Database = {
   };
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          client_id: string | null;
+          deal_id: string | null;
+          task_id: string | null;
+          title: string;
+          client_name: string;
+          starts_at: string;
+          ends_at: string;
+          status: "new" | "pending" | "confirmed" | "completed" | "cancelled";
+          reminder_at: string | null;
+          reminder_sent_at: string | null;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          client_id?: string | null;
+          deal_id?: string | null;
+          task_id?: string | null;
+          title: string;
+          client_name?: string;
+          starts_at: string;
+          ends_at: string;
+          status?: "new" | "pending" | "confirmed" | "completed" | "cancelled";
+          reminder_at?: string | null;
+          reminder_sent_at?: string | null;
+          notes?: string | null;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          client_name?: string;
+          starts_at?: string;
+          ends_at?: string;
+          status?: "new" | "pending" | "confirmed" | "completed" | "cancelled";
+          reminder_at?: string | null;
+          reminder_sent_at?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
       lead_clients: {
         Row: {
           ai_offer_script: Json | null;
@@ -19,6 +68,7 @@ export type Database = {
           email: string;
           google_maps_url: string | null;
           id: string;
+          organization_id: string;
           priority: Database["public"]["Enums"]["lead_client_priority"];
           source_query: string | null;
           status: Database["public"]["Enums"]["lead_client_status"];
@@ -40,6 +90,7 @@ export type Database = {
           email?: string;
           google_maps_url?: string | null;
           id?: string;
+          organization_id: string;
           priority?: Database["public"]["Enums"]["lead_client_priority"];
           source_query?: string | null;
           status?: Database["public"]["Enums"]["lead_client_status"];
@@ -61,6 +112,7 @@ export type Database = {
           email?: string;
           google_maps_url?: string | null;
           id?: string;
+          organization_id?: string;
           priority?: Database["public"]["Enums"]["lead_client_priority"];
           source_query?: string | null;
           status?: Database["public"]["Enums"]["lead_client_status"];

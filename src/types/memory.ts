@@ -1,9 +1,4 @@
-export type MemoryEntityType =
-  | "project"
-  | "task"
-  | "contact"
-  | "synonym"
-  | "preference";
+export type MemoryEntityType = "project" | "task" | "contact" | "synonym" | "preference";
 
 export interface AiMemoryEntry {
   id: string;

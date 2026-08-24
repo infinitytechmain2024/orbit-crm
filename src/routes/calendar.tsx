@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Bell,
+  BellOff,
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
@@ -9,6 +11,12 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
+import { useCrm } from "@/lib/crm-store";
+import {
+  fetchCalendarEvents,
+  updateCalendarEvent,
+  type CalendarEventStatus,
+} from "@/lib/calendar-repository";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -27,7 +35,7 @@ export const Route = createFileRoute("/calendar")({
 });
 
 type ViewMode = "day" | "week" | "month";
-type BookingStatus = "new" | "pending" | "confirmed" | "completed" | "cancelled";
+type BookingStatus = CalendarEventStatus;
 
 interface CalendarEvent {
   id: string;
@@ -37,6 +45,11 @@ interface CalendarEvent {
   endTime: string;
   status: BookingStatus;
   dayIndex: number;
+  startsAt: string;
+  endsAt: string;
+  dateKey: string;
+  reminderAt: string | null;
+  reminderSentAt: string | null;
 }
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 7);
@@ -67,77 +80,57 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
   cancelled: "Отменена",
 };
 
-const mockEvents: CalendarEvent[] = [
-  {
-    id: "e1",
-    title: "Массаж",
-    clientName: "Анна С.",
-    startTime: "09:00",
-    endTime: "10:00",
-    status: "confirmed",
-    dayIndex: 0,
-  },
-  {
-    id: "e2",
-    title: "Уход за лицом",
-    clientName: "Иван П.",
-    startTime: "11:00",
-    endTime: "11:45",
-    status: "new",
-    dayIndex: 0,
-  },
-  {
-    id: "e3",
-    title: "Body-терапия",
-    clientName: "Мария К.",
-    startTime: "14:00",
-    endTime: "15:30",
-    status: "pending",
-    dayIndex: 1,
-  },
-  {
-    id: "e4",
-    title: "Консультация",
-    clientName: "Дмитрий В.",
-    startTime: "10:00",
-    endTime: "10:30",
-    status: "confirmed",
-    dayIndex: 2,
-  },
-  {
-    id: "e5",
-    title: "Массаж",
-    clientName: "Елена Н.",
-    startTime: "16:00",
-    endTime: "17:00",
-    status: "new",
-    dayIndex: 3,
-  },
-  {
-    id: "e6",
-    title: "Массаж",
-    clientName: "Ольга Р.",
-    startTime: "09:00",
-    endTime: "10:00",
-    status: "completed",
-    dayIndex: 4,
-  },
-  {
-    id: "e7",
-    title: "Уход за лицом",
-    clientName: "Сергей М.",
-    startTime: "13:00",
-    endTime: "13:45",
-    status: "confirmed",
-    dayIndex: 5,
-  },
-];
-
 function CalendarPage() {
+  const { organization } = useCrm();
   const [view, setView] = useState<ViewMode>("week");
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 8));
-  const [events, setEvents] = useState<CalendarEvent[]>(mockEvents);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  const weekStart = useMemo(() => {
+    const value = new Date(currentDate);
+    const day = value.getDay() || 7;
+    value.setDate(value.getDate() - day + 1);
+    value.setHours(0, 0, 0, 0);
+    return value;
+  }, [currentDate]);
+
+  const loadEvents = useCallback(async () => {
+    if (!organization) return;
+    const rangeStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const rangeEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 1);
+    try {
+      const rows = await fetchCalendarEvents(organization.id, rangeStart, rangeEnd);
+      setEvents(
+        rows.map((row) => {
+          const start = new Date(row.starts_at);
+          const end = new Date(row.ends_at);
+          return {
+            id: row.id,
+            title: row.title,
+            clientName: row.client_name,
+            startTime: start.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+            endTime: end.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+            status: row.status,
+            dayIndex: Math.floor((start.getTime() - weekStart.getTime()) / 86_400_000),
+            startsAt: row.starts_at,
+            endsAt: row.ends_at,
+            dateKey: `${start.getFullYear()}-${start.getMonth()}-${start.getDate()}`,
+            reminderAt: row.reminder_at,
+            reminderSentAt: row.reminder_sent_at,
+          };
+        }),
+      );
+      setCalendarError(null);
+    } catch (error) {
+      setCalendarError(error instanceof Error ? error.message : "Не удалось загрузить календарь");
+    }
+  }, [currentDate, organization, weekStart]);
+
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   const navigate = (dir: -1 | 1) => {
     const d = new Date(currentDate);
@@ -151,21 +144,55 @@ function CalendarPage() {
 
   const handleDragStart = (id: string) => setDraggedId(id);
 
-  const handleDrop = (dayIndex: number, hour: number) => {
+  const handleDrop = async (dayIndex: number, hour: number) => {
     if (!draggedId) return;
-    setEvents((prev) =>
-      prev.map((e) => {
-        if (e.id !== draggedId) return e;
-        const start = `${String(hour).padStart(2, "0")}:00`;
-        const end = `${String(hour + 1).padStart(2, "0")}:00`;
-        return { ...e, dayIndex, startTime: start, endTime: end };
-      }),
-    );
+    const event = events.find((item) => item.id === draggedId);
+    if (!event || !organization) return;
+    const startsAt = new Date(weekStart);
+    startsAt.setDate(startsAt.getDate() + dayIndex);
+    startsAt.setHours(hour, 0, 0, 0);
+    const duration = new Date(event.endsAt).getTime() - new Date(event.startsAt).getTime();
+    const endsAt = new Date(startsAt.getTime() + Math.max(duration, 30 * 60_000));
+    await updateCalendarEvent(organization.id, event.id, {
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt.toISOString(),
+    });
     setDraggedId(null);
+    await loadEvents();
   };
 
-  const changeStatus = (id: string, status: BookingStatus) => {
+  const changeStatus = async (id: string, status: BookingStatus) => {
+    if (!organization) return;
+    await updateCalendarEvent(organization.id, id, { status });
     setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
+  };
+
+  const toggleReminder = async (id: string) => {
+    if (!organization) return;
+    const event = events.find((item) => item.id === id);
+    if (!event || event.reminderSentAt) return;
+    const reminderAt = event.reminderAt
+      ? null
+      : new Date(new Date(event.startsAt).getTime() - 30 * 60_000).toISOString();
+    try {
+      const updated = await updateCalendarEvent(organization.id, id, {
+        reminder_at: reminderAt,
+      });
+      setEvents((current) =>
+        current.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                reminderAt: updated.reminder_at,
+                reminderSentAt: updated.reminder_sent_at,
+              }
+            : item,
+        ),
+      );
+      setCalendarError(null);
+    } catch (error) {
+      setCalendarError(error instanceof Error ? error.message : "Не удалось обновить напоминание");
+    }
   };
 
   const getHeaderText = () => {
@@ -176,6 +203,11 @@ function CalendarPage() {
   return (
     <AppShell title="Календарь" subtitle="Расписание и записи клиентов">
       <div className="space-y-4">
+        {calendarError && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {calendarError}
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <button
@@ -222,6 +254,7 @@ function CalendarPage() {
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onChangeStatus={changeStatus}
+            onToggleReminder={toggleReminder}
           />
         )}
         {view === "week" && (
@@ -230,6 +263,7 @@ function CalendarPage() {
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onChangeStatus={changeStatus}
+            onToggleReminder={toggleReminder}
           />
         )}
         {view === "month" && <MonthView currentDate={currentDate} events={events} />}
@@ -242,10 +276,12 @@ function EventCard({
   event,
   onDragStart,
   onChangeStatus,
+  onToggleReminder,
 }: {
   event: CalendarEvent;
   onDragStart: (id: string) => void;
   onChangeStatus: (id: string, status: BookingStatus) => void;
+  onToggleReminder: (id: string) => void;
 }) {
   return (
     <div
@@ -278,6 +314,29 @@ function EventCard({
           ))}
         </select>
       </div>
+      <button
+        type="button"
+        disabled={Boolean(event.reminderSentAt)}
+        onClick={(clickEvent) => {
+          clickEvent.stopPropagation();
+          onToggleReminder(event.id);
+        }}
+        title={
+          event.reminderSentAt
+            ? "Напоминание доставлено"
+            : event.reminderAt
+              ? "Отменить напоминание"
+              : "Напомнить за 30 минут"
+        }
+        className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground disabled:cursor-default"
+      >
+        {event.reminderAt ? <Bell className="size-3" /> : <BellOff className="size-3" />}
+        {event.reminderSentAt
+          ? "Доставлено"
+          : event.reminderAt
+            ? `Напоминание ${new Date(event.reminderAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
+            : "Без напоминания"}
+      </button>
     </div>
   );
 }
@@ -287,11 +346,13 @@ function DayView({
   onDragStart,
   onDrop,
   onChangeStatus,
+  onToggleReminder,
 }: {
   events: CalendarEvent[];
   onDragStart: (id: string) => void;
   onDrop: (dayIndex: number, hour: number) => void;
   onChangeStatus: (id: string, status: BookingStatus) => void;
+  onToggleReminder: (id: string) => void;
 }) {
   return (
     <div className="flex rounded-xl border border-border bg-surface-2/40">
@@ -321,6 +382,7 @@ function DayView({
                   event={e}
                   onDragStart={onDragStart}
                   onChangeStatus={onChangeStatus}
+                  onToggleReminder={onToggleReminder}
                 />
               ))}
           </div>
@@ -335,11 +397,13 @@ function WeekView({
   onDragStart,
   onDrop,
   onChangeStatus,
+  onToggleReminder,
 }: {
   events: CalendarEvent[];
   onDragStart: (id: string) => void;
   onDrop: (dayIndex: number, hour: number) => void;
   onChangeStatus: (id: string, status: BookingStatus) => void;
+  onToggleReminder: (id: string) => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-2/40">
@@ -380,6 +444,7 @@ function WeekView({
                       event={e}
                       onDragStart={onDragStart}
                       onChangeStatus={onChangeStatus}
+                      onToggleReminder={onToggleReminder}
                     />
                   ))}
               </div>
@@ -422,17 +487,20 @@ function MonthView({ currentDate, events }: { currentDate: Date; events: Calenda
             {day && (
               <>
                 <span className="text-xs text-muted-foreground">{day}</span>
-                {events.slice(0, 2).map((e) => (
-                  <div
-                    key={e.id}
-                    className={cn(
-                      "mt-0.5 truncate rounded px-1 py-0.5 text-[10px]",
-                      STATUS_COLORS[e.status],
-                    )}
-                  >
-                    {e.clientName}
-                  </div>
-                ))}
+                {events
+                  .filter((event) => event.dateKey === `${year}-${month}-${day}`)
+                  .slice(0, 2)
+                  .map((e) => (
+                    <div
+                      key={e.id}
+                      className={cn(
+                        "mt-0.5 truncate rounded px-1 py-0.5 text-[10px]",
+                        STATUS_COLORS[e.status],
+                      )}
+                    >
+                      {e.clientName}
+                    </div>
+                  ))}
               </>
             )}
           </div>

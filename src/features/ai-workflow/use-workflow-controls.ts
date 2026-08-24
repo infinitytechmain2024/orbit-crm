@@ -6,7 +6,7 @@
 import { useState, useCallback } from "react";
 import type { WorkflowTask, WorkflowTaskStatus } from "./types";
 
-const INTERNAL_API_TOKEN = import.meta.env['VITE_INTERNAL_API_TOKEN'] || "";
+const INTERNAL_API_TOKEN = import.meta.env["VITE_INTERNAL_API_TOKEN"] || "";
 
 export interface UseWorkflowControlsReturn {
   pauseTask: (task: WorkflowTask) => Promise<void>;
@@ -20,7 +20,7 @@ export interface UseWorkflowControlsReturn {
 export function useWorkflowControls(
   accessToken: string | undefined,
   organizationId: string | undefined,
-  onUpdate: (taskId: string, patch: Partial<WorkflowTask>) => void
+  onUpdate: (taskId: string, patch: Partial<WorkflowTask>) => void,
 ): UseWorkflowControlsReturn {
   const [isOperating, setIsOperating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,18 +36,15 @@ export function useWorkflowControls(
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/ai-workflow/tasks/${taskId}/${action}`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${INTERNAL_API_TOKEN}`,
-              "X-Supabase-Authorization": `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ organization_id: organizationId }),
-          }
-        );
+        const response = await fetch(`/api/ai-workflow/tasks/${taskId}/${action}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${INTERNAL_API_TOKEN}`,
+            "X-Supabase-Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ organization_id: organizationId }),
+        });
 
         if (!response.ok) {
           throw new Error(`Ошибка: ${response.statusText}`);
@@ -61,12 +58,10 @@ export function useWorkflowControls(
         setIsOperating(false);
       }
     },
-    [accessToken, organizationId]
+    [accessToken, organizationId],
   );
 
-  const getStatusForAction = (
-    action: string
-  ): WorkflowTaskStatus => {
+  const getStatusForAction = (action: string): WorkflowTaskStatus => {
     const statusMap: Record<string, WorkflowTaskStatus> = {
       pause: "paused",
       resume: "in_progress",
@@ -86,7 +81,7 @@ export function useWorkflowControls(
         });
       }
     },
-    [makeRequest, onUpdate]
+    [makeRequest, onUpdate],
   );
 
   const resumeTask = useCallback(
@@ -99,7 +94,7 @@ export function useWorkflowControls(
         });
       }
     },
-    [makeRequest, onUpdate]
+    [makeRequest, onUpdate],
   );
 
   const cancelTask = useCallback(
@@ -112,7 +107,7 @@ export function useWorkflowControls(
         });
       }
     },
-    [makeRequest, onUpdate]
+    [makeRequest, onUpdate],
   );
 
   const retryTask = useCallback(
@@ -125,7 +120,7 @@ export function useWorkflowControls(
         });
       }
     },
-    [makeRequest, onUpdate]
+    [makeRequest, onUpdate],
   );
 
   return {

@@ -16,8 +16,6 @@ import { useCrm } from "@/lib/crm-store";
 import { sendReply, sendMessage } from "@/lib/agentmail";
 import { cn } from "@/lib/utils";
 
-const INBOX_ID = (import.meta.env["VITE_AGENTMAIL_INBOX"] as string) || "outreach@agentmail.to";
-
 export const Route = createFileRoute("/mail")({
   head: () => ({
     meta: [
@@ -65,7 +63,11 @@ function MailPage() {
     if (!sel || !replyText.trim()) return;
     setIsSending(true);
     try {
-      await sendReply({ inboxId: INBOX_ID, messageId: sel.id, text: replyText.trim() });
+      await sendReply({
+        inboxId: "configured-server-side",
+        messageId: sel.id,
+        text: replyText.trim(),
+      });
       setFlash("Ответ отправлен");
       setReplyText("");
       setIsReplyOpen(false);

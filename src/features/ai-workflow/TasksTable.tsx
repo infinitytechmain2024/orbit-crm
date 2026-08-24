@@ -61,16 +61,18 @@ function statusClass(status: WorkflowTaskStatus) {
 }
 
 function actionTypeBadge(action: "run" | "change" | null) {
-  if (action === "run") return (
-    <span className="rounded-full border px-2 py-1 text-[8px] bg-primary/20 text-primary">
-      Run
-    </span>
-  );
-  if (action === "change") return (
-    <span className="rounded-full border px-2 py-1 text-[8px] bg-badge-yellow-bg text-badge-yellow">
-      Change
-    </span>
-  );
+  if (action === "run")
+    return (
+      <span className="rounded-full border px-2 py-1 text-[8px] bg-primary/20 text-primary">
+        Run
+      </span>
+    );
+  if (action === "change")
+    return (
+      <span className="rounded-full border px-2 py-1 text-[8px] bg-badge-yellow-bg text-badge-yellow">
+        Change
+      </span>
+    );
   return null;
 }
 

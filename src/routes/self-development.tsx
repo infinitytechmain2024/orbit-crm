@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Loader2,
   Plus,
@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/crm/AppShell";
+import { authenticatedFetch } from "@/lib/api-client";
+import { useCrm } from "@/lib/crm-store";
 
 export const Route = createFileRoute("/self-development")({
   head: () => ({
@@ -74,6 +76,7 @@ const statusIcons: Record<string, typeof Clock> = {
 };
 
 function SelfDevelopmentPage() {
+  const { organization } = useCrm();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [improvements, setImprovements] = useState<Improvement[]>([]);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -86,9 +89,11 @@ function SelfDevelopmentPage() {
   const [loading, setLoading] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
+    if (!organization) return;
     try {
-      const response = await fetch("/api/openclaw/goals/list?limit=20");
+      const params = new URLSearchParams({ organization_id: organization.id, limit: "20" });
+      const response = await authenticatedFetch(`/api/openclaw/goals/list?${params}`);
       if (response.ok) {
         const data = await response.json();
         setGoals(data.goals || []);
@@ -98,41 +103,51 @@ function SelfDevelopmentPage() {
     } finally {
       setFetching(false);
     }
-  };
+  }, [organization]);
 
-  const fetchImprovements = async (goalId?: string) => {
-    try {
-      const url = goalId
-        ? `/api/openclaw/goals/improvements/list?goal_id=${goalId}`
-        : "/api/openclaw/goals/improvements/list?limit=50";
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        setImprovements(data.improvements || []);
+  const fetchImprovements = useCallback(
+    async (goalId?: string) => {
+      if (!organization) return;
+      try {
+        const params = new URLSearchParams({ organization_id: organization.id, limit: "50" });
+        if (goalId) params.set("goal_id", goalId);
+        const response = await authenticatedFetch(
+          `/api/openclaw/goals/improvements/list?${params}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setImprovements(data.improvements || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch improvements:", error);
       }
-    } catch (error) {
-      console.error("Failed to fetch improvements:", error);
-    }
-  };
+    },
+    [organization],
+  );
 
-  const fetchGoalStatus = async (goalId: string) => {
-    try {
-      const response = await fetch(`/api/openclaw/goals/status/${goalId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedGoal(data);
-        return data.status;
+  const fetchGoalStatus = useCallback(
+    async (goalId: string) => {
+      if (!organization) return null;
+      try {
+        const params = new URLSearchParams({ organization_id: organization.id });
+        const response = await authenticatedFetch(`/api/openclaw/goals/status/${goalId}?${params}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSelectedGoal(data);
+          return data.status;
+        }
+      } catch (error) {
+        console.error("Failed to fetch goal status:", error);
       }
-    } catch (error) {
-      console.error("Failed to fetch goal status:", error);
-    }
-    return null;
-  };
+      return null;
+    },
+    [organization],
+  );
 
   useEffect(() => {
     fetchGoals();
     fetchImprovements();
-  }, []);
+  }, [fetchGoals, fetchImprovements]);
 
   useEffect(() => {
     if (selectedGoal && ["active"].includes(selectedGoal.status)) {
@@ -149,10 +164,10 @@ function SelfDevelopmentPage() {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [selectedGoal?.id, selectedGoal?.status]);
+  }, [fetchGoalStatus, fetchGoals, fetchImprovements, selectedGoal]);
 
   const createGoal = async () => {
-    if (!formLabel.trim() || !formDescription.trim()) return;
+    if (!organization || !formLabel.trim() || !formDescription.trim()) return;
 
     setLoading(true);
     try {
@@ -161,7 +176,7 @@ function SelfDevelopmentPage() {
         .map((c) => c.trim())
         .filter(Boolean);
 
-      const response = await fetch("/api/openclaw/goals/create", {
+      const response = await authenticatedFetch("/api/openclaw/goals/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -169,6 +184,7 @@ function SelfDevelopmentPage() {
           description: formDescription,
           acceptance_criteria: criteria,
           priority: formPriority,
+          organization_id: organization.id,
         }),
       });
 
@@ -191,7 +207,7 @@ function SelfDevelopmentPage() {
 
   const approveImprovement = async (improvementId: string) => {
     try {
-      await fetch("/api/openclaw/goals/improvements/approve", {
+      await authenticatedFetch("/api/openclaw/goals/improvements/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ improvement_id: improvementId }),
@@ -213,10 +229,7 @@ function SelfDevelopmentPage() {
   };
 
   return (
-    <AppShell
-      title="Self-Development"
-      subtitle="AI-powered code analysis and improvements"
-    >
+    <AppShell title="Self-Development" subtitle="AI-powered code analysis and improvements">
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column: Goals */}
         <div className="lg:col-span-1 space-y-4">
@@ -306,15 +319,21 @@ function SelfDevelopmentPage() {
                       onClick={() => selectGoal(goal)}
                     >
                       <div className="flex items-start gap-2">
-                        <Icon className={`size-4 mt-0.5 shrink-0 ${goal.status === "active" ? "text-blue-500" : ""}`} />
+                        <Icon
+                          className={`size-4 mt-0.5 shrink-0 ${goal.status === "active" ? "text-blue-500" : ""}`}
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-sm truncate">{goal.label}</p>
-                            <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[goal.status] || ""}`}>
+                            <span
+                              className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[goal.status] || ""}`}
+                            >
                               {goal.status}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">{goal.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {goal.description}
+                          </p>
                           {goal.progress && (
                             <div className="mt-2">
                               <div className="w-full bg-muted rounded-full h-1.5">
@@ -324,7 +343,8 @@ function SelfDevelopmentPage() {
                                 />
                               </div>
                               <p className="text-[10px] text-muted-foreground mt-0.5">
-                                {goal.progress.done}/{goal.progress.total} ({progressPercent(goal.progress)}%)
+                                {goal.progress.done}/{goal.progress.total} (
+                                {progressPercent(goal.progress)}%)
                               </p>
                             </div>
                           )}
@@ -348,7 +368,9 @@ function SelfDevelopmentPage() {
                   <Target className="size-5" />
                   {selectedGoal.label}
                 </h2>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusColors[selectedGoal.status] || ""}`}>
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusColors[selectedGoal.status] || ""}`}
+                >
                   {selectedGoal.status}
                 </span>
               </div>
@@ -379,7 +401,8 @@ function SelfDevelopmentPage() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {selectedGoal.progress.done} of {selectedGoal.progress.total} completed ({progressPercent(selectedGoal.progress)}%)
+                    {selectedGoal.progress.done} of {selectedGoal.progress.total} completed (
+                    {progressPercent(selectedGoal.progress)}%)
                   </p>
                 </div>
               )}
@@ -413,17 +436,27 @@ function SelfDevelopmentPage() {
                   return (
                     <div key={imp.id} className="p-4">
                       <div className="flex items-start gap-3">
-                        <Icon className={`size-5 mt-0.5 shrink-0 ${imp.status === "applied" ? "text-green-500" : imp.status === "pending_review" ? "text-yellow-500" : ""}`} />
+                        <Icon
+                          className={`size-5 mt-0.5 shrink-0 ${imp.status === "applied" ? "text-green-500" : imp.status === "pending_review" ? "text-yellow-500" : ""}`}
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-medium text-sm">{imp.suggestion}</p>
-                            <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[imp.status] || ""}`}>
-                              {imp.status === "pending_review" ? "Pending" : imp.status === "applied" ? "Applied" : imp.status}
+                            <span
+                              className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[imp.status] || ""}`}
+                            >
+                              {imp.status === "pending_review"
+                                ? "Pending"
+                                : imp.status === "applied"
+                                  ? "Applied"
+                                  : imp.status}
                             </span>
                           </div>
 
                           {imp.impact && (
-                            <p className="text-xs text-muted-foreground mb-1">Impact: {imp.impact}</p>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Impact: {imp.impact}
+                            </p>
                           )}
 
                           {imp.file_path && (

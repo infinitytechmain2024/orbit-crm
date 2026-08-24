@@ -1,8 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Wifi, WifiOff, Activity, Server, Cpu, Clock, RefreshCw, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  Wifi,
+  WifiOff,
+  Activity,
+  Server,
+  Cpu,
+  Clock,
+  RefreshCw,
+  AlertTriangle,
+} from "lucide-react";
 
 import { AppShell } from "@/components/crm/AppShell";
+import { authenticatedFetch } from "@/lib/api-client";
+import { useCrm } from "@/lib/crm-store";
 
 export const Route = createFileRoute("/openclaw-tasks")({
   head: () => ({
@@ -27,7 +39,7 @@ interface OpenClawTask {
   title: string;
   description: string;
   status: string;
-  result: any;
+  result: unknown;
   error: string | null;
   created_at: string;
   updated_at: string;
@@ -40,6 +52,7 @@ const statusColor: Record<string, string> = {
 };
 
 function OpenClawDiagnosticsPage() {
+  const { organization } = useCrm();
   const [health, setHealth] = useState<OpenClawHealth | null>(null);
   const [tasks, setTasks] = useState<OpenClawTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,20 +60,34 @@ function OpenClawDiagnosticsPage() {
 
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await fetch("/api/openclaw/health");
+      const res = await authenticatedFetch("/api/openclaw/health");
       if (res.ok) {
         setHealth(await res.json());
       } else {
-        setHealth({ status: "error", gateway: false, version: "", latency_ms: 0, error: `HTTP ${res.status}` });
+        setHealth({
+          status: "error",
+          gateway: false,
+          version: "",
+          latency_ms: 0,
+          error: `HTTP ${res.status}`,
+        });
       }
     } catch {
-      setHealth({ status: "offline", gateway: false, version: "", latency_ms: 0, error: "Connection refused" });
+      setHealth({
+        status: "offline",
+        gateway: false,
+        version: "",
+        latency_ms: 0,
+        error: "Connection refused",
+      });
     }
   }, []);
 
   const fetchTasks = useCallback(async () => {
     try {
-      const res = await fetch("/api/openclaw/tasks?limit=20");
+      if (!organization) return;
+      const params = new URLSearchParams({ organization_id: organization.id, limit: "20" });
+      const res = await authenticatedFetch(`/api/openclaw/tasks?${params}`);
       if (res.ok) {
         const data = await res.json();
         setTasks(data.tasks || []);
@@ -68,7 +95,7 @@ function OpenClawDiagnosticsPage() {
     } catch {
       // ignore
     }
-  }, []);
+  }, [organization]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -84,10 +111,7 @@ function OpenClawDiagnosticsPage() {
   }, [refresh]);
 
   return (
-    <AppShell
-      title="OpenClaw — Developer"
-      subtitle="Gateway diagnostics and monitoring"
-    >
+    <AppShell title="OpenClaw — Developer" subtitle="Gateway diagnostics and monitoring">
       <div className="space-y-6">
         {/* Gateway Status */}
         <div className="panel p-6">
@@ -122,7 +146,11 @@ function OpenClawDiagnosticsPage() {
                     <WifiOff className={`size-4 ${statusColor[health.status]}`} />
                   )}
                   <span className={`font-medium ${statusColor[health.status]}`}>
-                    {health.status === "online" ? "Online" : health.status === "offline" ? "Offline" : "Error"}
+                    {health.status === "online"
+                      ? "Online"
+                      : health.status === "offline"
+                        ? "Offline"
+                        : "Error"}
                   </span>
                 </div>
               </div>
@@ -132,7 +160,9 @@ function OpenClawDiagnosticsPage() {
               </div>
               <div className="rounded-lg border border-border p-3">
                 <div className="text-xs text-muted-foreground mb-1">Latency</div>
-                <div className="font-medium">{health.latency_ms ? `${health.latency_ms}ms` : "—"}</div>
+                <div className="font-medium">
+                  {health.latency_ms ? `${health.latency_ms}ms` : "—"}
+                </div>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <div className="text-xs text-muted-foreground mb-1">Gateway</div>
@@ -142,7 +172,9 @@ function OpenClawDiagnosticsPage() {
                   ) : (
                     <AlertTriangle className="size-4 text-red-500" />
                   )}
-                  <span className="font-medium">{health.gateway ? "Responding" : "No response"}</span>
+                  <span className="font-medium">
+                    {health.gateway ? "Responding" : "No response"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -166,9 +198,7 @@ function OpenClawDiagnosticsPage() {
           </div>
 
           {tasks.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              No tasks recorded yet.
-            </div>
+            <div className="p-8 text-center text-muted-foreground">No tasks recorded yet.</div>
           ) : (
             <div className="divide-y divide-border">
               {tasks.map((task) => (
@@ -177,15 +207,22 @@ function OpenClawDiagnosticsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{task.title}</p>
                       {task.description && (
-                        <p className="mt-1 text-sm text-muted-foreground truncate">{task.description}</p>
+                        <p className="mt-1 text-sm text-muted-foreground truncate">
+                          {task.description}
+                        </p>
                       )}
                     </div>
-                    <span className={`shrink-0 ml-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      task.status === "completed" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                        : task.status === "error" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                        : task.status === "processing" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                    }`}>
+                    <span
+                      className={`shrink-0 ml-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        task.status === "completed"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                          : task.status === "error"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                            : task.status === "processing"
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                      }`}
+                    >
                       {task.status}
                     </span>
                   </div>
@@ -213,7 +250,10 @@ function OpenClawDiagnosticsPage() {
         <div className="panel p-4">
           <p className="text-sm text-muted-foreground">
             This page shows OpenClaw gateway diagnostics. For task management, use{" "}
-            <a href="/ai-workflow" className="text-primary hover:underline">AI Workflow</a>.
+            <a href="/ai-workflow" className="text-primary hover:underline">
+              AI Workflow
+            </a>
+            .
           </p>
         </div>
       </div>

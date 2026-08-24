@@ -1,13 +1,4 @@
-import {
-  Phone,
-  Mail,
-  Globe,
-  MapPin,
-  Copy,
-  ExternalLink,
-  Star,
-  Check,
-} from "lucide-react";
+import { Phone, Mail, Globe, MapPin, Copy, ExternalLink, Star, Check } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { LeadClient, LeadStatus } from "@/types/lead";
@@ -52,14 +43,10 @@ export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
       className="flex items-center gap-0 border-b border-border px-4 py-3 cursor-pointer transition hover:bg-surface-2/40 last:border-b-0"
     >
       {/* Business Name */}
-      <div className="w-[180px] truncate px-3 text-sm font-medium">
-        {client.businessName}
-      </div>
+      <div className="w-[180px] truncate px-3 text-sm font-medium">{client.businessName}</div>
 
       {/* Category */}
-      <div className="w-[120px] truncate px-3 text-xs text-muted-foreground">
-        {client.category}
-      </div>
+      <div className="w-[120px] truncate px-3 text-xs text-muted-foreground">{client.category}</div>
 
       {/* Contact */}
       <div className="w-[130px] px-3">
@@ -130,7 +117,7 @@ export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
             "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
             client.whatsappStatus === "Verified"
               ? "bg-badge-green-bg text-badge-green"
-              : "bg-badge-gray-bg text-badge-gray"
+              : "bg-badge-gray-bg text-badge-gray",
           )}
         >
           {client.whatsappStatus}
@@ -159,7 +146,7 @@ export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
         <span
           className={cn(
             "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
-            PRIORITY_BADGES[client.priority]
+            PRIORITY_BADGES[client.priority],
           )}
         >
           {client.priority}
@@ -171,7 +158,7 @@ export function LeadRow({ client, onClick, onStatusChange }: LeadRowProps) {
         <span
           className={cn(
             "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
-            STATUS_BADGES[client.status]
+            STATUS_BADGES[client.status],
           )}
         >
           {client.status}

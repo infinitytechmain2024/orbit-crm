@@ -1,5 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Crown, Loader2, RefreshCw, Shield, Wifi, WifiOff } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Crown,
+  Loader2,
+  RefreshCw,
+  Shield,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AppShell } from "@/components/crm/AppShell";
@@ -108,7 +117,7 @@ function AIWorkflowPage() {
   const workflow = useAiWorkflow(accessToken, organizationId, projectId, preview);
   const demoMode = preview || workflow.isDemoFallback;
   const { overview } = workflow;
-  
+
   // New hooks for live backend status and progress
   const backendStatus = useBackendStatus();
   const workflowProgress = useWorkflowProgress(overview.tasks);
@@ -164,7 +173,7 @@ function AIWorkflowPage() {
   async function handleCreate(input: Omit<NewWorkflowTask, "organization_id">) {
     if (!organizationId) throw new Error("Сессия ещё загружается");
     const { role, action } = previewRoleForTask(input);
-    
+
     // CEO Dispatcher: Classify task and assess risk
     const fullText = `${input.title} ${input.description}`;
     const dispatchResult = dispatchTask(fullText, {
@@ -172,10 +181,10 @@ function AIWorkflowPage() {
       userId: session?.user?.id ?? undefined,
       allowDestructive: false,
     });
-    
+
     const riskLevel = assessRisk(fullText);
     const requiresApproval = riskLevel === "critical" || riskLevel === "high";
-    
+
     if (demoMode) {
       const agent = overview.agents.find((item) => item.role === role);
       const task: WorkflowTask = {
@@ -190,9 +199,9 @@ function AIWorkflowPage() {
         status: requiresApproval ? "approval_required" : "queued",
         priority: input.priority,
         due_at: input.due_at,
-        input_data: { 
-          preview: true, 
-          auto_assign: input.auto_assign, 
+        input_data: {
+          preview: true,
+          auto_assign: input.auto_assign,
           action_type: action,
           risk_level: riskLevel,
           requires_approval: requiresApproval,
@@ -206,16 +215,19 @@ function AIWorkflowPage() {
         risk_level: riskLevel,
         approval_required: requiresApproval,
       };
-      
+
       // If approval required, create approval request
       if (requiresApproval) {
-        const changePackage = generateChangePackage({
-          title: input.title,
-          description: input.description,
-          actionType: action,
-          projectGuess: dispatchResult.taskId ? "Orbit CRM" : null,
-        }, riskLevel);
-        
+        const changePackage = generateChangePackage(
+          {
+            title: input.title,
+            description: input.description,
+            actionType: action,
+            projectGuess: dispatchResult.taskId ? "Orbit CRM" : null,
+          },
+          riskLevel,
+        );
+
         await createApprovalRequest({
           taskId: task.id,
           action: action === "run" ? "Execute operational task" : "Create/modify code",
@@ -223,7 +235,7 @@ function AIWorkflowPage() {
           riskLevel,
           changeSummary: changePackage,
         });
-        
+
         notify(`Задача создана и отправлена на CEO-аппрув (риск: ${riskLevel})`);
       } else {
         workflow.prependTask(task, `AI Router назначил задачу агенту ${agent?.role ?? "COO"}.`);
@@ -232,38 +244,46 @@ function AIWorkflowPage() {
       return;
     }
     if (!accessToken) throw new Error("Сессия ещё загружается");
-    await perform(async () => {
-      const response = await createWorkflowTask(accessToken, {
-        organization_id: organizationId,
-        ...input,
-      });
-      
-      // If approval required, create approval request
-      if (requiresApproval) {
-        const changePackage = generateChangePackage({
-          title: input.title,
-          description: input.description,
-          actionType: action,
-          projectGuess: dispatchResult.taskId ? "Orbit CRM" : null,
-        }, riskLevel);
-        
-        await createApprovalRequest({
-          taskId: response.task.id,
-          action: action === "run" ? "Execute operational task" : "Create/modify code",
-          reason: `Risk level: ${riskLevel}. Task requires CEO approval before execution.`,
-          riskLevel,
-          changeSummary: changePackage,
+    await perform(
+      async () => {
+        const response = await createWorkflowTask(accessToken, {
+          organization_id: organizationId,
+          ...input,
         });
-      }
-      
-      workflow.prependTask(
-        response.task,
-        requiresApproval 
-          ? `Задача создана и отправлена на CEO-аппрув (риск: ${riskLevel})`
-          : "AI Router назначил исполнителя и поставил задачу в очередь.",
-      );
-      await workflow.refresh(true);
-    }, requiresApproval ? "Задача создана и отправлена на CEO-аппрув" : "Задача создана и передана AI Router");
+
+        // If approval required, create approval request
+        if (requiresApproval) {
+          const changePackage = generateChangePackage(
+            {
+              title: input.title,
+              description: input.description,
+              actionType: action,
+              projectGuess: dispatchResult.taskId ? "Orbit CRM" : null,
+            },
+            riskLevel,
+          );
+
+          await createApprovalRequest({
+            taskId: response.task.id,
+            action: action === "run" ? "Execute operational task" : "Create/modify code",
+            reason: `Risk level: ${riskLevel}. Task requires CEO approval before execution.`,
+            riskLevel,
+            changeSummary: changePackage,
+          });
+        }
+
+        workflow.prependTask(
+          response.task,
+          requiresApproval
+            ? `Задача создана и отправлена на CEO-аппрув (риск: ${riskLevel})`
+            : "AI Router назначил исполнителя и поставил задачу в очередь.",
+        );
+        await workflow.refresh(true);
+      },
+      requiresApproval
+        ? "Задача создана и отправлена на CEO-аппрув"
+        : "Задача создана и передана AI Router",
+    );
   }
 
   async function handlePatch(task: WorkflowTask, patch: Record<string, unknown>, success: string) {
@@ -441,9 +461,7 @@ function AIWorkflowPage() {
                 <WifiOff className="h-5 w-5 text-amber-500" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Backend недоступен</p>
-                  <p className="text-xs text-muted-foreground">
-                    Работаем в демо-режиме
-                  </p>
+                  <p className="text-xs text-muted-foreground">Работаем в демо-режиме</p>
                 </div>
                 <button
                   type="button"
@@ -492,7 +510,8 @@ function AIWorkflowPage() {
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-600 dark:text-amber-100">
               <AlertTriangle className="size-3.5" />
               {overview.provider.nvidia_missing.length > 0
-                ? "NVIDIA API key не настроен: Отсутствует: " + ", ".join(overview.provider.nvidia_missing)
+                ? "NVIDIA API key не настроен: Отсутствует: " +
+                  ", ".join(overview.provider.nvidia_missing)
                 : "NVIDIA не подключена: маршрутизация работает, выполнение создаёт demo-результаты."}
             </div>
           )}
@@ -504,47 +523,36 @@ function AIWorkflowPage() {
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/[0.035] px-3 py-2 text-[10px] text-destructive">
               <AlertTriangle className="size-3.5" />
               {overview.provider.supabase_missing.length > 0
-                ? "Supabase не настроен: Отсутствует: " + ", ".join(overview.provider.supabase_missing)
+                ? "Supabase не настроен: Отсутствует: " +
+                  ", ".join(overview.provider.supabase_missing)
                 : "Supabase backend is not configured"}
             </div>
           )}
 
         {/* OpenClaw not available warning */}
-        {!overview.provider.openclaw_configured_detail.configured &&
-          !workflow.isLoading && (
-            <div className="mb-3 flex items-center justify-end gap-2">
-              <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
-                <svg
-                  class="size-3.5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  stroke="currentColor"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                OpenClaw Gateway недоступен
-              </span>
-            </div>
-          )}
+        {!overview.provider.openclaw_configured_detail.configured && !workflow.isLoading && (
+          <div className="mb-3 flex items-center justify-end gap-2">
+            <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              OpenClaw Gateway недоступен
+            </span>
+          </div>
+        )}
 
         {!overview.provider.openclaw_configured_detail.configured &&
           overview.provider.openclaw_configured_detail.missing.length > 0 &&
           !workflow.isLoading && (
             <div className="mb-3 flex items-center justify-end gap-2">
               <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
-                <svg
-                  class="size-3.5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  stroke="currentColor"
-                >
+                <svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
-                OpenClaw Gateway недоступен: Отсутствует: {
-                  overview.provider.openclaw_configured_detail.missing.join(", ")
-                }
+                OpenClaw Gateway недоступен: Отсутствует:{" "}
+                {overview.provider.openclaw_configured_detail.missing.join(", ")}
               </span>
             </div>
           )}
@@ -634,7 +642,7 @@ function AIWorkflowPage() {
                 realtimeConnected={workflow.isRealtimeConnected || preview}
                 onTaskOpen={setSelectedTask}
               />
-              
+
               {/* CEO Dashboard */}
               <div className="rounded-xl border border-border/50 bg-card/50 p-3">
                 <div className="flex items-center gap-2 mb-3">
@@ -643,7 +651,7 @@ function AIWorkflowPage() {
                 </div>
                 <CeoDashboard onRefresh={() => void workflow.refresh(true)} />
               </div>
-              
+
               {/* Approval Gateway */}
               <div className="rounded-xl border border-border/50 bg-card/50 p-3">
                 <div className="flex items-center gap-2 mb-3">

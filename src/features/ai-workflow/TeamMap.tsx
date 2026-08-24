@@ -133,9 +133,8 @@ export function TeamMap({
         ? "grid-cols-2 lg:grid-cols-4"
         : "grid-cols-1 sm:grid-cols-2";
   const cols = n === 3 ? 3 : n >= 4 ? 4 : Math.min(Math.max(n, 1), 2);
-  const childX = Array.from(
-    { length: Math.max(n, 1) },
-    (_, index) => Math.round(((index + 0.5) / cols) * 1000),
+  const childX = Array.from({ length: Math.max(n, 1) }, (_, index) =>
+    Math.round(((index + 0.5) / cols) * 1000),
   );
 
   const systemStats = counts(tasks);
@@ -160,9 +159,7 @@ export function TeamMap({
     : tasks;
   const strategicGoalTask = globalTasks
     .filter((task) => !task.parent_task_id && task.status !== "done")
-    .sort(
-      (a, b) => (PRIORITY_RANK[b.priority] ?? 0) - (PRIORITY_RANK[a.priority] ?? 0),
-    )[0];
+    .sort((a, b) => (PRIORITY_RANK[b.priority] ?? 0) - (PRIORITY_RANK[a.priority] ?? 0))[0];
   const strategicGoal =
     strategicGoalTask?.title ?? "Координация стратегии и распределение работ по отделам";
 
@@ -282,8 +279,7 @@ export function TeamMap({
               const moving =
                 activeTransfer ||
                 tasks.some(
-                  (task) =>
-                    task.department_id === department.id && task.status === "in_progress",
+                  (task) => task.department_id === department.id && task.status === "in_progress",
                 );
               return (
                 <g key={department.id}>

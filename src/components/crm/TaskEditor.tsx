@@ -9,6 +9,7 @@ import {
   Loader2,
   MessageSquare,
   Plus,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -28,6 +29,9 @@ import {
   type TaskStatus,
 } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
+import { authenticatedFetch } from "@/lib/api-client";
+
+type TaskAssistObjective = "plan_task" | "summarize_history" | "qa_review";
 
 type TaskDraft = {
   title: string;
@@ -169,6 +173,7 @@ export function TaskEditor({
     members,
     taskLabels,
     isMutating,
+    organization,
   } = useCrm();
   const isCreating = !task;
   const [draft, setDraft] = useState<TaskDraft>(() =>
@@ -182,6 +187,11 @@ export function TaskEditor({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState<TaskAssistObjective | null>(null);
+  const [aiResult, setAiResult] = useState<{
+    objective: TaskAssistObjective;
+    content: string;
+  } | null>(null);
 
   useEffect(() => {
     setDraft(createDraft(task, { startDate: initialStartDate, dueDate: initialDueDate }));
@@ -192,6 +202,8 @@ export function TaskEditor({
     setCommentBody("");
     setPendingFiles([]);
     setLocalError(null);
+    setAiBusy(null);
+    setAiResult(null);
   }, [task, initialStartDate, initialDueDate]);
 
   const activeProjects = projects.filter(
@@ -380,6 +392,37 @@ export function TaskEditor({
     if (deleted) onDeleted?.();
   };
 
+  const requestTaskAssistance = async (objective: TaskAssistObjective) => {
+    if (!task || !organization || aiBusy) return;
+    setLocalError(null);
+    setAiBusy(objective);
+    try {
+      const response = await authenticatedFetch("/api/openclaw/assist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          organization_id: organization.id,
+          entity_type: "task",
+          entity_id: task.id,
+          objective,
+          instructions:
+            "Use only confirmed CRM facts. Do not modify records or perform external actions.",
+        }),
+      });
+      const payload = (await response.json()) as { content?: string; detail?: string };
+      if (!response.ok || !payload.content) {
+        throw new Error(payload.detail || "OpenClaw не вернул результат.");
+      }
+      setAiResult({ objective, content: payload.content });
+    } catch (error) {
+      setLocalError(
+        error instanceof Error ? error.message : "Не удалось получить рекомендацию OpenClaw.",
+      );
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-4">
@@ -431,6 +474,46 @@ export function TaskEditor({
         placeholder="Описание, контекст, ссылки"
         className="w-full resize-none rounded-xl border border-border bg-surface-2/60 p-3 text-sm outline-none transition focus:border-primary/60"
       />
+
+      {task && (
+        <section className="rounded-xl border border-primary/25 bg-primary/5 p-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Sparkles className="size-4 text-primary" />
+            OpenClaw для задачи
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Только рекомендации: данные CRM и внешние сервисы не изменяются автоматически.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(
+              [
+                ["plan_task", "План выполнения"],
+                ["summarize_history", "Резюме"],
+                ["qa_review", "QA-проверка"],
+              ] as const
+            ).map(([objective, label]) => (
+              <button
+                key={objective}
+                type="button"
+                disabled={Boolean(aiBusy)}
+                onClick={() => requestTaskAssistance(objective)}
+                className="inline-flex items-center gap-2 rounded-lg border border-primary/30 px-3 py-1.5 text-xs text-primary transition hover:bg-primary/10 disabled:opacity-50"
+              >
+                {aiBusy === objective && <Loader2 className="size-3.5 animate-spin" />}
+                {label}
+              </button>
+            ))}
+          </div>
+          {aiResult && (
+            <div className="mt-3 whitespace-pre-wrap rounded-lg border border-border bg-background/70 p-3 text-sm">
+              {aiResult.content}
+              <p className="mt-3 text-xs text-muted-foreground">
+                Рекомендация сохранена в audit log (журнале аудита); изменения не применены.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Статус">

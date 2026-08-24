@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Clock, Filter, MoreHorizontal, Search, X, CalendarClock, User } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
+import { useCrm } from "@/lib/crm-store";
+import { fetchCalendarEvents, updateCalendarEvent } from "@/lib/calendar-repository";
 
 export const Route = createFileRoute("/requests")({
   head: () => ({
@@ -32,54 +34,6 @@ interface Booking {
   phone: string;
 }
 
-const mockBookings: Booking[] = [
-  {
-    id: "b1",
-    clientName: "Анна Смирнова",
-    service: "Массаж",
-    date: "10 авг",
-    time: "10:00",
-    status: "new",
-    phone: "+7 (999) 123-45-67",
-  },
-  {
-    id: "b2",
-    clientName: "Иван Петров",
-    service: "Уход за лицом",
-    date: "10 авг",
-    time: "14:00",
-    status: "pending",
-    phone: "+7 (916) 234-56-78",
-  },
-  {
-    id: "b3",
-    clientName: "Мария Козлова",
-    service: "Body-терапия",
-    date: "11 авг",
-    time: "09:00",
-    status: "confirmed",
-    phone: "+7 (903) 345-67-89",
-  },
-  {
-    id: "b4",
-    clientName: "Дмитрий Волков",
-    service: "Консультация",
-    date: "09 авг",
-    time: "16:00",
-    status: "completed",
-    phone: "+7 (926) 456-78-90",
-  },
-  {
-    id: "b5",
-    clientName: "Елена Новикова",
-    service: "Массаж",
-    date: "08 авг",
-    time: "11:00",
-    status: "cancelled",
-    phone: "+7 (985) 567-89-01",
-  },
-];
-
 const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: string }> = {
   new: { label: "Новая", color: "text-badge-blue", bg: "bg-badge-blue-bg" },
   pending: { label: "Ожидает", color: "text-badge-yellow", bg: "bg-badge-yellow-bg" },
@@ -91,10 +45,55 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: s
 type Tab = "incoming" | "confirmed" | "archive";
 
 function RequestsPage() {
+  const { organization } = useCrm();
   const [activeTab, setActiveTab] = useState<Tab>("incoming");
   const [search, setSearch] = useState("");
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = mockBookings.filter((b) => {
+  const loadBookings = useCallback(async () => {
+    if (!organization) return;
+    try {
+      const from = new Date();
+      from.setFullYear(from.getFullYear() - 1);
+      const to = new Date();
+      to.setFullYear(to.getFullYear() + 2);
+      const rows = await fetchCalendarEvents(organization.id, from, to);
+      setBookings(
+        rows.map((row) => {
+          const startsAt = new Date(row.starts_at);
+          return {
+            id: row.id,
+            clientName: row.client_name,
+            service: row.title,
+            date: startsAt.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }),
+            time: startsAt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+            status: row.status,
+            phone: row.notes || "Контактные данные не указаны",
+          };
+        }),
+      );
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось загрузить записи");
+    }
+  }, [organization]);
+
+  useEffect(() => {
+    void loadBookings();
+  }, [loadBookings]);
+
+  const changeStatus = async (id: string, status: BookingStatus) => {
+    if (!organization) return;
+    try {
+      await updateCalendarEvent(organization.id, id, { status });
+      setBookings((items) => items.map((item) => (item.id === id ? { ...item, status } : item)));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось обновить запись");
+    }
+  };
+
+  const filtered = bookings.filter((b) => {
     const matchesSearch =
       b.clientName.toLowerCase().includes(search.toLowerCase()) ||
       b.service.toLowerCase().includes(search.toLowerCase());
@@ -111,6 +110,11 @@ function RequestsPage() {
       subtitle="Управление входящими заявками и подтверждёнными записями"
     >
       <div className="space-y-6">
+        {error && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -188,12 +192,14 @@ function RequestsPage() {
                   {(booking.status === "new" || booking.status === "pending") && (
                     <>
                       <button
+                        onClick={() => void changeStatus(booking.id, "confirmed")}
                         className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition hover:border-primary/50 hover:text-primary"
                         title="Подтвердить"
                       >
                         <Check className="size-4" />
                       </button>
                       <button
+                        onClick={() => void changeStatus(booking.id, "cancelled")}
                         className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition hover:border-red-400/50 hover:text-red-400"
                         title="Отменить"
                       >

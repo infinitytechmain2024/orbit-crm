@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from collections import defaultdict
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, patch
 
 from backend.services.ai_providers import redact_error
 from backend.services.orbit_commander import (
@@ -11,6 +12,7 @@ from backend.services.orbit_commander import (
     fallback_plan,
     infer_risk,
 )
+from backend.services.openclaw_client import OpenClawHealth
 
 
 class FakeStore:
@@ -163,7 +165,9 @@ class OrbitCommanderQATests(unittest.IsolatedAsyncioTestCase):
 
 
 class OrbitCommanderEndToEndTests(unittest.IsolatedAsyncioTestCase):
-    async def test_finance_scenario_reaches_completed_only_after_final_qa(self):
+    @patch("backend.services.orbit_commander.openclaw_client.health", new_callable=AsyncMock)
+    async def test_finance_scenario_reaches_completed_only_after_final_qa(self, health_mock):
+        health_mock.return_value = OpenClawHealth(status="offline", gateway=False)
         organization_id = "org-1"
         user_id = "user-1"
         root = {

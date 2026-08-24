@@ -267,7 +267,8 @@ export function VoiceRecorder({ onTranscript, onError, className }: VoiceRecorde
       {state === "preview" && transcript && (
         <div className="w-full max-w-sm space-y-2 rounded-xl border border-green-500/30 bg-green-500/5 p-3 animate-in fade-in slide-in-from-bottom-2">
           <p className="text-xs text-muted-foreground">
-            Transcript: <span className="text-foreground font-medium">&quot;{transcript}&quot;</span>
+            Transcript:{" "}
+            <span className="text-foreground font-medium">&quot;{transcript}&quot;</span>
           </p>
           <p className="text-xs text-muted-foreground/60">
             Edit the search bar above and click &quot;Find Leads&quot;

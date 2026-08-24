@@ -260,9 +260,9 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                     "rounded-full px-2 py-0.5 text-xs font-medium",
                     client.whatsappStatus === "Verified"
                       ? "bg-badge-green-bg text-badge-green"
-                        : client.whatsappStatus === "Not Available"
-                          ? "bg-badge-red-bg text-badge-red"
-                          : "bg-badge-yellow-bg text-badge-yellow",
+                      : client.whatsappStatus === "Not Available"
+                        ? "bg-badge-red-bg text-badge-red"
+                        : "bg-badge-yellow-bg text-badge-yellow",
                   )}
                 >
                   {client.whatsappStatus === "Verified" ? (
@@ -288,9 +288,9 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                   "rounded-xl border px-4 py-3",
                   client.websiteStatusType === "no_website"
                     ? "border-badge-orange/30 bg-badge-orange-bg"
-                      : client.websiteStatusType === "needs_upgrade"
-                        ? "border-badge-yellow/30 bg-badge-yellow-bg"
-                        : "border-badge-green/30 bg-badge-green-bg",
+                    : client.websiteStatusType === "needs_upgrade"
+                      ? "border-badge-yellow/30 bg-badge-yellow-bg"
+                      : "border-badge-green/30 bg-badge-green-bg",
                 )}
               >
                 <span

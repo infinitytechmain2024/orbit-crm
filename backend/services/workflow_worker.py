@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import socket
-from datetime import datetime, timedelta, timezone as tz_utc
+from datetime import UTC, datetime, timedelta
 from typing import Optional, Any
 
 from backend.config import settings
@@ -83,7 +83,7 @@ class WorkflowWorker:
                 "workflow_jobs",
                 organization_id=job["organization_id"],
                 filters={"id": f"eq.{job['id']}", "status": "eq.leased"},
-                payload={"status": "succeeded", "completed_at": datetime.now(tz_utc).isoformat()},
+                payload={"status": "succeeded", "completed_at": datetime.now(UTC).isoformat()},
             )
         except Exception as error:
             attempts = int(job.get("attempts") or 1)
@@ -97,7 +97,7 @@ class WorkflowWorker:
                     filters={"id": f"eq.{job['id']}"},
                     payload={
                         "status": "queued",
-                        "available_at": (datetime.now(tz_utc) + timedelta(seconds=delay)).isoformat(),
+                        "available_at": (datetime.now(UTC) + timedelta(seconds=delay)).isoformat(),
                         "locked_at": None,
                         "locked_by": None,
                         "last_error": safe_error,
@@ -113,7 +113,7 @@ class WorkflowWorker:
                 payload={
                     "status": "failed",
                     "last_error": safe_error,
-                    "completed_at": datetime.now(tz_utc).isoformat(),
+                    "completed_at": datetime.now(UTC).isoformat(),
                 },
             )
             task = await self.store.one(

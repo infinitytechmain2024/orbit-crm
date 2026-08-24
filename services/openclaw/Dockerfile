@@ -7,7 +7,7 @@
 # build layer is not invalidated by unrelated source changes.
 #
 # Build stages use full bookworm; the runtime image is always bookworm-slim.
-ARG OPENCLAW_EXTENSIONS=""
+ARG OPENCLAW_EXTENSIONS="nvidia,groq"
 ARG OPENCLAW_BUNDLED_PLUGIN_DIR=extensions
 ARG OPENCLAW_DOCKER_BUILD_NODE_OPTIONS="--max-old-space-size=8192"
 ARG OPENCLAW_DOCKER_BUILD_TSDOWN_MAX_OLD_SPACE_MB=""
@@ -215,6 +215,10 @@ COPY --from=runtime-assets --chown=node:node /app/${OPENCLAW_BUNDLED_PLUGIN_DIR}
 COPY --from=runtime-assets --chown=node:node /app/skills ./skills
 COPY --from=runtime-assets --chown=node:node /app/docs ./docs
 COPY --from=runtime-assets --chown=node:node /app/qa ./qa
+COPY --from=build --chown=node:node /app/openclaw.json /app/openclaw.default.json
+COPY --from=build --chown=node:node /app/orbit-skills /opt/orbit-skills
+COPY --from=build --chown=node:node /app/render-entrypoint.sh /app/render-entrypoint.sh
+RUN chmod 755 /app/render-entrypoint.sh
 
 # Keep pnpm available in the runtime image for container-local workflows.
 # Use a shared Corepack home so the non-root `node` user does not need a
@@ -354,5 +358,5 @@ USER node
 # For external access from host/ingress, override bind to "lan" and set auth.
 HEALTHCHECK --interval=3m --timeout=10s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-ENTRYPOINT ["tini", "-s", "--"]
-CMD ["node", "openclaw.mjs", "gateway"]
+ENTRYPOINT ["tini", "-s", "--", "/app/render-entrypoint.sh"]
+CMD ["node", "openclaw.mjs", "gateway", "--bind", "lan"]

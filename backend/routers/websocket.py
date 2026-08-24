@@ -13,6 +13,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
+from backend.services.ai_workflow_store import ai_workflow_store
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ router = APIRouter(tags=["WebSocket"])
 
 class ActivityEvent(BaseModel):
     type: str  # "task_update", "agent_status", "approval_request", "deployment", "system"
+    organization_id: str
     task_id: Optional[str] = None
     agent_id: Optional[str] = None
     department_id: Optional[str] = None
@@ -36,11 +38,12 @@ class ConnectionManager:
         self.active_connections: list[WebSocket] = []
         self.connection_info: dict[WebSocket, dict] = {}
 
-    async def connect(self, websocket: WebSocket, user_id: Optional[str] = None):
+    async def connect(self, websocket: WebSocket, user_id: str, organization_id: str):
         await websocket.accept()
         self.active_connections.append(websocket)
         self.connection_info[websocket] = {
             "user_id": user_id,
+            "organization_id": organization_id,
             "connected_at": datetime.now().isoformat(),
         }
         logger.info(f"WebSocket connected: {user_id} (total: {len(self.active_connections)})")
@@ -57,6 +60,9 @@ class ConnectionManager:
         disconnected = []
 
         for connection in self.active_connections:
+            info = self.connection_info.get(connection, {})
+            if info.get("organization_id") != event.organization_id:
+                continue
             try:
                 await connection.send_text(message)
             except Exception as e:
@@ -91,15 +97,15 @@ activity_manager = ConnectionManager()
 @router.websocket("/ws/activity")
 async def websocket_activity(
     websocket: WebSocket,
-    user_id: Optional[str] = Query(default=None),
-    token: Optional[str] = Query(default=None),
+    organization_id: str = Query(min_length=36, max_length=36),
+    token: str = Query(min_length=1),
 ):
     """
     WebSocket endpoint for real-time activity stream.
 
     Query params:
-        user_id: Optional user ID for targeted messages
-        token: Optional auth token (for future use)
+        organization_id: Organization scope for the stream
+        token: Supabase access token
 
     Events sent:
         - task_update: Task status changes
@@ -108,7 +114,14 @@ async def websocket_activity(
         - deployment: Deployment status updates
         - system: System-wide notifications
     """
-    await activity_manager.connect(websocket, user_id)
+    try:
+        user = await ai_workflow_store.verify_user(token)
+        await ai_workflow_store.ensure_membership(organization_id, str(user["id"]))
+    except Exception:
+        await websocket.close(code=1008, reason="Authentication failed")
+        return
+
+    await activity_manager.connect(websocket, str(user["id"]), organization_id)
 
     try:
         # Send connection confirmation
@@ -156,6 +169,7 @@ async def websocket_activity(
 # Helper functions for broadcasting events (called from other services)
 
 async def broadcast_task_update(
+    organization_id: str,
     task_id: str,
     status: str,
     message: str,
@@ -166,6 +180,7 @@ async def broadcast_task_update(
     """Broadcast task status update"""
     event = ActivityEvent(
         type="task_update",
+        organization_id=organization_id,
         task_id=task_id,
         agent_id=agent_id,
         department_id=department_id,
@@ -176,6 +191,7 @@ async def broadcast_task_update(
 
 
 async def broadcast_agent_status(
+    organization_id: str,
     agent_id: str,
     status: str,
     message: str,
@@ -185,6 +201,7 @@ async def broadcast_agent_status(
     """Broadcast agent status change"""
     event = ActivityEvent(
         type="agent_status",
+        organization_id=organization_id,
         agent_id=agent_id,
         department_id=department_id,
         message=message,
@@ -194,6 +211,7 @@ async def broadcast_agent_status(
 
 
 async def broadcast_approval_request(
+    organization_id: str,
     task_id: str,
     message: str,
     requested_by: Optional[str] = None,
@@ -202,6 +220,7 @@ async def broadcast_approval_request(
     """Broadcast new approval request"""
     event = ActivityEvent(
         type="approval_request",
+        organization_id=organization_id,
         task_id=task_id,
         message=message,
         metadata={"requested_by": requested_by, **metadata},

@@ -24,7 +24,7 @@ class WorkflowRateLimitMiddleware(BaseHTTPMiddleware):
         self._windows: dict[str, deque[float]] = defaultdict(deque)
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        if not request.url.path.startswith("/api/ai-workflow"):
+        if not request.url.path.startswith(("/api/ai-workflow", "/api/openclaw", "/api/learning")):
             return await call_next(request)
         supplied = request.headers.get("x-supabase-authorization")
         if not supplied:

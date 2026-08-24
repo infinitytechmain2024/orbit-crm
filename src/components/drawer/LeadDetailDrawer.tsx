@@ -18,7 +18,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { LeadClient } from "@/types/lead";
 import type { AiOfferScript } from "@/types/lead";
-import { generateAiOffer } from "@/agents/liam";
+import { authenticatedFetch } from "@/lib/api-client";
+import { useCrm } from "@/lib/crm-store";
 
 interface LeadDetailDrawerProps {
   client: LeadClient | null;
@@ -42,12 +43,15 @@ const STATUS_CONFIG = {
 };
 
 export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDetailDrawerProps) {
+  const { organization } = useCrm();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [generatingOffer, setGeneratingOffer] = useState(false);
+  const [openClawDraft, setOpenClawDraft] = useState<string | null>(null);
+  const [openClawError, setOpenClawError] = useState<string | null>(null);
   const [aiOfferData, setAiOfferData] = useState<AiOfferScript | null>(
     client?.aiOfferScript && typeof client.aiOfferScript === "object"
       ? (client.aiOfferScript as unknown as AiOfferScript)
-      : null
+      : null,
   );
 
   if (!isOpen || !client) return null;
@@ -70,18 +74,26 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
   };
 
   const handleGenerateOffer = async () => {
+    if (!organization) return;
     setGeneratingOffer(true);
+    setOpenClawError(null);
     try {
-      const offer = await generateAiOffer(
-        client.businessName,
-        client.category,
-        client.websiteUrl === "-" ? null : client.websiteUrl,
-        client.cityLocation
-      );
-      setAiOfferData(offer);
-      onUpdate?.(client.id, { aiOfferScript: offer as unknown as import("@/lib/supabase/database.types").Json });
+      const response = await authenticatedFetch("/api/openclaw/assist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          organization_id: organization.id,
+          entity_type: "client",
+          entity_id: client.id,
+          objective: "draft_message",
+          instructions: "Prepare a personalized first-contact draft and recommended next action.",
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || payload.error || "OpenClaw unavailable");
+      setOpenClawDraft(String(payload.content || ""));
     } catch (error) {
-      console.error("Failed to generate AI offer:", error);
+      setOpenClawError(error instanceof Error ? error.message : "OpenClaw unavailable");
     } finally {
       setGeneratingOffer(false);
     }
@@ -272,9 +284,9 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                     "rounded-full px-2 py-0.5 text-xs font-medium",
                     client.whatsappStatus === "Verified"
                       ? "bg-badge-green-bg text-badge-green"
-                        : client.whatsappStatus === "Not Available"
-                          ? "bg-badge-red-bg text-badge-red"
-                          : "bg-badge-yellow-bg text-badge-yellow",
+                      : client.whatsappStatus === "Not Available"
+                        ? "bg-badge-red-bg text-badge-red"
+                        : "bg-badge-yellow-bg text-badge-yellow",
                   )}
                 >
                   {client.whatsappStatus === "Verified" ? (
@@ -300,9 +312,9 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                   "rounded-xl border px-4 py-3",
                   client.websiteStatusType === "no_website"
                     ? "border-badge-orange/30 bg-badge-orange-bg"
-                      : client.websiteStatusType === "needs_upgrade"
-                        ? "border-badge-yellow/30 bg-badge-yellow-bg"
-                        : "border-badge-green/30 bg-badge-green-bg",
+                    : client.websiteStatusType === "needs_upgrade"
+                      ? "border-badge-yellow/30 bg-badge-yellow-bg"
+                      : "border-badge-green/30 bg-badge-green-bg",
                 )}
               >
                 <span
@@ -330,22 +342,27 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
             <div className="mb-2 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <Bot className="size-3.5" />
-                AI-Generated Offer (Liam)
+                OpenClaw recommendation
               </h3>
               <button
                 onClick={handleGenerateOffer}
                 disabled={generatingOffer}
                 className="rounded-lg px-3 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition disabled:opacity-50"
               >
-                {generatingOffer ? (
-                  <Loader2 className="inline size-3 animate-spin" />
-                ) : (
-                  "Generate"
-                )}
+                {generatingOffer ? <Loader2 className="inline size-3 animate-spin" /> : "Generate"}
               </button>
             </div>
             <div className="rounded-xl border border-border bg-surface-2/40 p-4 space-y-4">
-              {aiOfferData ? (
+              {openClawDraft ? (
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">
+                    Draft — review required before sending
+                  </h4>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                    {openClawDraft}
+                  </p>
+                </div>
+              ) : aiOfferData ? (
                 <>
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Audit</h4>
@@ -361,7 +378,9 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                   </div>
                   {aiOfferData.weakPoints.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-medium text-muted-foreground mb-1">Weak Points</h4>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-1">
+                        Weak Points
+                      </h4>
                       <ul className="list-disc list-inside text-sm text-muted-foreground">
                         {aiOfferData.weakPoints.map((wp, i) => (
                           <li key={i}>{wp}</li>
@@ -372,9 +391,10 @@ export function LeadDetailDrawer({ client, isOpen, onClose, onUpdate }: LeadDeta
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground/60">
-                  Click "Generate" to create an AI-powered sales pitch from Liam
+                  Click "Generate" to prepare a draft. Nothing will be sent automatically.
                 </p>
               )}
+              {openClawError && <p className="text-xs text-destructive">{openClawError}</p>}
             </div>
           </div>
 

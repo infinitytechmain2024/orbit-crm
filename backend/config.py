@@ -5,7 +5,7 @@ from pathlib import Path
 from functools import lru_cache
 from typing import Optional
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, model_validator
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = Field(default="", validation_alias="SUPABASE_URL")
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", validation_alias="SUPABASE_SERVICE_ROLE_KEY")
     SUPABASE_PUBLISHABLE_KEY: str = Field(default="", validation_alias="SUPABASE_PUBLISHABLE_KEY")
+    EXPECTED_SUPABASE_PROJECT_REF: str = Field(
+        default="", validation_alias="EXPECTED_SUPABASE_PROJECT_REF"
+    )
     SUPABASE_STORAGE_BUCKET: str = "orbit-projects"
 
     # AI provider API keys (all optional — app must not crash if any are missing)
@@ -104,6 +107,8 @@ class Settings(BaseSettings):
     OPENCLAW_GATEWAY_TOKEN: str = Field(default="", validation_alias="OPENCLAW_GATEWAY_TOKEN")
     OPENCLAW_WEBHOOK_TOKEN: str = Field(default="", validation_alias="OPENCLAW_WEBHOOK_TOKEN")
     OPENCLAW_REQUEST_TIMEOUT: float = Field(default=120.0, validation_alias="OPENCLAW_REQUEST_TIMEOUT")
+    OPENCLAW_DAILY_ACTION_LIMIT: int = Field(default=100, validation_alias="OPENCLAW_DAILY_ACTION_LIMIT")
+    OPENCLAW_MAX_CONTEXT_RECORDS: int = Field(default=20, validation_alias="OPENCLAW_MAX_CONTEXT_RECORDS")
 
     # CORS — allow Vercel deployments, ngrok, cloudflare tunnels, and local dev
     CORS_ORIGINS: list[str] = Field(
@@ -119,6 +124,18 @@ class Settings(BaseSettings):
 
     # Server-to-server auth: Vercel proxy must send this as `Authorization: Bearer <token>`
     INTERNAL_API_TOKEN: str = Field(default="", validation_alias="INTERNAL_API_TOKEN")
+
+    @model_validator(mode="after")
+    def validate_supabase_project(self) -> "Settings":
+        expected = self.EXPECTED_SUPABASE_PROJECT_REF.strip()
+        if expected and self.SUPABASE_URL:
+            hostname = self.SUPABASE_URL.split("//", 1)[-1].split("/", 1)[0]
+            actual = hostname.split(".", 1)[0]
+            if actual != expected:
+                raise ValueError(
+                    "SUPABASE_URL project ref does not match EXPECTED_SUPABASE_PROJECT_REF"
+                )
+        return self
 
     class Config:
         env_file = (PROJECT_ROOT / ".env", BACKEND_ENV_FILE)

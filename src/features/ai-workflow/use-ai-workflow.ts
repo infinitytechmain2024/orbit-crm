@@ -67,7 +67,8 @@ export function useAiWorkflow(
           if (!toastShownRef.current) {
             toastShownRef.current = true;
             toast.warning("AI Workflow backend недоступен", {
-              description: "Показан демо-режим. Настройте AI_WORKFLOW_BACKEND_URL для работы с реальными данными.",
+              description:
+                "Показан демо-режим. Настройте AI_WORKFLOW_BACKEND_URL для работы с реальными данными.",
               duration: 8000,
             });
           }

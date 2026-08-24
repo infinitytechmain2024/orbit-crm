@@ -74,12 +74,12 @@ export function AIWorkflowIntegration({
 
   const selectedDepartment = useMemo(
     () => departments.find((d) => d.id === selectedDepartmentId),
-    [departments, selectedDepartmentId]
+    [departments, selectedDepartmentId],
   );
 
   const departmentTasks = useMemo(
     () => tasks.filter((t) => t.department_id === selectedDepartmentId),
-    [tasks, selectedDepartmentId]
+    [tasks, selectedDepartmentId],
   );
 
   const handleDepartmentClick = useCallback((department: WorkflowDepartment) => {
@@ -98,7 +98,7 @@ export function AIWorkflowIntegration({
     async (task: WorkflowTask, newStatus: WorkflowTaskStatus) => {
       onUpdate(task.id, { status: newStatus });
     },
-    [onUpdate]
+    [onUpdate],
   );
 
   const handleControl = useCallback(
@@ -119,7 +119,7 @@ export function AIWorkflowIntegration({
           break;
       }
     },
-    [workflowControls]
+    [workflowControls],
   );
 
   const handleCancelConfirm = useCallback(async () => {
@@ -141,7 +141,7 @@ export function AIWorkflowIntegration({
                 ? "bg-badge-green-bg text-badge-green border border-badge-green/20"
                 : backendStatus.status === "checking"
                   ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                  : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                  : "bg-amber-500/10 text-amber-400 border border-amber-500/20",
             )}
           >
             {backendStatus.status === "online" ? (
@@ -310,9 +310,7 @@ function TaskDetailModal({
   onClose: () => void;
   onControl: (task: WorkflowTask, action: "pause" | "resume" | "retry" | "cancel") => void;
 }) {
-  const agent = task.agent_id
-    ? agents.find((a) => a.id === task.agent_id)
-    : null;
+  const agent = task.agent_id ? agents.find((a) => a.id === task.agent_id) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -321,9 +319,7 @@ function TaskDetailModal({
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold truncate">{task.title}</h3>
             {task.description && (
-              <p className="mt-2 text-sm text-muted-foreground line-clamp-3">
-                {task.description}
-              </p>
+              <p className="mt-2 text-sm text-muted-foreground line-clamp-3">{task.description}</p>
             )}
           </div>
           <button

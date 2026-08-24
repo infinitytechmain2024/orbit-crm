@@ -7,12 +7,7 @@ import { useMemo } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type {
-  WorkflowAgent,
-  WorkflowDepartment,
-  WorkflowTask,
-  WorkflowTaskStatus,
-} from "./types";
+import type { WorkflowAgent, WorkflowDepartment, WorkflowTask, WorkflowTaskStatus } from "./types";
 
 const COLUMN_CONFIG: Array<{
   status: WorkflowTaskStatus[];
@@ -58,10 +53,7 @@ export function DepartmentKanban({
   onTaskClick,
   onStatusChange,
 }: DepartmentKanbanProps) {
-  const agentById = useMemo(
-    () => new Map(agents.map((agent) => [agent.id, agent])),
-    [agents]
-  );
+  const agentById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
 
   const columns = useMemo(() => {
     return COLUMN_CONFIG.map((column) => ({
@@ -82,31 +74,19 @@ export function DepartmentKanban({
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="flex items-center gap-2">
-          <div
-            className="h-3 w-3 rounded-full"
-            style={{ backgroundColor: department.color }}
-          />
+          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: department.color }} />
           <h2 className="text-lg font-semibold">{department.name}</h2>
         </div>
-        <span className="text-sm text-muted-foreground">
-          {tasks.length} задач
-        </span>
+        <span className="text-sm text-muted-foreground">{tasks.length} задач</span>
       </div>
 
       {/* Kanban Columns */}
       <div className="grid grid-cols-4 gap-4">
         {columns.map((column) => (
-          <div
-            key={column.title}
-            className="rounded-xl border border-border bg-muted/30 p-3"
-          >
+          <div key={column.title} className="rounded-xl border border-border bg-muted/30 p-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className={cn("text-sm font-medium", column.color)}>
-                {column.title}
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {column.tasks.length}
-              </span>
+              <h3 className={cn("text-sm font-medium", column.color)}>{column.title}</h3>
+              <span className="text-xs text-muted-foreground">{column.tasks.length}</span>
             </div>
 
             <div className="space-y-2">
@@ -116,9 +96,7 @@ export function DepartmentKanban({
                 </div>
               ) : (
                 column.tasks.map((task) => {
-                  const agent = task.agent_id
-                    ? agentById.get(task.agent_id)
-                    : null;
+                  const agent = task.agent_id ? agentById.get(task.agent_id) : null;
 
                   return (
                     <button
@@ -127,13 +105,11 @@ export function DepartmentKanban({
                       onClick={() => onTaskClick(task)}
                       className={cn(
                         "w-full rounded-lg border border-border bg-card p-3 text-left transition-all",
-                        "hover:border-primary/30 hover:shadow-md"
+                        "hover:border-primary/30 hover:shadow-md",
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-medium line-clamp-2">
-                          {task.title}
-                        </span>
+                        <span className="text-xs font-medium line-clamp-2">{task.title}</span>
                         {task.status === "in_progress" && (
                           <Loader2 className="h-3 w-3 animate-spin text-cyan-400 flex-shrink-0" />
                         )}
@@ -149,7 +125,7 @@ export function DepartmentKanban({
                                 ? "bg-orange-500/20 text-orange-400"
                                 : task.priority === "medium"
                                   ? "bg-yellow-500/20 text-yellow-400"
-                                  : "bg-green-500/20 text-green-400"
+                                  : "bg-green-500/20 text-green-400",
                           )}
                         >
                           {task.priority}

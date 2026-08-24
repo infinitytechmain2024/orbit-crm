@@ -117,7 +117,7 @@ export async function getPendingApprovals(): Promise<{
  * Get approval requests for a specific task
  */
 export async function getTaskApprovals(
-  taskId: string
+  taskId: string,
 ): Promise<{ data: CeoApprovalRequest[]; error: string | null }> {
   const client = getSupabase();
 
@@ -234,7 +234,7 @@ export async function updateCeoTask(
     deployment_status?: string;
     risk_assessment?: Record<string, unknown>;
     change_package?: Record<string, unknown>;
-  }
+  },
 ): Promise<{ success: boolean; error: string | null }> {
   const client = getSupabase();
 
@@ -261,7 +261,7 @@ export async function getCeoTasks(filters?: {
   projectId?: string;
 }): Promise<{ data: CeoTask[]; error: string | null }> {
   const client = getSupabase();
-  
+
   // Use raw query since the columns are added via migration but not in types
   let query = client.from("tasks").select("*" as any);
 

@@ -89,28 +89,18 @@ export function CeoDashboard({ onRefresh }: CeoDashboardProps) {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-border/50 bg-card p-3">
-          <div className="text-2xl font-bold text-primary">
-            {dashboard.pendingApprovals}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            Pending Approvals
-          </div>
+          <div className="text-2xl font-bold text-primary">{dashboard.pendingApprovals}</div>
+          <div className="text-[10px] text-muted-foreground">Pending Approvals</div>
         </div>
         <div className="rounded-lg border border-border/50 bg-card p-3">
-          <div className="text-2xl font-bold text-amber-500">
-            {dashboard.pendingDeployments}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            Pending Deployments
-          </div>
+          <div className="text-2xl font-bold text-amber-500">{dashboard.pendingDeployments}</div>
+          <div className="text-[10px] text-muted-foreground">Pending Deployments</div>
         </div>
       </div>
 
       {/* Tasks by Action Type */}
       <div className="rounded-lg border border-border/50 bg-card p-3">
-        <h4 className="mb-2 text-xs font-medium text-muted-foreground">
-          Tasks by Action Type
-        </h4>
+        <h4 className="mb-2 text-xs font-medium text-muted-foreground">Tasks by Action Type</h4>
         <div className="space-y-1">
           {Object.entries(dashboard.tasksByActionType).map(([type, count]) => (
             <div key={type} className="flex items-center justify-between text-xs">
@@ -126,9 +116,7 @@ export function CeoDashboard({ onRefresh }: CeoDashboardProps) {
 
       {/* Tasks by Project */}
       <div className="rounded-lg border border-border/50 bg-card p-3">
-        <h4 className="mb-2 text-xs font-medium text-muted-foreground">
-          Tasks by Project
-        </h4>
+        <h4 className="mb-2 text-xs font-medium text-muted-foreground">Tasks by Project</h4>
         <div className="space-y-1">
           {Object.entries(dashboard.tasksByProject).map(([project, count]) => (
             <div key={project} className="flex items-center justify-between text-xs">
@@ -144,9 +132,7 @@ export function CeoDashboard({ onRefresh }: CeoDashboardProps) {
 
       {/* Recent Activity */}
       <div className="rounded-lg border border-border/50 bg-card p-3">
-        <h4 className="mb-2 text-xs font-medium text-muted-foreground">
-          Recent Activity
-        </h4>
+        <h4 className="mb-2 text-xs font-medium text-muted-foreground">Recent Activity</h4>
         <div className="space-y-2">
           {dashboard.recentActivity.slice(0, 5).map((activity) => (
             <div key={activity.id} className="text-xs">
@@ -160,9 +146,7 @@ export function CeoDashboard({ onRefresh }: CeoDashboardProps) {
                 </span>
               </div>
               {activity.details && (
-                <p className="mt-0.5 text-muted-foreground line-clamp-1">
-                  {activity.details}
-                </p>
+                <p className="mt-0.5 text-muted-foreground line-clamp-1">{activity.details}</p>
               )}
             </div>
           ))}

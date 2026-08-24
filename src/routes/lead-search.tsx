@@ -18,6 +18,7 @@ import { SkyscannerSearchPanel } from "@/components/search/SkyscannerSearchPanel
 import type { SearchFilters } from "@/types/search";
 import { bulkCreateLeadClients, type LeadClientInput } from "@/lib/crm-repository";
 import { useAuth } from "@/lib/auth";
+import { useCrm } from "@/lib/crm-store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/lead-search")({
@@ -64,6 +65,7 @@ interface SystemStatus {
 
 function LeadSearchPage() {
   const { user } = useAuth();
+  const { organization } = useCrm();
   const [currentJob, setCurrentJob] = useState<SearchJob | null>(null);
   const [leads, setLeads] = useState<LeadResult[]>([]);
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
@@ -89,7 +91,8 @@ function LeadSearchPage() {
         description: "Сервер генерации лидов не запущен на " + LEAD_GEN_API,
         action: {
           label: "Как запустить?",
-          onClick: () => window.open("https://github.com/your-repo/lead-generator#readme", "_blank"),
+          onClick: () =>
+            window.open("https://github.com/your-repo/lead-generator#readme", "_blank"),
         },
       });
     }
@@ -188,7 +191,8 @@ function LeadSearchPage() {
         sourceQuery: `${lastFilters.niche} in ${lastFilters.city}`,
       }));
 
-      await bulkCreateLeadClients(user.id, inputs);
+      if (!organization) throw new Error("Organization is not available");
+      await bulkCreateLeadClients(user.id, organization.id, inputs);
       alert(`Successfully saved ${inputs.length} leads to Supabase!`);
     } catch (e: unknown) {
       alert(`Failed to save leads: ${e instanceof Error ? e.message : "Unknown error"}`);

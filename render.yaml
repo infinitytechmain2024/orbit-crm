@@ -1,12 +1,11 @@
 services:
-  - type: web
-    name: orbit-openclaw
+  - type: pserv
+    name: orbit-openclaw-private
     runtime: docker
     region: ohio
     plan: starter
     dockerfilePath: ./services/openclaw/Dockerfile
     dockerContext: ./services/openclaw
-    healthCheckPath: /healthz
     envVars:
       - key: HOME
         value: /home/node
@@ -21,7 +20,7 @@ services:
       - key: OPENCLAW_WORKSPACE_DIR
         value: /home/node/.openclaw/workspace
       - key: OPENCLAW_GATEWAY_TOKEN
-        sync: false
+        generateValue: true
       - key: PORT
         value: "18789"
       - key: OPENCLAW_GATEWAY_BIND
@@ -30,12 +29,10 @@ services:
         value: "18789"
       - key: OPENCLAW_DISABLE_BONJOUR
         value: "1"
-      - key: OPENCLAW_EXTENSIONS
-        value: "groq"
       - key: NVIDIA_API_KEY
         sync: false
       - key: OPENCLAW_DEFAULT_MODEL
-        value: "nvidia/nemotron-3-super-120b-a12b"
+        value: "nvidia/nvidia/nemotron-3-ultra-550b-a55b"
     disk:
       name: openclaw-state
       mountPath: /home/node/.openclaw
@@ -55,11 +52,13 @@ services:
       - key: NVIDIA_API_KEY
         sync: false
       - key: SUPABASE_URL
-        value: "https://sygledntdpakcgvtixle.supabase.co"
+        sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
-        value: "sb_publishable_FiHskZ3h_BpUu_vmuAqj8w_W25ZMQcT"
+        sync: false
+      - key: EXPECTED_SUPABASE_PROJECT_REF
+        value: qavfajsflzbefgegkwjt
       - key: INTERNAL_API_TOKEN
         sync: false
       - key: WHISPER_MODEL
@@ -76,12 +75,19 @@ services:
         value: "true"
       - key: OPENCLAW_URL
         fromService:
-          type: web
-          name: orbit-openclaw
+          type: pserv
+          name: orbit-openclaw-private
           property: hostport
       - key: OPENCLAW_GATEWAY_TOKEN
-        sync: false
+        fromService:
+          type: pserv
+          name: orbit-openclaw-private
+          envVarKey: OPENCLAW_GATEWAY_TOKEN
       - key: OPENCLAW_WEBHOOK_TOKEN
         sync: false
       - key: OPENCLAW_REQUEST_TIMEOUT
         value: "120.0"
+      - key: OPENCLAW_DAILY_ACTION_LIMIT
+        value: "100"
+      - key: OPENCLAW_MAX_CONTEXT_RECORDS
+        value: "20"

@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface ActivityEvent {
-  type: string;  // "task_update", "agent_status", "approval_request", "deployment", "system"
+  type: string; // "task_update", "agent_status", "approval_request", "deployment", "system"
   task_id?: string;
   agent_id?: string;
   department_id?: string;
@@ -23,10 +23,7 @@ export interface UseActivityStreamReturn {
   connectionCount: number;
 }
 
-export function useActivityStream(
-  userId?: string,
-  apiBaseUrl?: string
-): UseActivityStreamReturn {
+export function useActivityStream(userId?: string, apiBaseUrl?: string): UseActivityStreamReturn {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +65,9 @@ export function useActivityStream(
         // Auto-reconnect with exponential backoff
         if (reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          console.log(`[ActivityStream] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1})`);
+          console.log(
+            `[ActivityStream] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1})`,
+          );
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttempts.current++;
             connect();
@@ -109,7 +108,7 @@ export function useActivityStream(
             timestamp: data.timestamp || new Date().toISOString(),
           };
 
-          setEvents((prev) => [event, ...prev].slice(0, 100));  // Keep last 100 events
+          setEvents((prev) => [event, ...prev].slice(0, 100)); // Keep last 100 events
         } catch {
           // Ignore invalid messages
         }

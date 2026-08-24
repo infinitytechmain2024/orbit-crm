@@ -1,11 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Calendar as CalendarIcon,
-  Columns3,
-  List,
-  Plus,
-} from "lucide-react";
+import { Calendar as CalendarIcon, Columns3, List, Plus } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { TaskCalendar } from "@/components/crm/TaskCalendar";
 import { TaskEditor } from "@/components/crm/TaskEditor";
@@ -59,9 +54,7 @@ function TasksPage() {
     <AppShell
       title="Задачи и проекты"
       subtitle={
-        mode === "calendar"
-          ? "Календарь задач: месяц и неделя"
-          : "Канбан, список и календарь задач"
+        mode === "calendar" ? "Календарь задач: месяц и неделя" : "Канбан, список и календарь задач"
       }
     >
       <div className="mb-6 flex flex-wrap items-center gap-3">

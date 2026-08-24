@@ -41,7 +41,7 @@ export function ApprovalGateway({ onRefresh }: ApprovalGatewayProps) {
   async function handleDecision(
     approvalId: string,
     decision: "approved" | "rejected" | "changes_requested",
-    comment?: string
+    comment?: string,
   ) {
     setProcessingId(approvalId);
 
@@ -122,20 +122,15 @@ export function ApprovalGateway({ onRefresh }: ApprovalGatewayProps) {
 
       <div className="space-y-2">
         {approvals.map((approval) => (
-          <div
-            key={approval.id}
-            className="rounded-lg border border-border/50 bg-card p-3"
-          >
+          <div key={approval.id} className="rounded-lg border border-border/50 bg-card p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium truncate">
-                    {approval.action}
-                  </span>
+                  <span className="text-sm font-medium truncate">{approval.action}</span>
                   {approval.risk_level && (
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[10px] ${getRiskBadgeColor(
-                        approval.risk_level
+                        approval.risk_level,
                       )}`}
                     >
                       {approval.risk_level}
@@ -152,9 +147,7 @@ export function ApprovalGateway({ onRefresh }: ApprovalGatewayProps) {
                 <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
                   <span>Task: {approval.task_id.substring(0, 8)}...</span>
                   <span>•</span>
-                  <span>
-                    {new Date(approval.created_at).toLocaleDateString("ru-RU")}
-                  </span>
+                  <span>{new Date(approval.created_at).toLocaleDateString("ru-RU")}</span>
                 </div>
               </div>
 

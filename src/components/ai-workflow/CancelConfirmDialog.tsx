@@ -38,12 +38,10 @@ export function CancelConfirmDialog({
           </AlertDialogTitle>
           <AlertDialogDescription>
             {taskTitle && (
-              <span className="block mb-2 text-foreground font-medium">
-                Задача: {taskTitle}
-              </span>
+              <span className="block mb-2 text-foreground font-medium">Задача: {taskTitle}</span>
             )}
-            Это остановит все активные процессы агентов. Текущий прогресс будет
-            сохранён, но задача перейдёт в статус «Отменено».
+            Это остановит все активные процессы агентов. Текущий прогресс будет сохранён, но задача
+            перейдёт в статус «Отменено».
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

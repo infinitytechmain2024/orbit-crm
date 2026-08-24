@@ -6,15 +6,16 @@ Uses centralized config and openclaw_client service.
 from __future__ import annotations
 
 import logging
-import os
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime
+from secrets import compare_digest
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from backend.config import settings
+from backend.auth import WorkflowActor, require_workflow_actor, require_workflow_permission
 from backend.services.openclaw_client import openclaw_client
 from backend.services.supabase_client import supabase_service
 
@@ -33,29 +34,17 @@ async def _verify_webhook_token(
 ) -> None:
     """Verify OpenClaw webhook authorization token.
 
-    Production: fail closed if OPENCLAW_WEBHOOK_TOKEN not configured.
-    Development: warn but allow unauthenticated requests.
+    Fail closed in every environment.
     """
     expected = settings.OPENCLAW_WEBHOOK_TOKEN
-    is_production = not settings.DEBUG and os.environ.get("RENDER")
-
     if not expected:
-        if is_production:
-            logger.error(
-                "OPENCLAW_WEBHOOK_TOKEN not configured in production. "
-                "Webhook requests will be rejected. Set OPENCLAW_WEBHOOK_TOKEN."
-            )
-            raise HTTPException(
-                status_code=500,
-                detail="Webhook authentication not configured. Contact administrator.",
-            )
-        logger.warning(
-            "OPENCLAW_WEBHOOK_TOKEN not configured. "
-            "Webhook is unprotected. Set OPENCLAW_WEBHOOK_TOKEN for production."
+        logger.error("OPENCLAW_WEBHOOK_TOKEN is not configured; rejecting webhook")
+        raise HTTPException(
+            status_code=503,
+            detail="Webhook authentication is not configured.",
         )
-        return
 
-    if not credentials or credentials.credentials != expected:
+    if not credentials or not compare_digest(credentials.credentials, expected):
         raise HTTPException(status_code=401, detail="Invalid webhook token")
 
 
@@ -64,7 +53,7 @@ class GoalCreate(BaseModel):
     description: str = Field(default="", max_length=12000)
     acceptance_criteria: list[str] = Field(default_factory=list)
     priority: str = Field(default="normal", pattern="^(low|normal|high|critical)$")
-    organization_id: Optional[str]= Field(default=None, max_length=36)
+    organization_id: str = Field(min_length=36, max_length=36)
 
 
 class GoalUpdate(BaseModel):
@@ -79,14 +68,19 @@ class ImprovementApprove(BaseModel):
 
 
 @router.post("/create")
-async def create_goal(goal: GoalCreate):
+async def create_goal(
+    goal: GoalCreate,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Create a self-development goal and register it with OpenClaw."""
+    await require_workflow_permission(goal.organization_id, actor, "workflow.create")
     # 1. Save to database
     result = supabase_service.client.table("openclaw_goals").insert({
         "label": goal.label,
         "description": goal.description,
         "acceptance_criteria": goal.acceptance_criteria,
         "organization_id": goal.organization_id,
+        "created_by": actor.user_id,
         "priority": goal.priority,
         "status": "active",
     }).execute()
@@ -119,11 +113,16 @@ async def create_goal(goal: GoalCreate):
 
 @router.get("/list")
 async def list_goals(
+    organization_id: str = Query(min_length=36, max_length=36),
     status: Optional[str]= None,
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
+    actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     """List self-development goals."""
-    query = supabase_service.client.table("openclaw_goals").select("*")
+    await require_workflow_permission(organization_id, actor, "workflow.read")
+    query = supabase_service.client.table("openclaw_goals").select("*").eq(
+        "organization_id", organization_id
+    )
 
     if status:
         query = query.eq("status", status)
@@ -134,12 +133,19 @@ async def list_goals(
 
 
 @router.get("/status/{goal_id}")
-async def get_goal_status(goal_id: str):
+async def get_goal_status(
+    goal_id: str,
+    organization_id: str = Query(min_length=36, max_length=36),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Get the status of a self-development goal."""
+    await require_workflow_permission(organization_id, actor, "workflow.read")
     result = supabase_service.client.table("openclaw_goals") \
         .select("*") \
         .eq("id", goal_id) \
-        .single()
+        .eq("organization_id", organization_id) \
+        .single() \
+        .execute()
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Goal not found")
@@ -148,14 +154,20 @@ async def get_goal_status(goal_id: str):
 
 
 @router.patch("/update/{goal_id}")
-async def update_goal(goal_id: str, update: GoalUpdate):
+async def update_goal(
+    goal_id: str,
+    update: GoalUpdate,
+    organization_id: str = Query(min_length=36, max_length=36),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Update a self-development goal."""
-    update_data: dict[str, Any] = {"updated_at": datetime.now().isoformat()}
+    await require_workflow_permission(organization_id, actor, "workflow.control")
+    update_data: dict[str, Any] = {"updated_at": datetime.now(UTC).isoformat()}
 
     if update.status is not None:
         update_data["status"] = update.status
         if update.status == "completed":
-            update_data["completed_at"] = datetime.now().isoformat()
+            update_data["completed_at"] = datetime.now(UTC).isoformat()
     if update.label is not None:
         update_data["label"] = update.label
     if update.description is not None:
@@ -165,19 +177,24 @@ async def update_goal(goal_id: str, update: GoalUpdate):
 
     supabase_service.client.table("openclaw_goals").update(
         update_data
-    ).eq("id", goal_id).execute()
+    ).eq("id", goal_id).eq("organization_id", organization_id).execute()
 
     return {"status": "updated"}
 
 
 @router.get("/improvements/list")
 async def list_improvements(
+    organization_id: str = Query(min_length=36, max_length=36),
     goal_id: Optional[str]= None,
     status: Optional[str]= None,
-    limit: int = 50,
+    limit: int = Query(default=50, ge=1, le=100),
+    actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     """List improvement suggestions."""
-    query = supabase_service.client.table("openclaw_improvements").select("*")
+    await require_workflow_permission(organization_id, actor, "workflow.read")
+    query = supabase_service.client.table("openclaw_improvements").select(
+        "*, openclaw_goals!inner(organization_id)"
+    ).eq("openclaw_goals.organization_id", organization_id)
 
     if goal_id:
         query = query.eq("goal_id", goal_id)
@@ -190,46 +207,50 @@ async def list_improvements(
 
 
 @router.post("/improvements/approve")
-async def approve_improvement(improvement: ImprovementApprove):
+async def approve_improvement(
+    improvement: ImprovementApprove,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Approve an improvement for application."""
     result = supabase_service.client.table("openclaw_improvements") \
         .select("*") \
         .eq("id", improvement.improvement_id) \
-        .single()
+        .single() \
+        .execute()
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Improvement not found")
 
+    goal = supabase_service.client.table("openclaw_goals").select("organization_id").eq(
+        "id", result.data["goal_id"]
+    ).single().execute()
+    if not goal.data:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    await require_workflow_permission(goal.data["organization_id"], actor, "workflow.control")
+
     supabase_service.client.table("openclaw_improvements").update({
         "status": "approved",
+        "approved_by": actor.user_id,
+        "approved_at": datetime.now(UTC).isoformat(),
     }).eq("id", improvement.improvement_id).execute()
 
-    improvement_data = result.data
-    execution = await openclaw_client.execute_chat(
-        task_id=improvement.improvement_id,
-        message=f"Apply improvement: {improvement_data.get('suggestion', '')}",
-        system_prompt="Apply the approved code improvement.",
-        context={
-            "goal_id": improvement_data.get("goal_id"),
-            "file_path": improvement_data.get("file_path"),
-            "code_before": improvement_data.get("code_before"),
-            "code_after": improvement_data.get("code_after"),
-        },
-    )
-
-    if not execution.success:
-        logger.warning("OpenClaw improvement dispatch returned: %s", execution.error)
-
-    return {"status": "approved"}
+    # Approval records the human decision only. Production code and configuration
+    # are never modified by the agent from this endpoint.
+    return {"status": "approved", "automatic_code_change": False}
 
 
 @router.get("/analyses/list")
 async def list_analyses(
+    organization_id: str = Query(min_length=36, max_length=36),
     goal_id: Optional[str]= None,
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
+    actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     """List analyses for goals."""
-    query = supabase_service.client.table("openclaw_analyses").select("*")
+    await require_workflow_permission(organization_id, actor, "workflow.read")
+    query = supabase_service.client.table("openclaw_analyses").select(
+        "*, openclaw_goals!inner(organization_id)"
+    ).eq("openclaw_goals.organization_id", organization_id)
 
     if goal_id:
         query = query.eq("goal_id", goal_id)
@@ -271,14 +292,14 @@ async def openclaw_goal_webhook(
     elif action == "goal_progress":
         supabase_service.client.table("openclaw_goals").update({
             "progress": data.get("progress", {}),
-            "updated_at": datetime.now().isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         }).eq("id", goal_id).execute()
 
     elif action == "goal_completed":
         supabase_service.client.table("openclaw_goals").update({
             "status": "completed",
-            "completed_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "completed_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         }).eq("id", goal_id).execute()
 
     elif action == "analysis_result":

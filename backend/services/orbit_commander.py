@@ -11,7 +11,7 @@ Postgres so a process restart does not lose work.
 import json
 import logging
 import re
-from datetime import datetime, timezone as tz_utc
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from backend.config import settings
@@ -147,7 +147,7 @@ CRITICAL_ACTIONS: tuple[tuple[tuple[str, ...], str, str], ...] = (
 # Orbit Model Router selects actual model from the configured pool.
 OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
     "Backend Engineer": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -163,7 +163,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
         "allowed_tools": ["bash", "file_read", "file_write", "github"],
     },
     "Frontend Engineer": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -179,7 +179,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
         "allowed_tools": ["bash", "file_read", "file_write", "github"],
     },
     "AI Engineer": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -195,7 +195,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
         "allowed_tools": ["bash", "file_read", "file_write"],
     },
     "DevOps / Ops Agent": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -211,7 +211,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
         "allowed_tools": ["bash", "file_read", "file_write", "github"],
     },
     "Research Agent": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -227,7 +227,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
         "allowed_tools": ["web_search", "file_read"],
     },
     "Business Analyst": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -243,7 +243,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
         "allowed_tools": ["file_read"],
     },
     "Content Agent": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -259,7 +259,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
         "allowed_tools": ["file_read", "file_write"],
     },
     "Design Agent": {
-        "openclaw_agent_id": "openclaw/default",
+        "openclaw_agent_id": "main",
         "preferred_pool": "standard",
         "primary_models": [
             "nemotron-3.5-lightning-30b-a3b",
@@ -277,7 +277,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
 
 
 def utc_now() -> str:
-    return datetime.now(tz_utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _coerce_text(content: Any) -> str:
@@ -1262,9 +1262,9 @@ class OrbitCommander:
             f"Контекст: {json.dumps(context, ensure_ascii=False)}"
         )
 
+        # Let the OpenClaw gateway resolve its configured primary and fallback chain.
+        # The registry pool names above are advisory metadata, not valid gateway model refs.
         model_override = None
-        if mapping.get("primary_models"):
-            model_override = mapping["primary_models"][0]
 
         await self.create_event(
             task,

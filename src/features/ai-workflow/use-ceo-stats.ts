@@ -23,19 +23,13 @@ export interface CEOStats {
 
 export function useCEOStats(tasks: WorkflowTask[]): CEOStats {
   return useMemo(() => {
-    const queued = tasks.filter((t) =>
-      ["queued", "planning"].includes(t.status)
-    ).length;
+    const queued = tasks.filter((t) => ["queued", "planning"].includes(t.status)).length;
 
-    const inProgress = tasks.filter(
-      (t) => t.status === "in_progress"
-    ).length;
+    const inProgress = tasks.filter((t) => t.status === "in_progress").length;
 
     const done = tasks.filter((t) => t.status === "done").length;
 
-    const pendingApproval = tasks.filter(
-      (t) => t.status === "approval_required"
-    );
+    const pendingApproval = tasks.filter((t) => t.status === "approval_required");
 
     const byPriority = {
       critical: tasks.filter((t) => t.priority === "critical").length,

@@ -28,6 +28,9 @@ import { Route as TasksTaskIdRouteImport } from './routes/tasks.$taskId'
 import { Route as ApiAiWorkflowSplatRouteImport } from './routes/api/ai-workflow/$'
 import { Route as ApiAiAnalyzeTasksRouteImport } from './routes/api/ai/analyze-tasks'
 import { Route as ApiBackendSplatRouteImport } from './routes/api/backend/$'
+import { Route as ApiLearningSplatRouteImport } from './routes/api/learning/$'
+import { Route as ApiMailSplatRouteImport } from './routes/api/mail/$'
+import { Route as ApiOpenclawSplatRouteImport } from './routes/api/openclaw/$'
 import { Route as ApiSpeechTranscribeRouteImport } from './routes/api/speech/transcribe'
 
 const IndexRoute = IndexRouteImport.update({
@@ -125,6 +128,21 @@ const ApiBackendSplatRoute = ApiBackendSplatRouteImport.update({
   path: '/api/backend/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLearningSplatRoute = ApiLearningSplatRouteImport.update({
+  id: '/api/learning/$',
+  path: '/api/learning/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMailSplatRoute = ApiMailSplatRouteImport.update({
+  id: '/api/mail/$',
+  path: '/api/mail/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOpenclawSplatRoute = ApiOpenclawSplatRouteImport.update({
+  id: '/api/openclaw/$',
+  path: '/api/openclaw/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSpeechTranscribeRoute = ApiSpeechTranscribeRouteImport.update({
   id: '/api/speech/transcribe',
   path: '/api/speech/transcribe',
@@ -151,6 +169,9 @@ export interface FileRoutesByFullPath {
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/ai/analyze-tasks': typeof ApiAiAnalyzeTasksRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
+  '/api/learning/$': typeof ApiLearningSplatRoute
+  '/api/mail/$': typeof ApiMailSplatRoute
+  '/api/openclaw/$': typeof ApiOpenclawSplatRoute
   '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
 export interface FileRoutesByTo {
@@ -173,6 +194,9 @@ export interface FileRoutesByTo {
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/ai/analyze-tasks': typeof ApiAiAnalyzeTasksRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
+  '/api/learning/$': typeof ApiLearningSplatRoute
+  '/api/mail/$': typeof ApiMailSplatRoute
+  '/api/openclaw/$': typeof ApiOpenclawSplatRoute
   '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
 export interface FileRoutesById {
@@ -196,6 +220,9 @@ export interface FileRoutesById {
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
   '/api/ai/analyze-tasks': typeof ApiAiAnalyzeTasksRoute
   '/api/backend/$': typeof ApiBackendSplatRoute
+  '/api/learning/$': typeof ApiLearningSplatRoute
+  '/api/mail/$': typeof ApiMailSplatRoute
+  '/api/openclaw/$': typeof ApiOpenclawSplatRoute
   '/api/speech/transcribe': typeof ApiSpeechTranscribeRoute
 }
 export interface FileRouteTypes {
@@ -220,6 +247,9 @@ export interface FileRouteTypes {
     | '/api/ai-workflow/$'
     | '/api/ai/analyze-tasks'
     | '/api/backend/$'
+    | '/api/learning/$'
+    | '/api/mail/$'
+    | '/api/openclaw/$'
     | '/api/speech/transcribe'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -242,6 +272,9 @@ export interface FileRouteTypes {
     | '/api/ai-workflow/$'
     | '/api/ai/analyze-tasks'
     | '/api/backend/$'
+    | '/api/learning/$'
+    | '/api/mail/$'
+    | '/api/openclaw/$'
     | '/api/speech/transcribe'
   id:
     | '__root__'
@@ -264,6 +297,9 @@ export interface FileRouteTypes {
     | '/api/ai-workflow/$'
     | '/api/ai/analyze-tasks'
     | '/api/backend/$'
+    | '/api/learning/$'
+    | '/api/mail/$'
+    | '/api/openclaw/$'
     | '/api/speech/transcribe'
   fileRoutesById: FileRoutesById
 }
@@ -286,6 +322,9 @@ export interface RootRouteChildren {
   ApiAiWorkflowSplatRoute: typeof ApiAiWorkflowSplatRoute
   ApiAiAnalyzeTasksRoute: typeof ApiAiAnalyzeTasksRoute
   ApiBackendSplatRoute: typeof ApiBackendSplatRoute
+  ApiLearningSplatRoute: typeof ApiLearningSplatRoute
+  ApiMailSplatRoute: typeof ApiMailSplatRoute
+  ApiOpenclawSplatRoute: typeof ApiOpenclawSplatRoute
   ApiSpeechTranscribeRoute: typeof ApiSpeechTranscribeRoute
 }
 
@@ -424,6 +463,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBackendSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/learning/$': {
+      id: '/api/learning/$'
+      path: '/api/learning/$'
+      fullPath: '/api/learning/$'
+      preLoaderRoute: typeof ApiLearningSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mail/$': {
+      id: '/api/mail/$'
+      path: '/api/mail/$'
+      fullPath: '/api/mail/$'
+      preLoaderRoute: typeof ApiMailSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/openclaw/$': {
+      id: '/api/openclaw/$'
+      path: '/api/openclaw/$'
+      fullPath: '/api/openclaw/$'
+      preLoaderRoute: typeof ApiOpenclawSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/speech/transcribe': {
       id: '/api/speech/transcribe'
       path: '/api/speech/transcribe'
@@ -463,6 +523,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiWorkflowSplatRoute: ApiAiWorkflowSplatRoute,
   ApiAiAnalyzeTasksRoute: ApiAiAnalyzeTasksRoute,
   ApiBackendSplatRoute: ApiBackendSplatRoute,
+  ApiLearningSplatRoute: ApiLearningSplatRoute,
+  ApiMailSplatRoute: ApiMailSplatRoute,
+  ApiOpenclawSplatRoute: ApiOpenclawSplatRoute,
   ApiSpeechTranscribeRoute: ApiSpeechTranscribeRoute,
 }
 export const routeTree = rootRouteImport

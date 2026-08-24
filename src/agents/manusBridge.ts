@@ -41,11 +41,7 @@ interface SystemStatusResponse {
   reports_dir: string;
 }
 
-async function apiFetch<T>(
-  base: string,
-  path: string,
-  options?: RequestInit
-): Promise<T> {
+async function apiFetch<T>(base: string, path: string, options?: RequestInit): Promise<T> {
   const url = `${base}${path}`;
   const response = await fetch(url, {
     headers: {
@@ -57,17 +53,13 @@ async function apiFetch<T>(
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "Unknown error");
-    throw new Error(
-      `API error ${response.status} from ${url}: ${errorBody}`
-    );
+    throw new Error(`API error ${response.status} from ${url}: ${errorBody}`);
   }
 
   return response.json() as Promise<T>;
 }
 
-export async function startLeadSearch(
-  filters: SearchFilters
-): Promise<ManusJobStatus> {
+export async function startLeadSearch(filters: SearchFilters): Promise<ManusJobStatus> {
   const payload: SearchRequestPayload = {
     city: filters.city,
     niche: filters.niche,
@@ -88,13 +80,8 @@ export async function startLeadSearch(
   };
 }
 
-export async function getJobStatus(
-  jobId: string
-): Promise<ManusJobStatus> {
-  const data = await apiFetch<SearchJobStatusResponse>(
-    LEAD_GEN_API,
-    `/api/search/${jobId}`
-  );
+export async function getJobStatus(jobId: string): Promise<ManusJobStatus> {
+  const data = await apiFetch<SearchJobStatusResponse>(LEAD_GEN_API, `/api/search/${jobId}`);
 
   return {
     jobId: data.job_id,
@@ -124,17 +111,11 @@ export async function listSearchJobs(): Promise<ManusJobStatus[]> {
   }));
 }
 
-export async function scrapeSingleBusiness(
-  url: string
-): Promise<ScrapingResult> {
-  const data = await apiFetch<ScrapingResult>(
-    LEAD_GEN_API,
-    "/api/scrape",
-    {
-      method: "POST",
-      body: JSON.stringify({ url }),
-    }
-  );
+export async function scrapeSingleBusiness(url: string): Promise<ScrapingResult> {
+  const data = await apiFetch<ScrapingResult>(LEAD_GEN_API, "/api/scrape", {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
 
   return data;
 }
@@ -145,10 +126,7 @@ export async function getSystemStatus(): Promise<SystemStatusResponse> {
 
 export async function checkBackendHealth(): Promise<boolean> {
   try {
-    const data = await apiFetch<{ status: string }>(
-      BACKEND_API,
-      "/api/health"
-    );
+    const data = await apiFetch<{ status: string }>(BACKEND_API, "/api/health");
     return data.status === "ok";
   } catch {
     return false;
@@ -157,10 +135,7 @@ export async function checkBackendHealth(): Promise<boolean> {
 
 export async function checkLeadGenHealth(): Promise<boolean> {
   try {
-    const data = await apiFetch<{ status: string }>(
-      LEAD_GEN_API,
-      "/api/health"
-    );
+    const data = await apiFetch<{ status: string }>(LEAD_GEN_API, "/api/health");
     return data.status === "ok";
   } catch {
     return false;

@@ -57,7 +57,7 @@ export function parseCommand(input: string): ParsedCommand {
  */
 export function classifyTask(
   content: string,
-  explicitPrefix?: CommandPrefix | null
+  explicitPrefix?: CommandPrefix | null,
 ): TaskClassification {
   const lowerContent = content.toLowerCase();
 
@@ -198,7 +198,7 @@ export function dispatchTask(
     currentProject?: string;
     userId?: string;
     allowDestructive?: boolean;
-  } = {}
+  } = {},
 ): CeoDispatchResult {
   const { currentProject, userId, allowDestructive = false } = options;
 
@@ -263,13 +263,13 @@ export function dispatchTask(
  */
 export function routeToProject(
   content: string,
-  availableProjects: Array<{ id: string; name: string }>
+  availableProjects: Array<{ id: string; name: string }>,
 ): { projectId: string; projectName: string; confidence: number } | null {
   const classification = classifyTask(content);
 
   if (classification.projectGuess) {
     const project = availableProjects.find(
-      (p) => p.name.toLowerCase() === classification.projectGuess?.toLowerCase()
+      (p) => p.name.toLowerCase() === classification.projectGuess?.toLowerCase(),
     );
 
     if (project) {
@@ -310,7 +310,7 @@ export function generateChangePackage(
     actionType: ActionType;
     projectGuess: string | null;
   },
-  riskLevel: RiskLevel
+  riskLevel: RiskLevel,
 ): {
   files: string[];
   sql: string[];
@@ -347,7 +347,8 @@ export function generateChangePackage(
   }
 
   // Estimate time and cost
-  const estimatedTime = riskLevel === "critical" ? "2-3 hours" : riskLevel === "high" ? "1-2 hours" : "30-60 minutes";
+  const estimatedTime =
+    riskLevel === "critical" ? "2-3 hours" : riskLevel === "high" ? "1-2 hours" : "30-60 minutes";
   const estimatedCost = riskLevel === "critical" ? 50 : riskLevel === "high" ? 25 : 10;
 
   return {

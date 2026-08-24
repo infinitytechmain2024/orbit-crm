@@ -8,12 +8,7 @@ interface CityGroupHeaderProps {
   onToggle: () => void;
 }
 
-export function CityGroupHeader({
-  city,
-  count,
-  isExpanded,
-  onToggle,
-}: CityGroupHeaderProps) {
+export function CityGroupHeader({ city, count, isExpanded, onToggle }: CityGroupHeaderProps) {
   return (
     <button
       onClick={onToggle}
@@ -21,7 +16,7 @@ export function CityGroupHeader({
         "flex w-full items-center gap-3 rounded-t-xl border border-border px-4 py-3 text-left transition",
         isExpanded
           ? "rounded-b-none border-b-0 bg-surface-2/80"
-          : "bg-surface-2/40 hover:bg-surface-2/60"
+          : "bg-surface-2/40 hover:bg-surface-2/60",
       )}
     >
       {isExpanded ? (

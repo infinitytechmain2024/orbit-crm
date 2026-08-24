@@ -23,7 +23,14 @@ export type {
   CeoAgentConfig,
 } from "./types";
 
-export { CEO_AGENT_CONFIG, PROJECT_KEYWORDS, RISK_KEYWORDS, ACTION_KEYWORDS, COMMAND_PATTERNS, ROLE_KEYWORDS } from "./types";
+export {
+  CEO_AGENT_CONFIG,
+  PROJECT_KEYWORDS,
+  RISK_KEYWORDS,
+  ACTION_KEYWORDS,
+  COMMAND_PATTERNS,
+  ROLE_KEYWORDS,
+} from "./types";
 
 // Dispatcher
 export {

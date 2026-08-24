@@ -7,7 +7,8 @@
 // Command Types
 // ============================================================
 
-export type CommandPrefix = "/run:" | "/change:" | "/ask:" | "/check:" | "/deploy:" | "/approve:" | "/reject:" | "/status";
+export type CommandPrefix =
+  "/run:" | "/change:" | "/ask:" | "/check:" | "/deploy:" | "/approve:" | "/reject:" | "/status";
 
 export interface ParsedCommand {
   prefix: CommandPrefix | null;
@@ -21,7 +22,8 @@ export interface ParsedCommand {
 // ============================================================
 
 export type ActionType = "run" | "change" | null;
-export type ApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected" | "changes_requested";
+export type ApprovalStatus =
+  "draft" | "pending_approval" | "approved" | "rejected" | "changes_requested";
 export type DeploymentStatus = "not_deployed" | "pending_deploy" | "deployed" | "deploy_failed";
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 
@@ -234,24 +236,8 @@ export const PROJECT_KEYWORDS: Record<string, string[]> = {
     "агент",
     "агенты",
   ],
-  OSNOVA: [
-    "osnova",
-    "основа",
-    "базовый",
-    "фундамент",
-    "ядро",
-    "core",
-    "platform",
-    "платформа",
-  ],
-  BERRDO: [
-    "berrdo",
-    "бердо",
-    "птица",
-    "bird",
-    "aviary",
-    "вольер",
-  ],
+  OSNOVA: ["osnova", "основа", "базовый", "фундамент", "ядро", "core", "platform", "платформа"],
+  BERRDO: ["berrdo", "бердо", "птица", "bird", "aviary", "вольер"],
 };
 
 // ============================================================

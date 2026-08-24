@@ -694,7 +694,11 @@ function KnowledgeGraphWorkspace() {
           relation.relationType === "adapted_for" ||
           (relation.relationType === "related_to" && relation.sourceType === "project");
         const clusterColor = edgeColorForRelation(relation, model);
-        const stroke = selectedEdge ? clusterColor : secondary ? "var(--acc-1)" : "var(--muted-foreground)";
+        const stroke = selectedEdge
+          ? clusterColor
+          : secondary
+            ? "var(--acc-1)"
+            : "var(--muted-foreground)";
         const makeEdge = (
           edgeId: string,
           edgeSource: string,

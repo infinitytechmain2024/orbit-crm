@@ -1,17 +1,7 @@
 export type VoiceRecorderState =
-  | "idle"
-  | "recording"
-  | "processing"
-  | "preview"
-  | "executing"
-  | "done"
-  | "error";
+  "idle" | "recording" | "processing" | "preview" | "executing" | "done" | "error";
 
-export type VoiceIntentType =
-  | "CREATE_TASK"
-  | "ESTIMATE_PROJECT"
-  | "WEB_SEARCH_LEADS"
-  | "UNKNOWN";
+export type VoiceIntentType = "CREATE_TASK" | "ESTIMATE_PROJECT" | "WEB_SEARCH_LEADS" | "UNKNOWN";
 
 export interface VoiceIntent {
   type: VoiceIntentType;

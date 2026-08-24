@@ -40,6 +40,7 @@ from backend.routers.company_router import router as company_router
 from backend.routers.internal import router as internal_router
 from backend.routers.openclaw_tasks import router as openclaw_router
 from backend.routers.openclaw_goals import router as openclaw_goals_router
+from backend.routers.controlled_learning import router as controlled_learning_router
 from backend.routers.whisper_router import router as whisper_router
 from backend.middleware.rate_limit import WorkflowRateLimitMiddleware
 from backend.services.stt import stt_service
@@ -51,13 +52,7 @@ from backend.services.openclaw_client import openclaw_client
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Dynamically build CORS origins — include Vercel preview URLs and tunnel domains
-CORS_ORIGINS = list(settings.CORS_ORIGINS) + [
-    "https://*.vercel.app",
-    "https://*.trycloudflare.com",
-    "https://*.ngrok-free.app",
-    "https://*.ngrok.io",
-]
+CORS_ORIGINS = list(settings.CORS_ORIGINS)
 
 # ============================
 # Ollama Auto-Start
@@ -140,7 +135,6 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_origin_regex=r"https://.*\.(vercel\.app|trycloudflare\.com|ngrok-free\.app|ngrok\.io)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -152,6 +146,7 @@ app.include_router(agent_router.router)
 app.include_router(company_router)
 app.include_router(openclaw_router)
 app.include_router(openclaw_goals_router)
+app.include_router(controlled_learning_router)
 app.include_router(whisper_router)
 app.include_router(ai_workflow_api_router)
 app.include_router(ceo_router)

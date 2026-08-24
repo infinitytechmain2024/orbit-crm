@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-  Search,
-  Filter,
-  ChevronsUpDown,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Filter, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CityGroupHeader } from "./CityGroupHeader";
 import { LeadRow } from "./LeadRow";
@@ -71,7 +65,7 @@ export function NotionTable({
           (c) =>
             c.businessName.toLowerCase().includes(q) ||
             c.category.toLowerCase().includes(q) ||
-            c.email.toLowerCase().includes(q)
+            c.email.toLowerCase().includes(q),
         );
       }
 
@@ -143,9 +137,7 @@ export function NotionTable({
             className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition"
           >
             {col.label}
-            {sortField === col.key && (
-              <ChevronsUpDown className="size-3 text-primary" />
-            )}
+            {sortField === col.key && <ChevronsUpDown className="size-3 text-primary" />}
           </button>
         ))}
       </div>
