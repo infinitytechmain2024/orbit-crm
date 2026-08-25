@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { authenticatedFetch } from "@/lib/api-client";
 
 export type BackendStatus = "checking" | "online" | "offline";
 
@@ -28,7 +29,7 @@ export function useBackendStatus(): UseBackendStatusReturn {
   const checkHealth = useCallback(async () => {
     setStatus("checking");
     try {
-      const response = await fetch("/api/health", {
+      const response = await authenticatedFetch("/api/backend/api/health", {
         method: "GET",
         signal: AbortSignal.timeout(5000),
       });

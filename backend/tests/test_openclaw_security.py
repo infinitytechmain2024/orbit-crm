@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import base64
 import unittest
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import UUID
 
 from fastapi.testclient import TestClient
 
@@ -18,6 +20,7 @@ class OpenClawSecurityTests(unittest.TestCase):
     def test_health_rejects_missing_server_auth(self) -> None:
         response = self.client.get("/api/openclaw/health")
         self.assertEqual(response.status_code, 401)
+        UUID(response.headers["x-correlation-id"])
 
     def test_health_rejects_missing_user_session(self) -> None:
         response = self.client.get(
@@ -49,6 +52,58 @@ class OpenClawSecurityTests(unittest.TestCase):
             params={"organization_id": "00000000-0000-0000-0000-000000000000"},
         )
         self.assertEqual(response.status_code, 401)
+
+    def test_memory_api_rejects_missing_authentication(self) -> None:
+        response = self.client.get(
+            "/api/learning/memory",
+            params={"organization_id": "00000000-0000-0000-0000-000000000000"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_memory_correction_rejects_missing_authentication(self) -> None:
+        response = self.client.post(
+            "/api/learning/memory/00000000-0000-0000-0000-000000000001/correct",
+            json={
+                "organization_id": "00000000-0000-0000-0000-000000000000",
+                "memory_value": {"fact": "corrected"},
+                "correction_note": "test",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_learning_patterns_reject_missing_authentication(self) -> None:
+        response = self.client.get(
+            "/api/learning/patterns",
+            params={"organization_id": "00000000-0000-0000-0000-000000000000"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_proposal_decision_rejects_missing_authentication(self) -> None:
+        response = self.client.post(
+            "/api/learning/proposals/00000000-0000-0000-0000-000000000001/reject",
+            json={"reason": "Not enough evidence"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_websocket_authenticates_session_and_membership(self) -> None:
+        organization_id = "00000000-0000-0000-0000-000000000000"
+        encoded = base64.urlsafe_b64encode(b"test-session-token").decode().rstrip("=")
+        with (
+            patch(
+                "backend.routers.websocket.ai_workflow_store.verify_user",
+                AsyncMock(return_value={"id": "00000000-0000-0000-0000-000000000001"}),
+            ),
+            patch(
+                "backend.routers.websocket.ai_workflow_store.ensure_membership",
+                AsyncMock(return_value=None),
+            ),
+        ):
+            with self.client.websocket_connect(
+                f"/ws/activity?organization_id={organization_id}",
+                subprotocols=["orbit-auth", f"orbit-token.{encoded}"],
+            ) as websocket:
+                message = websocket.receive_json()
+                self.assertEqual(message["type"], "connected")
 
     def test_webhook_uses_stable_idempotency_key_for_retries(self) -> None:
         execute = MagicMock(return_value=SimpleNamespace(data=[{

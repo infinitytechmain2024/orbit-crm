@@ -12,25 +12,38 @@ async function request<T>(action: string, body?: unknown): Promise<T> {
   return payload as T;
 }
 
-export async function fetchEmails(): Promise<Email[]> {
-  return request<Email[]>("messages");
+export async function fetchEmails(organizationId: string): Promise<Email[]> {
+  const query = new URLSearchParams({ organization_id: organizationId });
+  const response = await authenticatedFetch(`/api/mail/messages?${query}`);
+  const payload = (await response.json().catch(() => ({}))) as Email[] | { error?: string };
+  if (!response.ok) {
+    throw new Error(
+      !Array.isArray(payload) && payload.error ? payload.error : "Mail service request failed",
+    );
+  }
+  return payload as Email[];
 }
 
 export async function sendReply(params: {
-  inboxId: string;
+  organizationId: string;
   messageId: string;
   text: string;
   html?: string;
 }): Promise<void> {
-  await request("reply", params);
+  await request("reply", { ...params, confirmed: true, idempotencyKey: crypto.randomUUID() });
 }
 
 export async function sendMessage(params: {
+  organizationId: string;
   to: string;
   subject: string;
   text: string;
   html?: string;
   labels?: string[];
 }): Promise<{ messageId: string }> {
-  return request<{ messageId: string }>("send", params);
+  return request<{ messageId: string }>("send", {
+    ...params,
+    confirmed: true,
+    idempotencyKey: crypto.randomUUID(),
+  });
 }

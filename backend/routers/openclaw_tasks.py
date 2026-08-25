@@ -70,7 +70,9 @@ class OpenClawAssistRequest(BaseModel):
     instructions: str = Field(default="", max_length=4000)
 
 
-async def _load_entity_context(organization_id: str, entity_type: str, entity_id: str) -> dict[str, Any]:
+async def _load_entity_context(
+    organization_id: str, entity_type: str, entity_id: str, user_id: str
+) -> dict[str, Any]:
     table_by_type = {
         "client": "lead_clients",
         "lead": "lead_clients",
@@ -118,13 +120,40 @@ async def _load_entity_context(organization_id: str, entity_type: str, entity_id
             order="created_at.desc",
             limit=50,
         )
-    context["company_knowledge_catalog"] = await ai_workflow_store.select(
+    knowledge_catalog = await ai_workflow_store.select(
         "company_knowledge",
         organization_id=organization_id,
         filters={"is_active": "eq.true"},
         columns="id,slug,title,category,current_version",
         order="updated_at.desc",
         limit=50,
+    )
+    context["company_knowledge_catalog"] = knowledge_catalog
+    if knowledge_catalog:
+        knowledge_ids = ",".join(item["id"] for item in knowledge_catalog)
+        versions = await ai_workflow_store.select(
+            "company_knowledge_versions",
+            organization_id=organization_id,
+            filters={"knowledge_id": f"in.({knowledge_ids})"},
+            columns="knowledge_id,version,content,source,created_at",
+            order="created_at.desc",
+            limit=100,
+        )
+        current_version = {item["id"]: item["current_version"] for item in knowledge_catalog}
+        context["company_knowledge"] = [
+            version for version in versions
+            if current_version.get(version["knowledge_id"]) == version["version"]
+        ]
+    context["user_memory"] = await ai_workflow_store.select(
+        "ai_user_memory",
+        organization_id=organization_id,
+        filters={
+            "user_id": f"eq.{user_id}",
+            "or": f"(expires_at.is.null,expires_at.gt.{datetime.now(UTC).isoformat()})",
+        },
+        columns="entity_type,entity_id,key_phrase,memory_value,confidence,source,last_verified_at",
+        order="confidence.desc",
+        limit=settings.OPENCLAW_MAX_CONTEXT_RECORDS,
     )
     client_id = entity_id if entity_type in {"client", "lead"} else entity.get("client_id")
     if client_id:
@@ -174,7 +203,7 @@ async def create_openclaw_task(
     if bool(task.entity_type) != bool(task.entity_id):
         raise HTTPException(status_code=422, detail="entity_type and entity_id must be provided together")
     context = (
-        await _load_entity_context(task.organization_id, task.entity_type, task.entity_id)
+        await _load_entity_context(task.organization_id, task.entity_type, task.entity_id, actor.user_id)
         if task.entity_type and task.entity_id
         else {}
     )
@@ -256,6 +285,7 @@ async def create_openclaw_task(
 @router.post("/assist")
 async def assist_with_crm_entity(
     request: OpenClawAssistRequest,
+    http_request: Request,
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     """Prepare a draft or recommendation. This endpoint never sends external messages."""
@@ -284,7 +314,7 @@ async def assist_with_crm_entity(
     if len(recent_actions) >= settings.OPENCLAW_DAILY_ACTION_LIMIT:
         raise HTTPException(status_code=429, detail="Daily OpenClaw action limit reached")
     context = await _load_entity_context(
-        request.organization_id, request.entity_type, request.entity_id
+        request.organization_id, request.entity_type, request.entity_id, actor.user_id
     )
     prompts = {
         "draft_message": (
@@ -320,6 +350,7 @@ async def assist_with_crm_entity(
         "status": audit_status,
         "input_summary": {"instructions_present": bool(request.instructions)},
         "output_summary": {"model": execution.model, "success": execution.success},
+        "correlation_id": getattr(http_request.state, "correlation_id", str(uuid4())),
     }).execute()
     if not execution.success:
         logger.warning("OpenClaw assist failed for %s: %s", request.entity_type, execution.error)

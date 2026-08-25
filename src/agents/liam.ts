@@ -3,7 +3,6 @@ import type { VoiceIntent } from "../types/voice";
 import type { LiamCommand, LiamResponse } from "../types/agent";
 
 const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434/v1";
-const OPENAI_URL = "https://api.openai.com/v1";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const COMMON_HEADERS: Record<string, string> = {
@@ -11,43 +10,25 @@ const COMMON_HEADERS: Record<string, string> = {
   "ngrok-skip-browser-warning": "true",
 };
 
-type LlmProvider = "ollama" | "openai";
-
 interface LlmConfig {
-  provider: LlmProvider;
   ollamaUrl: string;
-  openaiApiKey?: string;
   model: string;
 }
 
 function getConfig(): LlmConfig {
-  const provider = (import.meta.env["VITE_LLM_PROVIDER"] ?? "ollama") as LlmProvider;
   return {
-    provider,
     ollamaUrl: import.meta.env["VITE_OLLAMA_URL"] ?? OLLAMA_URL,
-    openaiApiKey: import.meta.env["VITE_OPENAI_API_KEY"],
     model: import.meta.env["VITE_LLM_MODEL"] ?? "llama3.2",
   };
 }
 
 async function callLlm(prompt: string): Promise<string> {
   const config = getConfig();
-  const baseUrl = config.provider === "openai" ? OPENAI_URL : config.ollamaUrl;
-  const model = config.provider === "openai" ? "gpt-4o-mini" : config.model;
-
-  const headers: Record<string, string> = {
-    ...COMMON_HEADERS,
-  };
-
-  if (config.provider === "openai" && config.openaiApiKey) {
-    headers["Authorization"] = `Bearer ${config.openaiApiKey}`;
-  }
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+  const response = await fetch(`${config.ollamaUrl}/chat/completions`, {
     method: "POST",
-    headers,
+    headers: COMMON_HEADERS,
     body: JSON.stringify({
-      model,
+      model: config.model,
       messages: [
         {
           role: "system",

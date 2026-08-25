@@ -43,6 +43,7 @@ from backend.routers.openclaw_goals import router as openclaw_goals_router
 from backend.routers.controlled_learning import router as controlled_learning_router
 from backend.routers.whisper_router import router as whisper_router
 from backend.middleware.rate_limit import WorkflowRateLimitMiddleware
+from backend.middleware.correlation import CorrelationMiddleware
 from backend.services.stt import stt_service
 from backend.services.ai_dispatcher import ai_dispatcher
 from backend.services.intent_executor import execute_intent, ExecutionResult
@@ -140,6 +141,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(WorkflowRateLimitMiddleware)
+app.add_middleware(CorrelationMiddleware)
 
 app.include_router(internal_router)
 app.include_router(agent_router.router)

@@ -42,7 +42,9 @@ services:
     name: orbit-crm-backend
     runtime: python
     region: ohio
-    plan: free
+    # Production requires an always-on instance. Do not apply this paid plan
+    # change until staging smoke tests and budget approval are complete.
+    plan: starter
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health

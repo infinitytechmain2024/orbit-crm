@@ -1,3 +1,6 @@
+# LEGACY BLUEPRINT: retained only for rollback of the former public gateway.
+# New environments must use the repository-root render.yaml, which provisions
+# orbit-openclaw-private on Render's private network.
 services:
   - type: web
     name: openclaw

@@ -6,13 +6,15 @@ Provides real-time task and workflow updates to the frontend
 """
 
 import asyncio
+import base64
+import binascii
 import json
 import logging
 from typing import Optional
-from datetime import datetime
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, Field
 from backend.services.ai_workflow_store import ai_workflow_store
 
 logger = logging.getLogger(__name__)
@@ -27,8 +29,8 @@ class ActivityEvent(BaseModel):
     agent_id: Optional[str] = None
     department_id: Optional[str] = None
     message: str
-    metadata: dict = {}
-    timestamp: str = datetime.now().isoformat()
+    metadata: dict = Field(default_factory=dict)
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class ConnectionManager:
@@ -39,7 +41,7 @@ class ConnectionManager:
         self.connection_info: dict[WebSocket, dict] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str, organization_id: str):
-        await websocket.accept()
+        await websocket.accept(subprotocol="orbit-auth")
         self.active_connections.append(websocket)
         self.connection_info[websocket] = {
             "user_id": user_id,
@@ -98,14 +100,14 @@ activity_manager = ConnectionManager()
 async def websocket_activity(
     websocket: WebSocket,
     organization_id: str = Query(min_length=36, max_length=36),
-    token: str = Query(min_length=1),
 ):
     """
     WebSocket endpoint for real-time activity stream.
 
     Query params:
         organization_id: Organization scope for the stream
-        token: Supabase access token
+        The Supabase access token is carried in the WebSocket subprotocol,
+        never in the URL where proxies and access logs can record it.
 
     Events sent:
         - task_update: Task status changes
@@ -114,10 +116,20 @@ async def websocket_activity(
         - deployment: Deployment status updates
         - system: System-wide notifications
     """
+    protocols = [
+        item.strip()
+        for item in websocket.headers.get("sec-websocket-protocol", "").split(",")
+    ]
+    encoded_token = next(
+        (item.removeprefix("orbit-token.") for item in protocols if item.startswith("orbit-token.")),
+        "",
+    )
     try:
+        padding = "=" * (-len(encoded_token) % 4)
+        token = base64.urlsafe_b64decode(encoded_token + padding).decode("utf-8")
         user = await ai_workflow_store.verify_user(token)
         await ai_workflow_store.ensure_membership(organization_id, str(user["id"]))
-    except Exception:
+    except (binascii.Error, UnicodeDecodeError, Exception):
         await websocket.close(code=1008, reason="Authentication failed")
         return
 
@@ -229,6 +241,7 @@ async def broadcast_approval_request(
 
 
 async def broadcast_deployment(
+    organization_id: str,
     task_id: str,
     status: str,
     message: str,
@@ -237,6 +250,7 @@ async def broadcast_deployment(
     """Broadcast deployment status update"""
     event = ActivityEvent(
         type="deployment",
+        organization_id=organization_id,
         task_id=task_id,
         message=message,
         metadata={"status": status, **metadata},
@@ -244,10 +258,11 @@ async def broadcast_deployment(
     await activity_manager.broadcast(event)
 
 
-async def broadcast_system(message: str, **metadata):
+async def broadcast_system(organization_id: str, message: str, **metadata):
     """Broadcast system-wide notification"""
     event = ActivityEvent(
         type="system",
+        organization_id=organization_id,
         message=message,
         metadata=metadata,
     )

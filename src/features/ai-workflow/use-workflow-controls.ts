@@ -4,9 +4,8 @@
  */
 
 import { useState, useCallback } from "react";
+import { authenticatedFetch } from "@/lib/api-client";
 import type { WorkflowTask, WorkflowTaskStatus } from "./types";
-
-const INTERNAL_API_TOKEN = import.meta.env["VITE_INTERNAL_API_TOKEN"] || "";
 
 export interface UseWorkflowControlsReturn {
   pauseTask: (task: WorkflowTask) => Promise<void>;
@@ -36,11 +35,9 @@ export function useWorkflowControls(
       setError(null);
 
       try {
-        const response = await fetch(`/api/ai-workflow/tasks/${taskId}/${action}`, {
+        const response = await authenticatedFetch(`/api/ai-workflow/tasks/${taskId}/${action}`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${INTERNAL_API_TOKEN}`,
-            "X-Supabase-Authorization": `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ organization_id: organizationId }),

@@ -1,16 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  Archive,
-  CornerUpLeft,
-  ListPlus,
-  Mail,
-  Pencil,
-  Send,
-  Sparkles,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Archive, CornerUpLeft, ListPlus, Mail, Pencil, Send, Trash2, X } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
 import { sendReply, sendMessage } from "@/lib/agentmail";
@@ -33,7 +23,7 @@ export const Route = createFileRoute("/mail")({
 });
 
 function MailPage() {
-  const { emails, markRead, addTask } = useCrm();
+  const { emails, markRead, addTask, organization } = useCrm();
   const [selId, setSelId] = useState(emails[0]?.id ?? "");
   const [flash, setFlash] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -60,11 +50,12 @@ function MailPage() {
   };
 
   const handleReply = async () => {
-    if (!sel || !replyText.trim()) return;
+    if (!sel || !replyText.trim() || !organization) return;
+    if (!window.confirm("Отправить этот ответ через AgentMail?")) return;
     setIsSending(true);
     try {
       await sendReply({
-        inboxId: "configured-server-side",
+        organizationId: organization.id,
         messageId: sel.id,
         text: replyText.trim(),
       });
@@ -80,10 +71,12 @@ function MailPage() {
   };
 
   const handleCompose = async () => {
-    if (!composeTo.trim() || !composeSubject.trim() || !composeBody.trim()) return;
+    if (!composeTo.trim() || !composeSubject.trim() || !composeBody.trim() || !organization) return;
+    if (!window.confirm(`Отправить письмо получателю ${composeTo.trim()}?`)) return;
     setIsSending(true);
     try {
       await sendMessage({
+        organizationId: organization.id,
         to: composeTo.trim(),
         subject: composeSubject.trim(),
         text: composeBody.trim(),
@@ -175,16 +168,6 @@ function MailPage() {
               <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
                 {sel.body}
               </p>
-
-              <div className="mt-6 rounded-xl border border-primary/25 bg-primary/5 p-3 text-sm">
-                <p className="flex items-center gap-2 text-xs text-primary">
-                  <Sparkles className="size-3.5" /> Сводка ИИ
-                </p>
-                <p className="mt-1 text-muted-foreground">
-                  Отправитель ждёт ответа. Ключевое действие — подготовить и отправить обновление до
-                  конца недели.
-                </p>
-              </div>
 
               {isReplyOpen && (
                 <div className="mt-4 rounded-xl border border-border bg-surface-2/40 p-4">

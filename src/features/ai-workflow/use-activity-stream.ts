@@ -23,7 +23,18 @@ export interface UseActivityStreamReturn {
   connectionCount: number;
 }
 
-export function useActivityStream(userId?: string, apiBaseUrl?: string): UseActivityStreamReturn {
+function encodeWebSocketToken(token: string): string {
+  const bytes = new TextEncoder().encode(token);
+  let binary = "";
+  bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+export function useActivityStream(
+  organizationId?: string,
+  accessToken?: string,
+  apiBaseUrl?: string,
+): UseActivityStreamReturn {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,17 +49,20 @@ export function useActivityStream(userId?: string, apiBaseUrl?: string): UseActi
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = new URL(base).host;
     const params = new URLSearchParams();
-    if (userId) params.set("user_id", userId);
+    if (organizationId) params.set("organization_id", organizationId);
     return `${protocol}//${host}/ws/activity${params.toString() ? `?${params.toString()}` : ""}`;
-  }, [userId, apiBaseUrl]);
+  }, [organizationId, apiBaseUrl]);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (wsRef.current?.readyState === WebSocket.OPEN || !organizationId || !accessToken) return;
 
     const wsUrl = getWsUrl();
 
     try {
-      const ws = new WebSocket(wsUrl);
+      const ws = new WebSocket(wsUrl, [
+        "orbit-auth",
+        `orbit-token.${encodeWebSocketToken(accessToken)}`,
+      ]);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -116,7 +130,7 @@ export function useActivityStream(userId?: string, apiBaseUrl?: string): UseActi
     } catch {
       setError("Failed to connect to WebSocket");
     }
-  }, [getWsUrl]);
+  }, [accessToken, getWsUrl, organizationId]);
 
   const reconnect = useCallback(() => {
     if (wsRef.current) {

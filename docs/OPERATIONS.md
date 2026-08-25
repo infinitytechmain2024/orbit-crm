@@ -24,6 +24,8 @@ AI_WORKFLOW_BACKEND_URL=https_URL_backend_Render
 INTERNAL_API_TOKEN=общий_случайный_токен_Vercel_и_backend
 AGENTMAIL_API_KEY=секретный_ключ_AgentMail
 AGENTMAIL_INBOX=id_или_адрес_inbox
+AGENTMAIL_WEBHOOK_SECRET=секрет_Svix_начинающийся_с_whsec
+AGENTMAIL_ORGANIZATION_ID=uuid_организации_которой_принадлежит_inbox
 NVIDIA_API_KEY=серверный_ключ_если_используются_Vercel_AI_routes
 GROQ_API_KEY=серверный_ключ_если_используется_transcription
 ```
@@ -66,7 +68,7 @@ npm run dev
 .venv/bin/python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-OpenClaw запускается из `services/openclaw` согласно его Dockerfile. Проверка backend: `GET /health`; проверка OpenClaw через backend: `GET /api/openclaw/health` с internal token (внутренним токеном).
+OpenClaw запускается из `services/openclaw` согласно его Dockerfile. Проверка backend: `GET /api/health`; проверка OpenClaw через backend: `GET /api/openclaw/health` с internal token (внутренним токеном).
 
 Прямую проверку трёх контрактов gateway выполнять из среды с доступом к его private hostname (внутреннему имени):
 
@@ -106,9 +108,51 @@ select jobname, schedule, active from cron.job where jobname = 'orbit-calendar-r
 select status, count(*) from public.calendar_reminders group by status;
 ```
 
+## AgentMail и коммуникации
+
+- `AGENTMAIL_API_KEY` и webhook secret (секрет вебхука) разрешены только в Vercel server environment (серверном окружении), без префикса `VITE_`.
+- Endpoint (конечная точка) входящих событий: `POST /api/mail/webhook`. AgentMail использует заголовки `svix-id`, `svix-timestamp`, `svix-signature`.
+- Каждый исходящий запрос требует `confirmed=true`, проверенного membership (членства) организации и уникального idempotency key (ключа идемпотентности).
+- История результата хранится в `communication_events`; текст письма в журнал не копируется.
+- Повторный webhook с тем же `svix-id` возвращает успешный replay response (ответ повтора) и не создаёт вторую запись.
+
 ## Безопасное обучение
 
 Результаты сохраняются в `ai_outcomes`; предложения — в `ai_improvement_proposals`. Значимое изменение knowledge base (базы знаний) применяет только owner/admin через backend. Применение создаёт запись в `company_knowledge_versions`; rollback (откат) создаёт новую версию и не удаляет историю. OpenClaw не получает права менять код, роли, финансовые условия или массово отправлять сообщения.
+
+- Экран `/self-development` показывает повторяющийся сценарий только после трёх outcomes (результатов) с одинаковыми типом действия и исходом.
+- Pattern (сценарий) содержит количество наблюдений, охват клиентов, среднюю оценку и идентификаторы доказательств. Он не изменяет правила автоматически.
+- Любое proposal (предложение) попадает в `pending_review`. High/critical risk (высокий/критический риск) не имеет обходного автоматического пути.
+- Решение owner/admin требует текстового основания. Каждая смена статуса записывается в `ai_improvement_proposal_events` с автором и снимком предложения.
+- Knowledge proposal (предложение знания) после подтверждения создаёт новую неизменяемую версию. Template/business process (шаблон/бизнес-процесс) получает статус `approved`, но требует отдельной ручной реализации.
+- Rollback (откат) не удаляет историю: он создаёт следующую версию с содержимым предыдущего правила.
+
+Проверка контура:
+
+```sql
+select status, risk_level, count(*) from public.ai_improvement_proposals
+group by status, risk_level;
+select proposal_id, previous_status, new_status, actor_id, reason, created_at
+from public.ai_improvement_proposal_events order by created_at desc limit 50;
+```
+
+## Память и база знаний
+
+- Подтверждённые пользователем факты хранятся в `ai_user_memory` в границах пользователя и организации. OpenClaw получает только активные, неистёкшие факты текущего пользователя.
+- Исправление факта требует причины. Предыдущее значение автоматически архивируется в `ai_user_memory_revisions` и доступно только владельцу факта; история не перезаписывается.
+- `expires_at` задаёт срок действия временного факта. Истёкшая запись сохраняется для аудита, но исключается из контекста OpenClaw.
+- Знания компании хранятся версионно в `company_knowledge_versions`. OpenClaw получает только текущую версию знаний своей организации.
+- Изменение базы знаний через controlled learning (контролируемое обучение) требует подтверждения owner/admin; rollback (откат) создаёт новую версию.
+- Клиенты и события календаря автоматически отражаются в knowledge graph (графе знаний), включая связи события с клиентом или задачей.
+
+Проверка без изменения данных:
+
+```sql
+select count(*) from public.ai_user_memory where expires_at is null or expires_at > now();
+select count(*) from public.ai_user_memory_revisions;
+select entity_type, count(*) from public.graph_nodes group by entity_type;
+select relation_type, count(*) from public.graph_relations group by relation_type;
+```
 
 ## Известные внешние блокировки
 

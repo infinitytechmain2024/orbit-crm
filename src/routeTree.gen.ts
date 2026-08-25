@@ -18,6 +18,7 @@ import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as GraphRouteImport } from './routes/graph'
 import { Route as LeadSearchRouteImport } from './routes/lead-search'
 import { Route as MailRouteImport } from './routes/mail'
+import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as OpenclawTasksRouteImport } from './routes/openclaw-tasks'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as RequestsRouteImport } from './routes/requests'
@@ -76,6 +77,11 @@ const LeadSearchRoute = LeadSearchRouteImport.update({
 const MailRoute = MailRouteImport.update({
   id: '/mail',
   path: '/mail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MemoryRoute = MemoryRouteImport.update({
+  id: '/memory',
+  path: '/memory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OpenclawTasksRoute = OpenclawTasksRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
+  '/memory': typeof MemoryRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
+  '/memory': typeof MemoryRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
+  '/memory': typeof MemoryRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/lead-search'
     | '/mail'
+    | '/memory'
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/lead-search'
     | '/mail'
+    | '/memory'
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/lead-search'
     | '/mail'
+    | '/memory'
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
@@ -313,6 +325,7 @@ export interface RootRouteChildren {
   GraphRoute: typeof GraphRoute
   LeadSearchRoute: typeof LeadSearchRoute
   MailRoute: typeof MailRoute
+  MemoryRoute: typeof MemoryRoute
   OpenclawTasksRoute: typeof OpenclawTasksRoute
   ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/mail'
       fullPath: '/mail'
       preLoaderRoute: typeof MailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/memory': {
+      id: '/memory'
+      path: '/memory'
+      fullPath: '/memory'
+      preLoaderRoute: typeof MemoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/openclaw-tasks': {
@@ -514,6 +534,7 @@ const rootRouteChildren: RootRouteChildren = {
   GraphRoute: GraphRoute,
   LeadSearchRoute: LeadSearchRoute,
   MailRoute: MailRoute,
+  MemoryRoute: MemoryRoute,
   OpenclawTasksRoute: OpenclawTasksRoute,
   ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyProxyUser } from "@/lib/server/verify-proxy-user";
 
 export const Route = createFileRoute("/api/backend/$")({
   server: {
@@ -17,6 +18,8 @@ async function proxyRequest(
   path: string | undefined,
   method: string,
 ): Promise<Response> {
+  const authenticationError = await verifyProxyUser(request);
+  if (authenticationError) return authenticationError;
   const base =
     process.env.RENDER_BACKEND_URL ||
     process.env.BACKEND_URL ||
@@ -38,10 +41,11 @@ async function proxyRequest(
   const target = `${base.replace(/\/$/, "")}${path ? `/${path}` : ""}${url.search}`;
 
   const headers = new Headers(request.headers);
+  const userAuthorization = headers.get("authorization");
   headers.delete("host");
   headers.delete("content-length");
   headers.delete("connection");
-  headers.delete("authorization");
+  if (userAuthorization) headers.set("x-supabase-authorization", userAuthorization);
   headers.set("authorization", `Bearer ${token}`);
 
   // Render free plan cold start can take 30-60s; allow enough time.

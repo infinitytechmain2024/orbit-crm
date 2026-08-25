@@ -28,7 +28,6 @@ import {
 } from "@/lib/crm-repository";
 import { fetchEmails } from "@/lib/agentmail";
 import {
-  initialEmails,
   type Email,
   type Organization,
   type OrganizationMember,
@@ -106,7 +105,7 @@ export function CrmProvider({
   const [members, setMembers] = useState<OrganizationMember[]>(previewSnapshot?.members ?? []);
   const [tasks, setTasks] = useState<Task[]>(previewSnapshot?.tasks ?? []);
   const [taskLabels, setTaskLabels] = useState<TaskLabel[]>(previewSnapshot?.taskLabels ?? []);
-  const [emails, setEmails] = useState<Email[]>(initialEmails);
+  const [emails, setEmails] = useState<Email[]>([]);
   const [txs, setTxs] = useState<Tx[]>(previewSnapshot?.txs ?? []);
   const [projects, setProjects] = useState<Project[]>(previewSnapshot?.projects ?? []);
   const [isLoading, setIsLoading] = useState(!previewSnapshot);
@@ -197,18 +196,22 @@ export function CrmProvider({
 
   useEffect(() => {
     let alive = true;
-    fetchEmails()
+    if (!organization) {
+      setEmails([]);
+      return;
+    }
+    fetchEmails(organization.id)
       .then((fetched) => {
         if (!alive) return;
         setEmails(fetched);
       })
       .catch(() => {
-        // Silently keep mock emails if AgentMail is unavailable
+        if (alive) setEmails([]);
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [organization]);
 
   const runMutation = useCallback(
     async <T,>(successMessage: string, action: () => Promise<T>): Promise<T | null> => {

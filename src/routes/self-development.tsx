@@ -1,506 +1,256 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Loader2,
-  Plus,
+  BarChart3,
   CheckCircle2,
-  XCircle,
-  Clock,
+  Loader2,
   RefreshCw,
-  Target,
-  Lightbulb,
-  FileCode,
+  RotateCcw,
+  ShieldCheck,
+  XCircle,
 } from "lucide-react";
-
 import { AppShell } from "@/components/crm/AppShell";
 import { authenticatedFetch } from "@/lib/api-client";
 import { useCrm } from "@/lib/crm-store";
 
 export const Route = createFileRoute("/self-development")({
-  head: () => ({
-    meta: [
-      { title: "Self-Development — Orbit CRM" },
-      { name: "description", content: "AI-powered self-development goals and improvements" },
-    ],
-  }),
-  component: SelfDevelopmentPage,
+  component: ControlledImprovementPage,
 });
 
-interface Goal {
+type Proposal = {
   id: string;
-  label: string;
-  description: string;
-  status: string;
-  progress: { done: number; total: number } | null;
-  priority: string;
-  created_at: string;
-  updated_at: string;
-  completed_at: string | null;
-  acceptance_criteria: string[];
-}
-
-interface Improvement {
-  id: string;
-  goal_id: string;
-  suggestion: string;
-  impact: string | null;
-  file_path: string | null;
-  code_before: string | null;
-  code_after: string | null;
-  status: string;
-  created_at: string;
-}
-
-const statusColors: Record<string, string> = {
-  active: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  error: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  cancelled: "bg-muted text-muted-foreground",
-  pending_review: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  approved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  applied: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  target_type: "knowledge" | "template" | "business_process";
+  title: string;
+  rationale: string;
+  evidence: unknown[];
+  risk_level: "low" | "medium" | "high" | "critical";
+  confidence: number | null;
+  status: "pending_review" | "approved" | "rejected" | "applied" | "rolled_back";
+  proposal_version: number;
+  review_note: string | null;
+};
+type Pattern = {
+  pattern_key: string;
+  action_type: string;
+  outcome: string;
+  occurrences: number;
+  client_count: number;
+  average_score: number | null;
+  explanation: string;
+  evidence_outcome_ids: string[];
 };
 
-const statusIcons: Record<string, typeof Clock> = {
-  active: Target,
-  paused: Clock,
-  completed: CheckCircle2,
-  error: XCircle,
-  cancelled: XCircle,
-  pending_review: Clock,
-  approved: CheckCircle2,
-  applied: CheckCircle2,
-  rejected: XCircle,
+const riskStyle = {
+  low: "bg-emerald-500/10 text-emerald-600",
+  medium: "bg-amber-500/10 text-amber-600",
+  high: "bg-orange-500/10 text-orange-600",
+  critical: "bg-destructive/10 text-destructive",
 };
 
-function SelfDevelopmentPage() {
+function ControlledImprovementPage() {
   const { organization } = useCrm();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [improvements, setImprovements] = useState<Improvement[]>([]);
-  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
-  const [fetching, setFetching] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formLabel, setFormLabel] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formCriteria, setFormCriteria] = useState("");
-  const [formPriority, setFormPriority] = useState("normal");
-  const [loading, setLoading] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [patterns, setPatterns] = useState<Pattern[]>([]);
+  const [status, setStatus] = useState("pending_review");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchGoals = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!organization) return;
+    setBusy(true);
     try {
-      const params = new URLSearchParams({ organization_id: organization.id, limit: "20" });
-      const response = await authenticatedFetch(`/api/openclaw/goals/list?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setGoals(data.goals || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch goals:", error);
-    } finally {
-      setFetching(false);
-    }
-  }, [organization]);
-
-  const fetchImprovements = useCallback(
-    async (goalId?: string) => {
-      if (!organization) return;
-      try {
-        const params = new URLSearchParams({ organization_id: organization.id, limit: "50" });
-        if (goalId) params.set("goal_id", goalId);
-        const response = await authenticatedFetch(
-          `/api/openclaw/goals/improvements/list?${params}`,
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setImprovements(data.improvements || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch improvements:", error);
-      }
-    },
-    [organization],
-  );
-
-  const fetchGoalStatus = useCallback(
-    async (goalId: string) => {
-      if (!organization) return null;
-      try {
-        const params = new URLSearchParams({ organization_id: organization.id });
-        const response = await authenticatedFetch(`/api/openclaw/goals/status/${goalId}?${params}`);
-        if (response.ok) {
-          const data = await response.json();
-          setSelectedGoal(data);
-          return data.status;
-        }
-      } catch (error) {
-        console.error("Failed to fetch goal status:", error);
-      }
-      return null;
-    },
-    [organization],
-  );
-
-  useEffect(() => {
-    fetchGoals();
-    fetchImprovements();
-  }, [fetchGoals, fetchImprovements]);
-
-  useEffect(() => {
-    if (selectedGoal && ["active"].includes(selectedGoal.status)) {
-      pollingRef.current = setInterval(async () => {
-        const status = await fetchGoalStatus(selectedGoal.id);
-        if (status && !["active"].includes(status)) {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          fetchGoals();
-          fetchImprovements(selectedGoal.id);
-        }
-      }, 5000);
-    }
-
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, [fetchGoalStatus, fetchGoals, fetchImprovements, selectedGoal]);
-
-  const createGoal = async () => {
-    if (!organization || !formLabel.trim() || !formDescription.trim()) return;
-
-    setLoading(true);
-    try {
-      const criteria = formCriteria
-        .split("\n")
-        .map((c) => c.trim())
-        .filter(Boolean);
-
-      const response = await authenticatedFetch("/api/openclaw/goals/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          label: formLabel,
-          description: formDescription,
-          acceptance_criteria: criteria,
-          priority: formPriority,
-          organization_id: organization.id,
-        }),
+      const proposalsQuery = new URLSearchParams({ organization_id: organization.id, status });
+      const patternsQuery = new URLSearchParams({
+        organization_id: organization.id,
+        min_occurrences: "3",
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setFormLabel("");
-        setFormDescription("");
-        setFormCriteria("");
-        setFormPriority("normal");
-        setShowCreateForm(false);
-        fetchGoals();
-        fetchGoalStatus(data.goal_id);
-      }
-    } catch (error) {
-      console.error("Failed to create goal:", error);
+      const [proposalResponse, patternResponse] = await Promise.all([
+        authenticatedFetch(`/api/learning/proposals?${proposalsQuery}`),
+        authenticatedFetch(`/api/learning/patterns?${patternsQuery}`),
+      ]);
+      if (!proposalResponse.ok || !patternResponse.ok)
+        throw new Error("Не удалось загрузить данные");
+      setProposals(((await proposalResponse.json()) as { proposals: Proposal[] }).proposals ?? []);
+      setPatterns(((await patternResponse.json()) as { patterns: Pattern[] }).patterns ?? []);
+      setError(null);
+    } catch (unknownError) {
+      setError(unknownError instanceof Error ? unknownError.message : "Ошибка загрузки");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
+  }, [organization, status]);
 
-  const approveImprovement = async (improvementId: string) => {
+  useEffect(() => void load(), [load]);
+
+  const decide = async (proposal: Proposal, action: "approve" | "reject" | "rollback") => {
+    const reason = window.prompt("Укажите основание решения");
+    if (!reason?.trim()) return;
+    setBusy(true);
     try {
-      await authenticatedFetch("/api/openclaw/goals/improvements/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ improvement_id: improvementId }),
-      });
-      fetchImprovements(selectedGoal?.id);
-    } catch (error) {
-      console.error("Failed to approve improvement:", error);
+      const response = await authenticatedFetch(
+        `/api/learning/proposals/${proposal.id}/${action}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ reason: reason.trim() }),
+        },
+      );
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? "Решение не применено");
+      }
+      await load();
+    } catch (unknownError) {
+      setError(unknownError instanceof Error ? unknownError.message : "Решение не применено");
+    } finally {
+      setBusy(false);
     }
-  };
-
-  const selectGoal = async (goal: Goal) => {
-    await fetchGoalStatus(goal.id);
-    fetchImprovements(goal.id);
-  };
-
-  const progressPercent = (progress: { done: number; total: number } | null) => {
-    if (!progress || progress.total === 0) return 0;
-    return Math.round((progress.done / progress.total) * 100);
   };
 
   return (
-    <AppShell title="Self-Development" subtitle="AI-powered code analysis and improvements">
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column: Goals */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="panel p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Target className="size-5" />
-                Goals
-              </h2>
-              <button
-                className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80"
-                onClick={() => setShowCreateForm(!showCreateForm)}
-              >
-                <Plus className="size-4" />
-                New
-              </button>
+    <AppShell
+      title="Контролируемое развитие"
+      subtitle="AI предлагает изменения; решение и применение остаются за человеком"
+    >
+      <div className="space-y-5">
+        <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex gap-3">
+            <ShieldCheck className="size-5 shrink-0 text-primary" />
+            <div>
+              <h2 className="font-semibold">Без автономного изменения production</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                OpenClaw фиксирует результаты и создаёт предложения. Код, роли, финансовые условия и
+                правила не меняются без отдельного решения человека.
+              </p>
             </div>
-
-            {showCreateForm && (
-              <div className="mb-4 p-4 rounded-lg bg-surface-2/50 border border-border space-y-3">
-                <input
-                  type="text"
-                  placeholder="Goal label"
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-                  value={formLabel}
-                  onChange={(e) => setFormLabel(e.target.value)}
-                />
-                <textarea
-                  placeholder="Description"
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 min-h-[80px] resize-y"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                />
-                <textarea
-                  placeholder="Acceptance criteria (one per line)"
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 min-h-[60px] resize-y"
-                  value={formCriteria}
-                  onChange={(e) => setFormCriteria(e.target.value)}
-                />
-                <select
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none"
-                  value={formPriority}
-                  onChange={(e) => setFormPriority(e.target.value)}
-                >
-                  <option value="low">Low Priority</option>
-                  <option value="normal">Normal Priority</option>
-                  <option value="high">High Priority</option>
-                  <option value="critical">Critical</option>
-                </select>
-                <div className="flex gap-2">
-                  <button
-                    className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                    onClick={createGoal}
-                    disabled={loading || !formLabel.trim() || !formDescription.trim()}
-                  >
-                    {loading ? <Loader2 className="size-4 animate-spin mx-auto" /> : "Create"}
-                  </button>
-                  <button
-                    className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowCreateForm(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {fetching ? (
-              <div className="p-4 text-center text-muted-foreground">
-                <Loader2 className="size-5 animate-spin mx-auto mb-2" />
-                Loading...
-              </div>
-            ) : goals.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground text-sm">
-                No goals yet. Create one to get started.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {goals.map((goal) => {
-                  const Icon = statusIcons[goal.status] || Clock;
-                  return (
-                    <button
-                      key={goal.id}
-                      className={`w-full p-3 rounded-lg text-left transition hover:bg-surface-2/50 ${
-                        selectedGoal?.id === goal.id ? "bg-surface-2/80 ring-1 ring-primary/30" : ""
-                      }`}
-                      onClick={() => selectGoal(goal)}
-                    >
-                      <div className="flex items-start gap-2">
-                        <Icon
-                          className={`size-4 mt-0.5 shrink-0 ${goal.status === "active" ? "text-blue-500" : ""}`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm truncate">{goal.label}</p>
-                            <span
-                              className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[goal.status] || ""}`}
-                            >
-                              {goal.status}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {goal.description}
-                          </p>
-                          {goal.progress && (
-                            <div className="mt-2">
-                              <div className="w-full bg-muted rounded-full h-1.5">
-                                <div
-                                  className="bg-primary h-1.5 rounded-full transition-all"
-                                  style={{ width: `${progressPercent(goal.progress)}%` }}
-                                />
-                              </div>
-                              <p className="text-[10px] text-muted-foreground mt-0.5">
-                                {goal.progress.done}/{goal.progress.total} (
-                                {progressPercent(goal.progress)}%)
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        </div>
-
-        {/* Right Column: Details + Improvements */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Goal Details */}
-          {selectedGoal && (
-            <div className="panel p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Target className="size-5" />
-                  {selectedGoal.label}
-                </h2>
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusColors[selectedGoal.status] || ""}`}
-                >
-                  {selectedGoal.status}
-                </span>
-              </div>
-
-              <p className="text-sm text-muted-foreground mb-4">{selectedGoal.description}</p>
-
-              {selectedGoal.acceptance_criteria && selectedGoal.acceptance_criteria.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium mb-2">Acceptance Criteria</h3>
-                  <ul className="space-y-1">
-                    {selectedGoal.acceptance_criteria.map((criteria, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-primary">•</span>
-                        {criteria}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {selectedGoal.progress && (
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Progress</h3>
-                  <div className="w-full bg-muted rounded-full h-2.5">
-                    <div
-                      className="bg-primary h-2.5 rounded-full transition-all duration-500"
-                      style={{ width: `${progressPercent(selectedGoal.progress)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedGoal.progress.done} of {selectedGoal.progress.total} completed (
-                    {progressPercent(selectedGoal.progress)}%)
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Improvements */}
-          <div className="panel">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Lightbulb className="size-5" />
-                Improvement Suggestions ({improvements.length})
-              </h2>
-              <button
-                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => fetchImprovements(selectedGoal?.id)}
-              >
+        </section>
+        {error && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        <section className="panel p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <BarChart3 className="size-4 text-primary" />
+              Повторяющиеся сценарии
+            </h2>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="rounded-lg border border-border p-2"
+              aria-label="Обновить"
+            >
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
                 <RefreshCw className="size-4" />
-                Refresh
-              </button>
-            </div>
-
-            {improvements.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                No improvement suggestions yet.
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {improvements.map((imp) => {
-                  const Icon = statusIcons[imp.status] || Clock;
-                  return (
-                    <div key={imp.id} className="p-4">
-                      <div className="flex items-start gap-3">
-                        <Icon
-                          className={`size-5 mt-0.5 shrink-0 ${imp.status === "applied" ? "text-green-500" : imp.status === "pending_review" ? "text-yellow-500" : ""}`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-sm">{imp.suggestion}</p>
-                            <span
-                              className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[imp.status] || ""}`}
-                            >
-                              {imp.status === "pending_review"
-                                ? "Pending"
-                                : imp.status === "applied"
-                                  ? "Applied"
-                                  : imp.status}
-                            </span>
-                          </div>
-
-                          {imp.impact && (
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Impact: {imp.impact}
-                            </p>
-                          )}
-
-                          {imp.file_path && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-                              <FileCode className="size-3" />
-                              {imp.file_path}
-                            </p>
-                          )}
-
-                          {imp.code_before && imp.code_after && (
-                            <div className="grid grid-cols-2 gap-2 mt-2 mb-2">
-                              <div>
-                                <p className="text-[10px] font-medium text-red-500 mb-1">Before</p>
-                                <pre className="bg-red-50 dark:bg-red-900/20 p-2 rounded text-[10px] overflow-auto max-h-24 font-mono">
-                                  {imp.code_before}
-                                </pre>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-medium text-green-500 mb-1">After</p>
-                                <pre className="bg-green-50 dark:bg-green-900/20 p-2 rounded text-[10px] overflow-auto max-h-24 font-mono">
-                                  {imp.code_after}
-                                </pre>
-                              </div>
-                            </div>
-                          )}
-
-                          {imp.status === "pending_review" && (
-                            <button
-                              className="mt-2 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
-                              onClick={() => approveImprovement(imp.id)}
-                            >
-                              <CheckCircle2 className="size-3" />
-                              Approve & Apply
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              )}
+            </button>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {patterns.map((pattern) => (
+              <article key={pattern.pattern_key} className="rounded-xl border border-border p-3">
+                <div className="flex justify-between gap-2">
+                  <h3 className="font-medium">{pattern.action_type}</h3>
+                  <span className="rounded-full bg-muted px-2 py-1 text-xs">
+                    {pattern.outcome} × {pattern.occurrences}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{pattern.explanation}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Клиентов: {pattern.client_count} · Оценка: {pattern.average_score ?? "нет"} ·
+                  Доказательств: {pattern.evidence_outcome_ids.length}
+                </p>
+              </article>
+            ))}
+            {!busy && patterns.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Нужно минимум три результата одного типа.
+              </p>
             )}
           </div>
-        </div>
+        </section>
+        <section className="panel p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-semibold">Очередь согласования</h2>
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+              className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm"
+            >
+              <option value="pending_review">Ожидают решения</option>
+              <option value="applied">Применены</option>
+              <option value="approved">Одобрены вручную</option>
+              <option value="rejected">Отклонены</option>
+              <option value="rolled_back">Откачены</option>
+            </select>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {proposals.map((proposal) => (
+              <article key={proposal.id} className="rounded-xl border border-border p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-medium">{proposal.title}</h3>
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs ${riskStyle[proposal.risk_level]}`}
+                  >
+                    риск: {proposal.risk_level}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {proposal.target_type} · v{proposal.proposal_version}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{proposal.rationale}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Уверенность: {proposal.confidence ?? "нет"} · доказательств:{" "}
+                  {proposal.evidence.length}
+                </p>
+                {proposal.review_note && (
+                  <p className="mt-2 text-xs text-primary">
+                    Решение человека: {proposal.review_note}
+                  </p>
+                )}
+                {proposal.status === "pending_review" && (
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void decide(proposal, "approve")}
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+                    >
+                      <CheckCircle2 className="size-4" />
+                      Подтвердить
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void decide(proposal, "reject")}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+                    >
+                      <XCircle className="size-4" />
+                      Отклонить
+                    </button>
+                  </div>
+                )}
+                {proposal.status === "applied" && proposal.target_type === "knowledge" && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void decide(proposal, "rollback")}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+                  >
+                    <RotateCcw className="size-4" />
+                    Создать версию отката
+                  </button>
+                )}
+              </article>
+            ))}
+            {!busy && proposals.length === 0 && (
+              <p className="text-sm text-muted-foreground">В этой очереди предложений нет.</p>
+            )}
+          </div>
+        </section>
       </div>
     </AppShell>
   );
