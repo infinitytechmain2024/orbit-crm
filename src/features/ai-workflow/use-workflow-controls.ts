@@ -35,7 +35,7 @@ export function useWorkflowControls(
       setError(null);
 
       try {
-        const response = await authenticatedFetch(`/api/ai-workflow/tasks/${taskId}/${action}`, {
+        const response = await authenticatedFetch(`/api/backend/api/ai-workflow/tasks/${taskId}/${action}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

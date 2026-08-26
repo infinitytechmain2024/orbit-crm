@@ -18,7 +18,7 @@ async function workflowRequest<T>(
   headers.set("authorization", `Bearer ${accessToken}`);
   if (init.body && !(init.body instanceof FormData))
     headers.set("content-type", "application/json");
-  const response = await fetch(`/api/ai-workflow/${path.replace(/^\//, "")}`, {
+  const response = await fetch(`/api/backend/api/ai-workflow/${path.replace(/^\//, "")}`, {
     ...init,
     headers,
   });
