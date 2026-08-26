@@ -1709,29 +1709,46 @@ async function insertTaskWithFallback(
       if (missing === "assigned_user_id") delete payload["assignee_id"];
       continue;
     }
-    // Handle enum violations by remapping and retrying (supports both qavf and CRM schemas)
-    if (error.message.includes("invalid input value for enum")) {
+    // Handle enum/check-constraint violations by remapping and retrying (supports both qavf and CRM schemas)
+    if (error.message.includes("invalid input value for enum") || error.message.includes("violates check constraint")) {
       const em = error.message;
-      if (em.includes("task_priority")) {
+      const isCheck = em.includes("violates check constraint");
+      const isPriorityErr = em.includes("task_priority") || em.includes("priority") || payload["priority"] !== undefined;
+      const isStatusErr = em.includes("task_status") || em.includes("tasks_status") || em.includes("status") || payload["status"] !== undefined;
+      // Detect which column is offender: prefer explicit mention, else try both
+      const priorityOffender = em.includes("priority") || em.includes("task_priority") || (isCheck && String(payload["priority"]) !== "");
+      const statusOffender = em.includes("status") || em.includes("task_status") || em.includes("tasks_status");
+
+      if (priorityOffender || em.includes("task_priority")) {
         if (String(payload["priority"]) === "med") { payload["priority"] = "normal"; continue; }
         if (String(payload["priority"]) === "normal") { payload["priority"] = "med"; continue; }
+        if (String(payload["priority"]) === "urgent") { payload["priority"] = "high"; continue; }
+        if (String(payload["priority"]) === "high" && isCheck) {
+          // qavf allows high, CRM allows high — keep, but try dropping if still fails
+        }
         // unknown priority value — drop it and retry with DB default
-        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+        if (payload["priority"] !== undefined && (isCheck || em.includes("task_priority"))) { delete payload["priority"]; continue; }
       }
-      if (em.includes("task_status")) {
+      if (statusOffender || em.includes("task_status") || em.includes("tasks_status")) {
         if (String(payload["status"]) === "backlog") { payload["status"] = "todo"; continue; }
         if (String(payload["status"]) === "todo") { payload["status"] = "backlog"; continue; }
         if (String(payload["status"]) === "review") { payload["status"] = "in_progress"; continue; }
         if (String(payload["status"]) === "in_progress" && em.includes('"backlog"')) {
-          // rarely needed, but keep fallback
           payload["status"] = "todo"; continue;
         }
-        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+        if (String(payload["status"]) === "planned" || String(payload["status"]) === "blocked" || String(payload["status"]) === "cancelled") {
+          // CRM allows these but qavf doesn't — map to closest
+          if (String(payload["status"]) === "planned") { payload["status"] = "todo"; continue; }
+          if (String(payload["status"]) === "blocked") { payload["status"] = "in_progress"; continue; }
+          if (String(payload["status"]) === "cancelled") { payload["status"] = "todo"; continue; }
+        }
+        if (payload["status"] !== undefined && (isCheck || em.includes("task_status") || em.includes("tasks_status"))) { delete payload["status"]; continue; }
       }
       // generic fallback: if we can't map, strip the offending field if we can detect it
       const enumCol = em.match(/for enum (\w+):/)?.[1];
       if (enumCol === "task_priority" && payload["priority"] !== undefined) { delete payload["priority"]; continue; }
       if (enumCol === "task_status" && payload["status"] !== undefined) { delete payload["status"]; continue; }
+      if (isCheck && em.includes("tasks_status_allowed_check") && payload["status"] !== undefined) { delete payload["status"]; continue; }
     }
     return { data: null, error };
   }
@@ -1795,17 +1812,21 @@ export async function updateTask(
     }
     const missing = extractMissingColumn(error.message);
     if (missing && payload[missing] !== undefined) { delete payload[missing]; continue; }
-    if (error.message.includes("invalid input value for enum")) {
+    if (error.message.includes("invalid input value for enum") || error.message.includes("violates check constraint")) {
       const em = error.message;
-      if (em.includes("task_priority")) {
+      const isCheck = em.includes("violates check constraint");
+      if (em.includes("task_priority") || em.includes("priority") || (isCheck && payload["priority"] !== undefined)) {
         if (String(payload["priority"]) === "med") { payload["priority"] = "normal"; continue; }
         if (String(payload["priority"]) === "normal") { payload["priority"] = "med"; continue; }
+        if (String(payload["priority"]) === "urgent") { payload["priority"] = "high"; continue; }
         if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
       }
-      if (em.includes("task_status")) {
+      if (em.includes("task_status") || em.includes("tasks_status") || em.includes("status") || isCheck) {
         if (String(payload["status"]) === "backlog") { payload["status"] = "todo"; continue; }
         if (String(payload["status"]) === "todo") { payload["status"] = "backlog"; continue; }
         if (String(payload["status"]) === "review") { payload["status"] = "in_progress"; continue; }
+        if (String(payload["status"]) === "planned") { payload["status"] = "todo"; continue; }
+        if (String(payload["status"]) === "blocked") { payload["status"] = "in_progress"; continue; }
         if (payload["status"] !== undefined) { delete payload["status"]; continue; }
       }
     }
