@@ -168,6 +168,8 @@ async def get_overview(
     project_id: Optional[str]= Query(default=None, min_length=36, max_length=36),
     actor: WorkflowActor = Depends(require_workflow_actor),
 ):
+    from backend.services.openclaw_client import openclaw_client
+
     await _authorize(organization_id, actor)
     await orbit_commander.ensure_bootstrap(organization_id, actor.user_id)
     task_filters = {"project_id": f"eq.{project_id}"} if project_id else None
@@ -255,6 +257,13 @@ async def get_overview(
     task_ids = {task["id"] for task in tasks}
     if project_id:
         approvals = [item for item in approvals if item.get("task_id") in task_ids]
+    openclaw_configured = bool(settings.OPENCLAW_GATEWAY_TOKEN)
+    openclaw_health = await openclaw_client.health() if openclaw_configured else None
+    openclaw_connected = bool(
+        openclaw_health
+        and openclaw_health.status == "online"
+        and openclaw_health.gateway
+    )
     return {
         "departments": departments,
         "agents": agents,
@@ -268,6 +277,38 @@ async def get_overview(
         "task_dependencies": dependencies,
         "agent_runs": agent_runs,
         "notifications": notifications,
+        "provider": {
+            "nvidia_configured": bool(settings.NVIDIA_API_KEY),
+            "nvidia_missing": [] if settings.NVIDIA_API_KEY else ["NVIDIA_API_KEY"],
+            "supabase_configured": bool(
+                settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY
+            ),
+            "supabase_missing": [
+                name
+                for name, value in (
+                    ("SUPABASE_URL", settings.SUPABASE_URL),
+                    ("SUPABASE_SERVICE_ROLE_KEY", settings.SUPABASE_SERVICE_ROLE_KEY),
+                )
+                if not value
+            ],
+            "openclaw_configured": openclaw_configured,
+            "openclaw_url": settings.OPENCLAW_URL,
+            "openclaw_configured_detail": {
+                "configured": openclaw_configured,
+                "connected": openclaw_connected,
+                "missing": [] if openclaw_configured else ["OPENCLAW_GATEWAY_TOKEN"],
+            },
+            "configured": [
+                name
+                for name, enabled in (
+                    ("nvidia", bool(settings.NVIDIA_API_KEY)),
+                    ("openclaw", openclaw_connected),
+                )
+                if enabled
+            ],
+            "voice_configured": bool(settings.OPENAI_API_KEY),
+            "autorun": True,
+        },
 }
 @router.get("/system-status", include_in_schema=False)
 async def get_system_status():

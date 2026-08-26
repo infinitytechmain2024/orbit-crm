@@ -101,19 +101,9 @@ async def run() -> int:
     openclaw: asyncio.subprocess.Process | None = None
     backend: asyncio.subprocess.Process | None = None
     try:
-        openclaw = await asyncio.create_subprocess_exec(
-            "node",
-            "/app/openclaw.mjs",
-            "gateway",
-            "--bind",
-            "loopback",
-            "--port",
-            "18789",
-            start_new_session=True,
-        )
-        logger.info("process_started name=openclaw pid=%s", openclaw.pid)
-        await wait_for_openclaw(openclaw)
-
+        # Bind Render's public port immediately. OpenClaw is an optional local
+        # dependency and may take longer to initialize (or be unavailable), but
+        # that must not prevent the FastAPI health endpoint from coming online.
         backend = await asyncio.create_subprocess_exec(
             "/opt/orbit-venv/bin/uvicorn",
             "backend.main:app",
@@ -125,20 +115,32 @@ async def run() -> int:
         )
         logger.info("process_started name=backend pid=%s", backend.pid)
 
-        stop_waiter = asyncio.create_task(stop_event.wait())
-        openclaw_waiter = asyncio.create_task(openclaw.wait())
-        backend_waiter = asyncio.create_task(backend.wait())
-        done, pending = await asyncio.wait(
-            {stop_waiter, openclaw_waiter, backend_waiter},
-            return_when=asyncio.FIRST_COMPLETED,
+        openclaw = await asyncio.create_subprocess_exec(
+            "node",
+            "/app/openclaw.mjs",
+            "gateway",
+            "--bind",
+            "loopback",
+            "--port",
+            "18789",
+            start_new_session=True,
         )
+        logger.info("process_started name=openclaw pid=%s", openclaw.pid)
+        try:
+            await wait_for_openclaw(openclaw)
+        except RuntimeError as error:
+            logger.warning("openclaw_unavailable error=%s", error)
+            await terminate(openclaw, "openclaw")
+            openclaw = None
+
+        stop_waiter = asyncio.create_task(stop_event.wait())
+        backend_waiter = asyncio.create_task(backend.wait())
+        waiters = {stop_waiter, backend_waiter}
+        done, pending = await asyncio.wait(waiters, return_when=asyncio.FIRST_COMPLETED)
         for waiter in pending:
             waiter.cancel()
         if stop_waiter in done:
             return 0
-        if openclaw_waiter in done:
-            logger.error("critical_process_exited name=openclaw code=%s", openclaw.returncode)
-            return openclaw.returncode or 1
         logger.error("critical_process_exited name=backend code=%s", backend.returncode)
         return backend.returncode or 1
     finally:

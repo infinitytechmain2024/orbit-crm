@@ -11,7 +11,7 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 from openai import OpenAI
 
@@ -104,7 +104,7 @@ class OpenAICompatibleProvider:
             usage = getattr(completion, "usage", None)
             return ProviderResult(
                 provider=self.name,
-                model=model_name,
+                model=model,
                 content=_coerce_text(getattr(message, "content", "") or ""),
                 prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
                 completion_tokens=int(getattr(usage, "completion_tokens", 0) or 0),

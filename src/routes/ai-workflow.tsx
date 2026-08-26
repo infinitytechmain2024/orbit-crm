@@ -131,6 +131,7 @@ function AIWorkflowPage() {
     connected: openclawConfigured,
     missing: [] as string[],
   };
+  const openclawConnected = openclawDetail.connected ?? openclawConfigured;
 
   // New hooks for live backend status and progress
   const backendStatus = useBackendStatus();
@@ -491,7 +492,7 @@ function AIWorkflowPage() {
         )}
 
         {/* OpenClaw Status Indicator */}
-        {openclawConfigured && (
+        {openclawConnected && (
           <div className="mb-3 flex items-center justify-end gap-2">
             <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -499,7 +500,7 @@ function AIWorkflowPage() {
             </span>
           </div>
         )}
-        {!openclawConfigured && !workflow.isLoading && (
+        {!openclawConnected && !workflow.isLoading && (
           <div className="mb-3 flex items-center justify-end gap-2">
             <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
               Local Models Only
@@ -538,7 +539,7 @@ function AIWorkflowPage() {
         )}
 
         {/* OpenClaw not available warning */}
-        {!openclawDetail.configured && !workflow.isLoading && (
+        {!openclawConnected && !workflow.isLoading && (
           <div className="mb-3 flex items-center justify-end gap-2">
             <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
               <svg
@@ -550,24 +551,9 @@ function AIWorkflowPage() {
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
-              OpenClaw Gateway недоступен
-            </span>
-          </div>
-        )}
-
-        {!openclawDetail.configured && openclawDetail.missing.length > 0 && !workflow.isLoading && (
-          <div className="mb-3 flex items-center justify-end gap-2">
-            <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
-              <svg
-                className="size-3.5"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                stroke="currentColor"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-              OpenClaw Gateway недоступен: Отсутствует: {openclawDetail.missing.join(", ")}
+              {openclawDetail.configured
+                ? "OpenClaw Gateway не отвечает"
+                : "OpenClaw Gateway не настроен"}
             </span>
           </div>
         )}
