@@ -126,15 +126,9 @@ export function TeamMap({
   const childDepartments = departments.filter((department) => department !== ceoDepartment);
 
   const n = childDepartments.length;
-  const gridClass =
-    n === 3
-      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-      : n >= 4
-        ? "grid-cols-2 lg:grid-cols-4"
-        : "grid-cols-1 sm:grid-cols-2";
-  const cols = n === 3 ? 3 : n >= 4 ? 4 : Math.min(Math.max(n, 1), 2);
-  const childX = Array.from({ length: Math.max(n, 1) }, (_, index) =>
-    Math.round(((index + 0.5) / cols) * 1000),
+  const firstRowCount = n > 4 ? 4 : n;
+  const childX = Array.from({ length: Math.max(firstRowCount, 1) }, (_, index) =>
+    Math.round(((index + 0.5) / firstRowCount) * 1000),
   );
 
   const systemStats = counts(tasks);
@@ -273,7 +267,7 @@ export function TeamMap({
                 </feMerge>
               </filter>
             </defs>
-            {childDepartments.map((department, index) => {
+            {childDepartments.slice(0, firstRowCount).map((department, index) => {
               const x = childX[index] ?? 500;
               const path = branchPath(x);
               const moving =
@@ -316,7 +310,7 @@ export function TeamMap({
         </div>
         <div className="mx-auto hidden h-6 w-px bg-gradient-to-b from-primary/70 to-primary/10 lg:block" />
 
-        <div className={cn("grid items-start gap-3", gridClass)}>
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {childDepartments.map((department) => {
             const departmentTasks = tasks.filter((task) => task.department_id === department.id);
             const departmentAgents = agents.filter(
@@ -330,6 +324,7 @@ export function TeamMap({
                 key={department.id}
                 className={cn(
                   "relative rounded-2xl border bg-surface/88 p-2.5 backdrop-blur-xl transition",
+                  n === 6 && department === childDepartments[4] && "lg:col-start-2",
                   isSelected
                     ? "border-primary/60 shadow-[0_0_35px_-22px_rgba(35,211,202,.9)]"
                     : "border-border/50 hover:border-primary/35",

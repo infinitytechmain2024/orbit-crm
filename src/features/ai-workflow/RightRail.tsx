@@ -90,7 +90,7 @@ export function RightRail({
   );
 
   return (
-    <aside className="space-y-3 xl:sticky xl:top-28">
+    <aside className="space-y-3">
       <section className="rounded-2xl border border-border/50 bg-surface/90 p-4 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Лента выполнения</h2>

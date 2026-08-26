@@ -645,35 +645,37 @@ function AIWorkflowPage() {
                 onControl={(task, action) => void handleControl(task, action)}
               />
             </div>
-            <div className="space-y-3">
-              <RightRail
-                events={overview.events}
-                artifacts={overview.artifacts}
-                tasks={overview.tasks}
-                agents={overview.agents}
-                projects={overview.projects}
-                approvals={overview.approval_requests}
-                selectedProjectId={projectId}
-                realtimeConnected={workflow.isRealtimeConnected || preview}
-                onTaskOpen={setSelectedTask}
-              />
+            <div className="min-w-0 xl:sticky xl:top-28 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
+              <div className="space-y-3">
+                <RightRail
+                  events={overview.events}
+                  artifacts={overview.artifacts}
+                  tasks={overview.tasks}
+                  agents={overview.agents}
+                  projects={overview.projects}
+                  approvals={overview.approval_requests}
+                  selectedProjectId={projectId}
+                  realtimeConnected={workflow.isRealtimeConnected || preview}
+                  onTaskOpen={setSelectedTask}
+                />
 
-              {/* CEO Dashboard */}
-              <div className="rounded-xl border border-border/50 bg-card/50 p-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <Crown className="size-4 text-primary" />
-                  <h3 className="text-xs font-medium">CEO Dashboard</h3>
+                {/* CEO Dashboard */}
+                <div className="rounded-xl border border-border/50 bg-card/50 p-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Crown className="size-4 text-primary" />
+                    <h3 className="text-xs font-medium">CEO Dashboard</h3>
+                  </div>
+                  <CeoDashboard onRefresh={() => void workflow.refresh(true)} />
                 </div>
-                <CeoDashboard onRefresh={() => void workflow.refresh(true)} />
-              </div>
 
-              {/* Approval Gateway */}
-              <div className="rounded-xl border border-border/50 bg-card/50 p-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <Shield className="size-4 text-amber-500" />
-                  <h3 className="text-xs font-medium">Approval Gateway</h3>
+                {/* Approval Gateway */}
+                <div className="rounded-xl border border-border/50 bg-card/50 p-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield className="size-4 text-amber-500" />
+                    <h3 className="text-xs font-medium">Approval Gateway</h3>
+                  </div>
+                  <ApprovalGateway onRefresh={() => void workflow.refresh(true)} />
                 </div>
-                <ApprovalGateway onRefresh={() => void workflow.refresh(true)} />
               </div>
             </div>
           </div>
