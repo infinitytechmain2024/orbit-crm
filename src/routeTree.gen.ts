@@ -15,10 +15,8 @@ import { Route as BookRouteImport } from './routes/book'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as FinanceRouteImport } from './routes/finance'
-import { Route as GraphRouteImport } from './routes/graph'
 import { Route as LeadSearchRouteImport } from './routes/lead-search'
 import { Route as MailRouteImport } from './routes/mail'
-import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as OpenclawTasksRouteImport } from './routes/openclaw-tasks'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as RequestsRouteImport } from './routes/requests'
@@ -64,11 +62,6 @@ const FinanceRoute = FinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GraphRoute = GraphRouteImport.update({
-  id: '/graph',
-  path: '/graph',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LeadSearchRoute = LeadSearchRouteImport.update({
   id: '/lead-search',
   path: '/lead-search',
@@ -77,11 +70,6 @@ const LeadSearchRoute = LeadSearchRouteImport.update({
 const MailRoute = MailRouteImport.update({
   id: '/mail',
   path: '/mail',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MemoryRoute = MemoryRouteImport.update({
-  id: '/memory',
-  path: '/memory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OpenclawTasksRoute = OpenclawTasksRouteImport.update({
@@ -162,10 +150,8 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
-  '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
-  '/memory': typeof MemoryRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -188,10 +174,8 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
-  '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
-  '/memory': typeof MemoryRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -215,10 +199,8 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
-  '/graph': typeof GraphRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
-  '/memory': typeof MemoryRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
   '/requests': typeof RequestsRoute
@@ -243,10 +225,8 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
-    | '/graph'
     | '/lead-search'
     | '/mail'
-    | '/memory'
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
@@ -269,10 +249,8 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
-    | '/graph'
     | '/lead-search'
     | '/mail'
-    | '/memory'
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
@@ -295,10 +273,8 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/clients'
     | '/finance'
-    | '/graph'
     | '/lead-search'
     | '/mail'
-    | '/memory'
     | '/openclaw-tasks'
     | '/projects'
     | '/requests'
@@ -322,10 +298,8 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   ClientsRoute: typeof ClientsRoute
   FinanceRoute: typeof FinanceRoute
-  GraphRoute: typeof GraphRoute
   LeadSearchRoute: typeof LeadSearchRoute
   MailRoute: typeof MailRoute
-  MemoryRoute: typeof MemoryRoute
   OpenclawTasksRoute: typeof OpenclawTasksRoute
   ProjectsRoute: typeof ProjectsRoute
   RequestsRoute: typeof RequestsRoute
@@ -385,13 +359,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/graph': {
-      id: '/graph'
-      path: '/graph'
-      fullPath: '/graph'
-      preLoaderRoute: typeof GraphRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/lead-search': {
       id: '/lead-search'
       path: '/lead-search'
@@ -404,13 +371,6 @@ declare module '@tanstack/react-router' {
       path: '/mail'
       fullPath: '/mail'
       preLoaderRoute: typeof MailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/memory': {
-      id: '/memory'
-      path: '/memory'
-      fullPath: '/memory'
-      preLoaderRoute: typeof MemoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/openclaw-tasks': {
@@ -531,10 +491,8 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   ClientsRoute: ClientsRoute,
   FinanceRoute: FinanceRoute,
-  GraphRoute: GraphRoute,
   LeadSearchRoute: LeadSearchRoute,
   MailRoute: MailRoute,
-  MemoryRoute: MemoryRoute,
   OpenclawTasksRoute: OpenclawTasksRoute,
   ProjectsRoute: ProjectsRoute,
   RequestsRoute: RequestsRoute,

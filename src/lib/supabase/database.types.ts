@@ -995,6 +995,7 @@ export type Database = {
       tasks: {
         Row: {
           actual_minutes: number;
+          ai_workflow_task_id: string | null;
           archived_at: string | null;
           assignee_id: string | null;
           author_id: string;
@@ -1003,6 +1004,7 @@ export type Database = {
           created_by: string;
           currency: string;
           description: string | null;
+          dispatch_to_workflow: boolean;
           due_date: string | null;
           estimated_minutes: number | null;
           expected_revenue: number | null;
@@ -1014,14 +1016,18 @@ export type Database = {
           priority: Database["public"]["Enums"]["task_priority"];
           project_id: string | null;
           sort_order: number;
+          source: string;
           start_date: string | null;
           status: string;
           tags: string[];
+          target_role: string | null;
           title: string;
           updated_at: string;
+          workflow_status: string;
         };
         Insert: {
           actual_minutes?: number;
+          ai_workflow_task_id?: string | null;
           archived_at?: string | null;
           assignee_id?: string | null;
           author_id: string;
@@ -1030,6 +1036,7 @@ export type Database = {
           created_by: string;
           currency?: string;
           description?: string | null;
+          dispatch_to_workflow?: boolean;
           due_date?: string | null;
           estimated_minutes?: number | null;
           expected_revenue?: number | null;
@@ -1041,14 +1048,18 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"];
           project_id?: string | null;
           sort_order?: number;
+          source?: string;
           start_date?: string | null;
           status?: string;
           tags?: string[];
+          target_role?: string | null;
           title: string;
           updated_at?: string;
+          workflow_status?: string;
         };
         Update: {
           actual_minutes?: number;
+          ai_workflow_task_id?: string | null;
           archived_at?: string | null;
           assignee_id?: string | null;
           author_id?: string;
@@ -1057,6 +1068,7 @@ export type Database = {
           created_by?: string;
           currency?: string;
           description?: string | null;
+          dispatch_to_workflow?: boolean;
           due_date?: string | null;
           estimated_minutes?: number | null;
           expected_revenue?: number | null;
@@ -1068,11 +1080,14 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"];
           project_id?: string | null;
           sort_order?: number;
+          source?: string;
           start_date?: string | null;
           status?: string;
           tags?: string[];
+          target_role?: string | null;
           title?: string;
           updated_at?: string;
+          workflow_status?: string;
         };
         Relationships: [
           {

@@ -49,7 +49,7 @@ class TaskCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=240)
     original_request: Optional[str]= Field(default=None, max_length=12000)
     description: str = Field(default="", max_length=12000)
-    source: Literal["text", "voice", "manual", "project", "note", "client", "api"] = "text"
+    source: Literal["text", "voice", "manual", "project", "note", "client", "api", "ai_brain_dump"] = "text"
     source_entity_type: Optional[str]= Field(default=None, max_length=80)
     source_entity_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
     priority: TaskPriority = "medium"

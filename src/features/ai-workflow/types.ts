@@ -58,7 +58,7 @@ export type WorkflowTask = {
   title: string;
   original_request?: string;
   description: string;
-  source?: "text" | "voice" | "manual" | "project" | "note" | "client" | "api";
+  source?: "text" | "voice" | "manual" | "project" | "note" | "client" | "api" | "ai_brain_dump";
   status: WorkflowTaskStatus;
   priority: WorkflowPriority;
   due_at: string | null;
@@ -239,7 +239,7 @@ export type NewWorkflowTask = {
   agent_id: string | null;
   auto_assign: boolean;
   requires_approval?: boolean;
-  source?: "text" | "voice" | "manual" | "project" | "note" | "client" | "api";
+  source?: "text" | "voice" | "manual" | "project" | "note" | "client" | "api" | "ai_brain_dump";
   original_request?: string;
   related_entities?: Array<Record<string, string>>;
 };

@@ -6,31 +6,65 @@ interface TaskProposal {
   priority: "high" | "med" | "low";
   assignee: string;
   checklist: string[];
+  target_role: string | null;
+  dispatch_to_workflow: boolean;
+  project_hint: string | null;
 }
 
-const SYSTEM_PROMPT = `Ты — ИИ-ассистент для управления задачами Orbit CRM. Твоя задача — проанализировать текстовую заметку пользователя и разбить её на конкретные, выполнимые задачи.
+// Workflow-aware target roles (must align with ai_agents.role values)
+const TARGET_ROLES = [
+  "CEO",
+  "Backend",
+  "Frontend",
+  "QA / DevOps",
+  "AI Integrations",
+  "CMO",
+  "Sales Rep",
+  "SEO",
+  "SMM",
+  "Рассылка",
+  "Парсинг",
+  "Data Analyst",
+  "Рекрутинг",
+  "Онбординг",
+  "People Ops",
+  "COO",
+  "Orbit Commander",
+] as const;
+
+const SYSTEM_PROMPT = `Ты — диспетчер Orbit CRM + AI Workflow (C-level агент).
+Разбери заметку пользователя на атомарные задачи и подготовь их к диспетчеризации через AI Workflow.
 
 Правила:
-- Выделяй каждое отдельное поручение, идею, подзадачу или действие как отдельную задачу.
-- Не создавай абстрактные задачи вроде "проанализировать заметку" — только конкретные действия.
-- Для каждой задачи укажи: краткое название (одной строкой), подробное описание, приоритет (high/med/low), исполнителя (если упоминается имя), шаги выполнения (чек-лист, если уместно).
-- Если в тексте упоминаются проекты или другие задачи — упомяни это в описании.
-- Если действие одно — верни одну задачу. Если несколько — верни несколько.
-- Приоритет: high — срочно/важно/дедлайн, med — нужно сделать скоро, low — когда-нибудь/не срочно.
+- Выделяй каждое поручение/идею как отдельную задачу. Не создавай абстрактные "проанализировать заметку".
+- Для каждой задачи: краткое название (≤80 симв.), описание что сделать, приоритет, checklist.
+- Обязательно оцени target_role — куда C-level агент должен маршрутизировать задачу. Выбери ровно одну роль из списка: ${TARGET_ROLES.join(", ")}. Если явной подсказки нет — поставь "COO".
+- dispatch_to_workflow: true если задача требует исполнения/декомпозиции C-level агентом (95% случаев = true). Ставь false только для личных заметок без действия.
+- Если в тексте упоминается проект (например, Orbit CRM, OSNOVA, BERRDO) — положи его название в project_hint, иначе null.
+- Приоритет: high — срочно/дедлайн/бизнес-критично, med — скоро, low — бэклог.
 
-Отвечай ТОЛЬКО валидным JSON массивом объектов. Никакого текста до или после JSON.`;
+Отвечай ТОЛЬКО валидным JSON. Никакого текста до/после.`;
 
+// Structured output — совместимо как с array, так и с {"tasks": [...]} оболочкой
 const JSON_SCHEMA_HINT = `
-Формат ответа — JSON массив:
-[
-  {
-    "title": "Краткое название задачи",
-    "description": "Подробное описание что сделать",
-    "priority": "high|med|low",
-    "assignee": "Имя исполнителя или пустая строка",
-    "checklist": ["Шаг 1", "Шаг 2"]
-  }
-]`;
+Формат ответа — JSON объект:
+{
+  "tasks": [
+    {
+      "title": "Краткое название задачи",
+      "description": "Подробное описание что сделать",
+      "priority": "high|med|low",
+      "assignee": "Имя исполнителя или пустая строка",
+      "checklist": ["Шаг 1", "Шаг 2"],
+      "target_role": "одна из: ${TARGET_ROLES.join(" | ")}",
+      "dispatch_to_workflow": true,
+      "project_hint": "название проекта или null"
+    }
+  ]
+}
+Допускается также прямой JSON-массив задач в том же формате.
+dispatch_to_workflow по умолчанию true.
+`;
 
 type ProviderConfig = {
   name: string;
@@ -134,15 +168,23 @@ async function callProvider(provider: ProviderConfig, userText: string): Promise
   const parsed = JSON.parse(cleaned);
   const tasks = Array.isArray(parsed) ? parsed : parsed.tasks || parsed.items || [parsed];
 
-  return tasks.map((t: Record<string, unknown>) => ({
-    title: String(t.title || "Без названия").slice(0, 200),
-    description: String(t.description || ""),
-    priority: (["high", "med", "low"].includes(String(t.priority))
-      ? t.priority
-      : "low") as TaskProposal["priority"],
-    assignee: String(t.assignee || ""),
-    checklist: Array.isArray(t.checklist) ? t.checklist.map(String).slice(0, 10) : [],
-  }));
+  return tasks.map((t: Record<string, unknown>) => {
+    const rawTarget = String(t.target_role ?? t.targetRole ?? "").trim();
+    const normalizedTarget = (TARGET_ROLES as readonly string[]).includes(rawTarget) ? rawTarget : null;
+    const dispatchRaw = t.dispatch_to_workflow ?? t.dispatchToWorkflow;
+    return {
+      title: String(t.title || "Без названия").slice(0, 200),
+      description: String(t.description || ""),
+      priority: (["high", "med", "low"].includes(String(t.priority))
+        ? t.priority
+        : "low") as TaskProposal["priority"],
+      assignee: String(t.assignee || ""),
+      checklist: Array.isArray(t.checklist) ? t.checklist.map(String).slice(0, 10) : [],
+      target_role: normalizedTarget ?? (dispatchRaw === false ? null : "COO"),
+      dispatch_to_workflow: dispatchRaw === false ? false : true,
+      project_hint: t.project_hint ? String(t.project_hint).slice(0, 80) : null,
+    } satisfies TaskProposal;
+  });
 }
 
 export const Route = createFileRoute("/api/ai/analyze-tasks")({

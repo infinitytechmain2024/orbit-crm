@@ -486,6 +486,11 @@ function mapTask(row: TaskRow, relations: TaskRelationMaps = emptyTaskRelations(
     comments: relations.commentsByTask.get(row.id) ?? [],
     files: relations.filesByTask.get(row.id) ?? [],
     financeOperationsCount: relations.financeCountByTask.get(row.id) ?? 0,
+    source: (row as unknown as Record<string, unknown>)["source"] as string ?? "manual",
+    workflowStatus: ((row as unknown as Record<string, unknown>)["workflow_status"] as Task["workflowStatus"]) ?? "manual",
+    targetRole: ((row as unknown as Record<string, unknown>)["target_role"] as string | null) ?? null,
+    dispatchToWorkflow: Boolean((row as unknown as Record<string, unknown>)["dispatch_to_workflow"]),
+    aiWorkflowTaskId: ((row as unknown as Record<string, unknown>)["ai_workflow_task_id"] as string | null) ?? null,
   };
 }
 
@@ -1252,6 +1257,10 @@ type NormalizedTaskInput = {
   tags: string[];
   title: string;
   watcherIds: string[];
+  source: string;
+  workflowStatus: string;
+  targetRole: string | null;
+  dispatchToWorkflow: boolean;
 };
 
 function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): NormalizedTaskInput {
@@ -1340,6 +1349,21 @@ function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): Normali
     ...newLabelNames,
   ]);
 
+  const source = hasOwn(input, "source")
+    ? String((input as Record<string, unknown>)["source"] ?? "manual")
+    : (fallback?.source ?? "manual");
+  const workflowStatus = hasOwn(input, "workflowStatus")
+    ? String((input as Record<string, unknown>)["workflowStatus"] ?? "manual")
+    : hasOwn(input, "dispatchToWorkflow") && (input as Record<string, unknown>)["dispatchToWorkflow"]
+      ? "pending_dispatch"
+      : (fallback?.workflowStatus ?? "manual");
+  const targetRole = hasOwn(input, "targetRole")
+    ? ((input as Record<string, unknown>)["targetRole"] as string | null) ?? null
+    : (fallback?.targetRole ?? null);
+  const dispatchToWorkflow = hasOwn(input, "dispatchToWorkflow")
+    ? Boolean((input as Record<string, unknown>)["dispatchToWorkflow"])
+    : (fallback?.dispatchToWorkflow ?? false);
+
   return {
     actualMinutes,
     assigneeId,
@@ -1363,6 +1387,10 @@ function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): Normali
     tags,
     title,
     watcherIds,
+    source,
+    workflowStatus,
+    targetRole,
+    dispatchToWorkflow,
   };
 }
 
@@ -1392,7 +1420,14 @@ function taskPayload(
     status: normalized.status,
     tags: normalized.tags,
     title: normalized.title,
-  };
+    // dispatch extensions (cast via unknown to tolerate missing generated types until regen)
+    ...({
+      source: normalized.source,
+      workflow_status: normalized.workflowStatus,
+      target_role: normalized.targetRole,
+      dispatch_to_workflow: normalized.dispatchToWorkflow,
+    } as unknown as Record<string, unknown>),
+  } as TablesInsert<"tasks">;
 }
 
 function taskUpdatePayload(normalized: NormalizedTaskInput): TablesUpdate<"tasks"> {
@@ -1414,7 +1449,13 @@ function taskUpdatePayload(normalized: NormalizedTaskInput): TablesUpdate<"tasks
     status: normalized.status,
     tags: normalized.tags,
     title: normalized.title,
-  };
+    ...({
+      source: normalized.source,
+      workflow_status: normalized.workflowStatus,
+      target_role: normalized.targetRole,
+      dispatch_to_workflow: normalized.dispatchToWorkflow,
+    } as unknown as Record<string, unknown>),
+  } as TablesUpdate<"tasks">;
 }
 
 async function replaceTaskAssignees(

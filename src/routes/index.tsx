@@ -23,6 +23,7 @@ import { useCrm } from "@/lib/crm-store";
 import { QuickInputTextarea } from "@/components/crm/QuickInputTextarea";
 import { STATUS_LABEL, type Priority } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,6 +44,26 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
+const TARGET_ROLE_OPTIONS = [
+  "COO",
+  "Backend",
+  "Frontend",
+  "QA / DevOps",
+  "AI Integrations",
+  "CMO",
+  "Sales Rep",
+  "SEO",
+  "SMM",
+  "Рассылка",
+  "Парсинг",
+  "Data Analyst",
+  "Рекрутинг",
+  "Онбординг",
+  "People Ops",
+  "CEO",
+  "Orbit Commander",
+] as const;
+
 type ParsedTask = {
   id: string;
   title: string;
@@ -50,6 +71,9 @@ type ParsedTask = {
   priority: Priority;
   assignee: string;
   checklist: string[];
+  targetRole: string | null;
+  dispatchToWorkflow: boolean;
+  projectHint: string | null;
   selected: boolean;
   expanded: boolean;
 };
@@ -78,18 +102,23 @@ type AiAnalyzeResponse = {
     priority: "high" | "med" | "low";
     assignee: string;
     checklist: string[];
+    target_role?: string | null;
+    dispatch_to_workflow?: boolean;
+    project_hint?: string | null;
   }[];
   provider: string;
   model: string;
 };
 
 function Dashboard() {
-  const { tasks, emails, txs, addTask } = useCrm();
+  const { tasks, emails, txs, addTask, projects, organization } = useCrm();
+  const { session } = useAuth();
   const [draft, setDraft] = useState("");
   const [stage, setStage] = useState<"idle" | "loading" | "preview">("idle");
   const [parsed, setParsed] = useState<ParsedTask[]>([]);
   const [adding, setAdding] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [dispatchStatus, setDispatchStatus] = useState<string | null>(null);
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -123,6 +152,9 @@ function Dashboard() {
         priority: t.priority,
         assignee: t.assignee,
         checklist: t.checklist,
+        targetRole: (t.target_role as string | null) ?? "COO",
+        dispatchToWorkflow: t.dispatch_to_workflow !== false,
+        projectHint: t.project_hint ?? null,
         selected: true,
         expanded: false,
       }));
@@ -136,6 +168,9 @@ function Dashboard() {
           priority: "low",
           assignee: "",
           checklist: [],
+          targetRole: "COO",
+          dispatchToWorkflow: true,
+          projectHint: null,
           selected: true,
           expanded: false,
         });
@@ -178,6 +213,9 @@ function Dashboard() {
         priority: "low",
         assignee: "",
         checklist: [],
+        targetRole: "COO",
+        dispatchToWorkflow: true,
+        projectHint: null,
         selected: true,
         expanded: true,
       },
@@ -192,33 +230,113 @@ function Dashboard() {
     setParsed((prev) => prev.map((t) => ({ ...t, selected: false })));
   };
 
+  // Resolve project_hint → real project_id if possible
+  const resolveProjectId = (hint: string | null): string | null => {
+    if (!hint) return null;
+    const lower = hint.toLowerCase().trim();
+    const found = projects.find((p) => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase()));
+    return found?.id ?? null;
+  };
+
+  const dispatchToAIWorkflow = async (
+    crmTask: { id: string; title: string; description: string | null },
+    meta: ParsedTask,
+  ) => {
+    if (!meta.dispatchToWorkflow || !organization || !session?.access_token) return;
+    const priorityMap: Record<Priority, "low" | "medium" | "high" | "critical"> = {
+      low: "low",
+      med: "medium",
+      high: "high",
+    };
+    const workflowPriority = priorityMap[meta.priority] ?? "medium";
+    const projectId = resolveProjectId(meta.projectHint);
+    try {
+      const res = await fetch("/api/backend/api/ai-workflow/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          organization_id: organization.id,
+          project_id: projectId,
+          title: meta.title.trim(),
+          description: meta.description || "",
+          original_request: draft.trim(),
+          source: "ai_brain_dump",
+          source_entity_type: "crm_task",
+          source_entity_id: crmTask.id,
+          priority: workflowPriority,
+          auto_assign: true,
+          requires_approval: workflowPriority === "high" ? undefined : undefined,
+          related_entities: [
+            { type: "crm_task", id: crmTask.id },
+            ...(projectId ? [{ type: "project", id: projectId }] : []),
+          ],
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        console.warn("[BrainDump] AI Workflow dispatch failed:", res.status, err);
+      } else {
+        console.log("[BrainDump] Dispatched to AI Workflow:", meta.title, "→", meta.targetRole);
+      }
+    } catch (err) {
+      console.warn("[BrainDump] AI Workflow dispatch error:", err);
+    }
+  };
+
   const sendToWork = async () => {
     const selected = parsed.filter((t) => t.selected && t.title.trim());
     if (!selected.length || adding) return;
     setAdding(true);
+    setDispatchStatus(null);
 
     const sourceNote = draft.trim();
 
-    const results = await Promise.all(
-      selected.map((p) =>
-        addTask({
-          title: p.title.trim(),
-          description: p.description
-            ? `${p.description}${sourceNote ? `\n\n---\nИсходная заметка:\n${sourceNote}` : ""}`
-            : sourceNote || null,
-          priority: p.priority,
-          status: "backlog",
-          assigneeId: null,
-          tags: ["ии", "выгрузка-мыслей"],
-          checklistTitles: p.checklist.length > 0 ? p.checklist : undefined,
-        }),
-      ),
-    );
+    const created: Array<{ crmTask: { id: string; title: string; description: string | null }; meta: ParsedTask }> = [];
+    let allOk = true;
 
-    if (results.every(Boolean)) {
+    for (const p of selected) {
+      const crmTask = await addTask({
+        title: p.title.trim(),
+        description: p.description
+          ? `${p.description}${sourceNote ? `\n\n---\nИсходная заметка:\n${sourceNote}` : ""}`
+          : sourceNote || null,
+        priority: p.priority,
+        status: "backlog",
+        assigneeId: null,
+        tags: ["ии", "выгрузка-мыслей"],
+        checklistTitles: p.checklist.length > 0 ? p.checklist : undefined,
+        source: "ai_brain_dump",
+        workflowStatus: p.dispatchToWorkflow ? "pending_dispatch" : "manual",
+        targetRole: p.targetRole,
+        dispatchToWorkflow: p.dispatchToWorkflow,
+        projectId: resolveProjectId(p.projectHint),
+      });
+      if (!crmTask) {
+        allOk = false;
+        continue;
+      }
+      created.push({ crmTask: { id: crmTask.id, title: crmTask.title, description: crmTask.description }, meta: p });
+    }
+
+    // 3.В: публикация события TaskCreatedFromBrainDump → C-level (Orbit Commander)
+    // Диспетчеризация в AI Workflow конвейер для задач с dispatch_to_workflow=true
+    const dispatchable = created.filter((c) => c.meta.dispatchToWorkflow);
+    if (dispatchable.length) {
+      setDispatchStatus(`Передаю ${dispatchable.length} задач в AI Workflow…`);
+      await Promise.all(dispatchable.map((c) => dispatchToAIWorkflow(c.crmTask, c.meta)));
+      const dispatchedCount = dispatchable.length;
+      setDispatchStatus(`Отправлено ${dispatchedCount} задач C-level агенту (Orbit Commander)`);
+      // Notify via pg_notify event is also emitted by DB trigger (brain_dump_dispatch)
+    }
+
+    if (allOk && created.length === selected.length) {
       setParsed([]);
       setDraft("");
       setStage("idle");
+      setTimeout(() => setDispatchStatus(null), 4000);
     }
     setAdding(false);
   };
@@ -329,6 +447,18 @@ function Dashboard() {
               >
                 <Plus className="size-4" /> Добавить задачу вручную
               </button>
+
+              {/* Dispatch hint */}
+              {parsed.some((t) => t.dispatchToWorkflow) && (
+                <p className="text-center text-[11px] leading-4 text-muted-foreground">
+                  {parsed.filter((t) => t.dispatchToWorkflow).length} задач будут отправлены C-level агенту (Orbit Commander) в AI Workflow для декомпозиции и маршрутизации
+                </p>
+              )}
+              {dispatchStatus && (
+                <p className="text-center text-xs text-primary" role="status">
+                  {dispatchStatus}
+                </p>
+              )}
 
               {/* Action buttons */}
               <div className="flex items-center gap-3 pt-2">
@@ -594,6 +724,60 @@ function TaskPreviewCard({
               />
             </div>
           </div>
+
+          {/* Target role + Workflow dispatch */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
+                Target Role (C-level)
+              </label>
+              <select
+                value={task.targetRole ?? "COO"}
+                onChange={(e) => onUpdate({ targetRole: e.target.value })}
+                className="w-full rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-xs outline-none transition focus:border-primary/40"
+              >
+                {TARGET_ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
+                AI Workflow
+              </label>
+              <button
+                onClick={() => onUpdate({ dispatchToWorkflow: !task.dispatchToWorkflow })}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-xs transition",
+                  task.dispatchToWorkflow
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground",
+                )}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "grid size-3.5 place-items-center rounded border",
+                      task.dispatchToWorkflow ? "border-primary bg-primary text-white" : "border-border bg-surface-1",
+                    )}
+                  >
+                    {task.dispatchToWorkflow && <Check className="size-2.5" />}
+                  </span>
+                  Диспетчеризация
+                </span>
+                <span className="text-[10px] opacity-70">
+                  {task.dispatchToWorkflow ? "→ C-level" : "только CRM"}
+                </span>
+              </button>
+            </div>
+          </div>
+          {task.projectHint && (
+            <p className="text-[11px] text-muted-foreground">
+              Проект: <span className="font-medium text-foreground">{task.projectHint}</span>
+            </p>
+          )}
 
           {/* Checklist */}
           {task.checklist.length > 0 && (

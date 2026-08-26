@@ -46,6 +46,8 @@ export type TaskFile = {
   createdAt: string;
 };
 
+export type WorkflowDispatchStatus = "pending_dispatch" | "dispatched" | "manual" | "failed";
+
 export type Task = {
   id: string;
   organizationId: string;
@@ -79,6 +81,12 @@ export type Task = {
   comments: TaskComment[];
   files: TaskFile[];
   financeOperationsCount: number;
+  // BrainDump → AI Workflow dispatch (prompt section 3.A)
+  source: string;
+  workflowStatus: WorkflowDispatchStatus;
+  targetRole: string | null;
+  dispatchToWorkflow: boolean;
+  aiWorkflowTaskId: string | null;
 };
 
 export type TaskInput = {
@@ -105,6 +113,11 @@ export type TaskInput = {
   checklistTitles?: string[];
   subtaskTitles?: string[];
   tags?: string[];
+  // BrainDump → AI Workflow dispatch
+  source?: string;
+  workflowStatus?: WorkflowDispatchStatus;
+  targetRole?: string | null;
+  dispatchToWorkflow?: boolean;
 };
 
 export type TaskPatch = Partial<
