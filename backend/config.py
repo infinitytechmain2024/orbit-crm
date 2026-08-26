@@ -125,6 +125,14 @@ class Settings(BaseSettings):
     # Server-to-server auth: Vercel proxy must send this as `Authorization: Bearer <token>`
     INTERNAL_API_TOKEN: str = Field(default="", validation_alias="INTERNAL_API_TOKEN")
 
+    # Local self-hosted development provider. This token is intentionally
+    # separate from INTERNAL_API_TOKEN and OpenClaw credentials.
+    SELFDEV_PROVIDER_TOKEN: str = Field(default="", validation_alias="SELFDEV_PROVIDER_TOKEN")
+    SELFDEV_PROVIDER_LEASE_SECONDS: int = Field(
+        default=90,
+        validation_alias="SELFDEV_PROVIDER_LEASE_SECONDS",
+    )
+
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":
         expected = self.EXPECTED_SUPABASE_PROJECT_REF.strip()

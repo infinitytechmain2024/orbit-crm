@@ -47,3 +47,9 @@ backend/.env
 # Docker volumes
 openclaw-state/
 openclaw-workspace/
+
+# Local Self-Development Provider state, worktrees and artifacts
+.selfdev/
+
+# Supabase CLI linked-project cache (contains machine-local metadata)
+supabase/.temp/

@@ -92,6 +92,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      SELFDEV_PROVIDER_TOKEN: ${SELFDEV_PROVIDER_TOKEN:-}
+      SELFDEV_PROVIDER_LEASE_SECONDS: ${SELFDEV_PROVIDER_LEASE_SECONDS:-90}
       # OpenClaw connection (Docker-internal hostname)
       OPENCLAW_URL: http://openclaw:18789
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
@@ -118,6 +120,31 @@ services:
     restart: unless-stopped
     profiles:
       - gmaps
+
+  selfdev-provider:
+    build:
+      context: .
+      dockerfile: selfdev/Dockerfile.provider
+    image: orbit-selfdev-provider:local
+    container_name: orbit-selfdev-provider
+    env_file:
+      - path: .env.selfdev
+        required: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    init: true
+    restart: unless-stopped
+    profiles:
+      - selfdev
+    networks:
+      - orbit-net
 
 volumes:
   openclaw-state:

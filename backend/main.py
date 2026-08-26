@@ -41,6 +41,7 @@ from backend.routers.internal import router as internal_router
 from backend.routers.openclaw_tasks import router as openclaw_router
 from backend.routers.openclaw_goals import router as openclaw_goals_router
 from backend.routers.controlled_learning import router as controlled_learning_router
+from backend.routers.selfdev import router as selfdev_router
 from backend.routers.whisper_router import router as whisper_router
 from backend.middleware.rate_limit import WorkflowRateLimitMiddleware
 from backend.middleware.correlation import CorrelationMiddleware
@@ -149,6 +150,7 @@ app.include_router(company_router)
 app.include_router(openclaw_router)
 app.include_router(openclaw_goals_router)
 app.include_router(controlled_learning_router)
+app.include_router(selfdev_router)
 app.include_router(whisper_router)
 app.include_router(ai_workflow_api_router)
 app.include_router(ceo_router)

@@ -1,0 +1,16 @@
+FROM python:3.12.11-slim
+
+WORKDIR /app
+
+COPY selfdev/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY selfdev/__init__.py ./selfdev/__init__.py
+COPY selfdev/provider ./selfdev/provider
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+USER 65532:65532
+
+CMD ["python", "-m", "selfdev.provider.main"]

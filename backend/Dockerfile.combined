@@ -1,0 +1,44 @@
+ARG OPENCLAW_IMAGE="ghcr.io/openclaw/openclaw:2026.7.1@sha256:6a31d44b2944e7adcd2b582bf6fb463111264ebca97a0201795b799135bd102c"
+FROM ${OPENCLAW_IMAGE}
+
+USER root
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/orbit-venv
+
+COPY backend/requirements.txt /tmp/orbit-backend-requirements.txt
+RUN /opt/orbit-venv/bin/pip install --no-cache-dir \
+        -r /tmp/orbit-backend-requirements.txt \
+    && rm /tmp/orbit-backend-requirements.txt
+
+COPY backend/ /app/orbit/backend/
+COPY services/openclaw/openclaw.json /app/orbit/openclaw.default.json
+COPY openclaw/skills/ /opt/orbit-skills/
+
+RUN install -d -m 0700 -o node -g node \
+        /home/node/.openclaw \
+        /home/node/.openclaw/workspace \
+    && chown -R node:node /app/orbit /opt/orbit-skills
+
+ENV PYTHONPATH=/app/orbit
+ENV PYTHONUNBUFFERED=1
+ENV PATH=/opt/orbit-venv/bin:$PATH
+ENV HOME=/home/node
+ENV OPENCLAW_HOME=/home/node
+ENV OPENCLAW_STATE_DIR=/home/node/.openclaw
+ENV OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json
+ENV OPENCLAW_CONFIG_DIR=/home/node/.openclaw
+ENV OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace
+ENV OPENCLAW_URL=http://127.0.0.1:18789
+ENV OPENCLAW_GATEWAY_BIND=loopback
+ENV OPENCLAW_GATEWAY_PORT=18789
+
+USER node
+
+EXPOSE 8000 18789
+
+ENTRYPOINT ["/opt/orbit-venv/bin/python", "-m", "backend.combined_supervisor"]

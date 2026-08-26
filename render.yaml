@@ -1,57 +1,22 @@
 services:
-  - type: pserv
-    name: orbit-openclaw-private
-    runtime: docker
-    region: ohio
-    plan: starter
-    dockerfilePath: ./services/openclaw/Dockerfile
-    dockerContext: ./services/openclaw
-    envVars:
-      - key: HOME
-        value: /home/node
-      - key: OPENCLAW_HOME
-        value: /home/node
-      - key: OPENCLAW_STATE_DIR
-        value: /home/node/.openclaw
-      - key: OPENCLAW_CONFIG_PATH
-        value: /home/node/.openclaw/openclaw.json
-      - key: OPENCLAW_CONFIG_DIR
-        value: /home/node/.openclaw
-      - key: OPENCLAW_WORKSPACE_DIR
-        value: /home/node/.openclaw/workspace
-      - key: OPENCLAW_GATEWAY_TOKEN
-        generateValue: true
-      - key: PORT
-        value: "18789"
-      - key: OPENCLAW_GATEWAY_BIND
-        value: lan
-      - key: OPENCLAW_GATEWAY_PORT
-        value: "18789"
-      - key: OPENCLAW_DISABLE_BONJOUR
-        value: "1"
-      - key: NVIDIA_API_KEY
-        sync: false
-      - key: OPENCLAW_DEFAULT_MODEL
-        value: "nvidia/nvidia/nemotron-3-ultra-550b-a55b"
-    disk:
-      name: openclaw-state
-      mountPath: /home/node/.openclaw
-      sizeGB: 1
-
   - type: web
     name: orbit-crm-backend
-    runtime: python
+    runtime: docker
     region: ohio
     # Production requires an always-on instance. Do not apply this paid plan
     # change until staging smoke tests and budget approval are complete.
     plan: starter
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./backend/Dockerfile.combined
+    dockerContext: .
     healthCheckPath: /api/health
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.11"
       - key: NVIDIA_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
         sync: false
       - key: SUPABASE_URL
         sync: false
@@ -63,6 +28,10 @@ services:
         value: qavfajsflzbefgegkwjt
       - key: INTERNAL_API_TOKEN
         sync: false
+      - key: SELFDEV_PROVIDER_TOKEN
+        sync: false
+      - key: SELFDEV_PROVIDER_LEASE_SECONDS
+        value: "90"
       - key: WHISPER_MODEL
         value: tiny
       - key: WHISPER_DEVICE
@@ -76,15 +45,9 @@ services:
       - key: CEO_DEPLOYMENT_APPROVAL_REQUIRED
         value: "true"
       - key: OPENCLAW_URL
-        fromService:
-          type: pserv
-          name: orbit-openclaw-private
-          property: hostport
+        value: http://127.0.0.1:18789
       - key: OPENCLAW_GATEWAY_TOKEN
-        fromService:
-          type: pserv
-          name: orbit-openclaw-private
-          envVarKey: OPENCLAW_GATEWAY_TOKEN
+        sync: false
       - key: OPENCLAW_WEBHOOK_TOKEN
         sync: false
       - key: OPENCLAW_REQUEST_TIMEOUT
