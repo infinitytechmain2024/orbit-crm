@@ -1709,46 +1709,37 @@ async function insertTaskWithFallback(
       if (missing === "assigned_user_id") delete payload["assignee_id"];
       continue;
     }
-    // Handle enum/check-constraint violations by remapping and retrying (supports both qavf and CRM schemas)
+    // Handle enum/check-constraint violations — on check constraint, drop column to use DB default (most robust)
     if (error.message.includes("invalid input value for enum") || error.message.includes("violates check constraint")) {
       const em = error.message;
       const isCheck = em.includes("violates check constraint");
-      const isPriorityErr = em.includes("task_priority") || em.includes("priority") || payload["priority"] !== undefined;
-      const isStatusErr = em.includes("task_status") || em.includes("tasks_status") || em.includes("status") || payload["status"] !== undefined;
-      // Detect which column is offender: prefer explicit mention, else try both
-      const priorityOffender = em.includes("priority") || em.includes("task_priority") || (isCheck && String(payload["priority"]) !== "");
-      const statusOffender = em.includes("status") || em.includes("task_status") || em.includes("tasks_status");
-
-      if (priorityOffender || em.includes("task_priority")) {
+      // For check constraints, immediately drop the offending column to use DB default — avoids infinite toggle between dialects
+      if (isCheck) {
+        if (em.includes("tasks_status_allowed_check") || em.includes("status")) {
+          if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+        }
+        if (em.includes("priority") || em.includes("task_priority")) {
+          if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+        }
+        // Generic check: drop both if we can't tell
+        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+      }
+      if (em.includes("task_priority") || (isCheck && em.includes("priority"))) {
         if (String(payload["priority"]) === "med") { payload["priority"] = "normal"; continue; }
         if (String(payload["priority"]) === "normal") { payload["priority"] = "med"; continue; }
         if (String(payload["priority"]) === "urgent") { payload["priority"] = "high"; continue; }
-        if (String(payload["priority"]) === "high" && isCheck) {
-          // qavf allows high, CRM allows high — keep, but try dropping if still fails
-        }
-        // unknown priority value — drop it and retry with DB default
-        if (payload["priority"] !== undefined && (isCheck || em.includes("task_priority"))) { delete payload["priority"]; continue; }
+        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
       }
-      if (statusOffender || em.includes("task_status") || em.includes("tasks_status")) {
+      if (em.includes("task_status") || em.includes("tasks_status") || em.includes("status")) {
         if (String(payload["status"]) === "backlog") { payload["status"] = "todo"; continue; }
         if (String(payload["status"]) === "todo") { payload["status"] = "backlog"; continue; }
         if (String(payload["status"]) === "review") { payload["status"] = "in_progress"; continue; }
-        if (String(payload["status"]) === "in_progress" && em.includes('"backlog"')) {
-          payload["status"] = "todo"; continue;
-        }
-        if (String(payload["status"]) === "planned" || String(payload["status"]) === "blocked" || String(payload["status"]) === "cancelled") {
-          // CRM allows these but qavf doesn't — map to closest
-          if (String(payload["status"]) === "planned") { payload["status"] = "todo"; continue; }
-          if (String(payload["status"]) === "blocked") { payload["status"] = "in_progress"; continue; }
-          if (String(payload["status"]) === "cancelled") { payload["status"] = "todo"; continue; }
-        }
-        if (payload["status"] !== undefined && (isCheck || em.includes("task_status") || em.includes("tasks_status"))) { delete payload["status"]; continue; }
+        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
       }
-      // generic fallback: if we can't map, strip the offending field if we can detect it
       const enumCol = em.match(/for enum (\w+):/)?.[1];
       if (enumCol === "task_priority" && payload["priority"] !== undefined) { delete payload["priority"]; continue; }
       if (enumCol === "task_status" && payload["status"] !== undefined) { delete payload["status"]; continue; }
-      if (isCheck && em.includes("tasks_status_allowed_check") && payload["status"] !== undefined) { delete payload["status"]; continue; }
     }
     return { data: null, error };
   }
@@ -1815,13 +1806,24 @@ export async function updateTask(
     if (error.message.includes("invalid input value for enum") || error.message.includes("violates check constraint")) {
       const em = error.message;
       const isCheck = em.includes("violates check constraint");
-      if (em.includes("task_priority") || em.includes("priority") || (isCheck && payload["priority"] !== undefined)) {
+      // For check constraints, drop column immediately to use DB default (avoids dialect toggling)
+      if (isCheck) {
+        if (em.includes("tasks_status_allowed_check") || em.includes("status")) {
+          if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+        }
+        if (em.includes("priority") || em.includes("task_priority")) {
+          if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+        }
+        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+      }
+      if (em.includes("task_priority") || (isCheck && em.includes("priority"))) {
         if (String(payload["priority"]) === "med") { payload["priority"] = "normal"; continue; }
         if (String(payload["priority"]) === "normal") { payload["priority"] = "med"; continue; }
         if (String(payload["priority"]) === "urgent") { payload["priority"] = "high"; continue; }
         if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
       }
-      if (em.includes("task_status") || em.includes("tasks_status") || em.includes("status") || isCheck) {
+      if (em.includes("task_status") || em.includes("tasks_status") || em.includes("status")) {
         if (String(payload["status"]) === "backlog") { payload["status"] = "todo"; continue; }
         if (String(payload["status"]) === "todo") { payload["status"] = "backlog"; continue; }
         if (String(payload["status"]) === "review") { payload["status"] = "in_progress"; continue; }
