@@ -140,22 +140,22 @@ async function handleWebhook(request: Request): Promise<Response> {
 
 async function handleMail(request: Request, action: string | undefined, method: string) {
   if (method === "POST" && action === "webhook") return handleWebhook(request);
-  const user = await authenticate(request);
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const body = method === "GET" ? null : ((await request.json()) as JsonRecord);
-  const organizationId =
-    method === "GET"
-      ? (new URL(request.url).searchParams.get("organization_id") ?? "")
-      : String(body?.["organizationId"] ?? "");
-  if (!(await requireMembership(organizationId, user.id)))
-    return Response.json({ error: "Organization access denied" }, { status: 403 });
-
-  const apiKey = process.env["AGENTMAIL_API_KEY"];
-  const inboxId = process.env["AGENTMAIL_INBOX"];
-  if (!apiKey || !inboxId)
-    return Response.json({ error: "Mail service is not configured" }, { status: 503 });
-  const client = new AgentMailClient({ apiKey });
   try {
+    const user = await authenticate(request);
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const body = method === "GET" ? null : ((await request.json()) as JsonRecord);
+    const organizationId =
+      method === "GET"
+        ? (new URL(request.url).searchParams.get("organization_id") ?? "")
+        : String(body?.["organizationId"] ?? "");
+    if (!(await requireMembership(organizationId, user.id)))
+      return Response.json({ error: "Organization access denied" }, { status: 403 });
+
+    const apiKey = process.env["AGENTMAIL_API_KEY"];
+    const inboxId = process.env["AGENTMAIL_INBOX"];
+    if (!apiKey || !inboxId)
+      return Response.json({ error: "Mail service is not configured" }, { status: 503 });
+    const client = new AgentMailClient({ apiKey });
     if (method === "GET" && action === "messages") {
       const response = await client.inboxes.messages.list(inboxId, { limit: 50 });
       return Response.json(
