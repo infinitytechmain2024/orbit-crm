@@ -15,6 +15,7 @@ function canUseDemoFallback(message: string) {
     "failed to fetch",
     "pgrst205",
     "could not find the table",
+    "ai workflow api: 404",
     "ai workflow api: 500",
     "ai workflow api: 502",
     "ai workflow api: 503",
