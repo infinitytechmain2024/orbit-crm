@@ -30,9 +30,11 @@ def prepare_openclaw_config() -> None:
         parents=True,
         exist_ok=True,
     )
-    if not config_path.exists() or config_path.stat().st_size == 0:
-        shutil.copyfile("/app/orbit/openclaw.default.json", config_path)
-        config_path.chmod(0o600)
+    # Render containers are configured entirely from the deployed image and
+    # environment. Always replace any base-image/stale config so gateway.mode
+    # and the HTTP endpoints match the version shipped with Orbit.
+    shutil.copyfile("/app/orbit/openclaw.default.json", config_path)
+    config_path.chmod(0o600)
 
     default_model = os.getenv("OPENCLAW_DEFAULT_MODEL", "").strip()
     if default_model:
@@ -129,9 +131,13 @@ async def run() -> int:
         try:
             await wait_for_openclaw(openclaw)
         except RuntimeError as error:
-            logger.warning("openclaw_unavailable error=%s", error)
-            await terminate(openclaw, "openclaw")
-            openclaw = None
+            if openclaw.returncode is not None:
+                logger.warning("openclaw_unavailable error=%s", error)
+                openclaw = None
+            else:
+                # Free Render instances can need longer than the readiness
+                # window. Keep the process alive so it can become healthy later.
+                logger.warning("openclaw_still_starting error=%s", error)
 
         stop_waiter = asyncio.create_task(stop_event.wait())
         backend_waiter = asyncio.create_task(backend.wait())
