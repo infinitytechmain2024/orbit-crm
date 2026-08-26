@@ -79,10 +79,10 @@ AVAILABLE_MODELS = [
         max_tokens=200000,
     ),
     ModelConfig(
-        model_id="nvidia/llama-3.3-70b-instruct",
+        model_id="openai/gpt-oss-120b",
         provider=ModelProvider.NVIDIA,
-        strengths=[TaskType.REASONING, TaskType.ANALYSIS],
-        cost_tier=2,
+        strengths=[TaskType.REASONING, TaskType.ANALYSIS, TaskType.CODING],
+        cost_tier=3,
         max_tokens=128000,
     ),
     ModelConfig(

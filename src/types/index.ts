@@ -24,10 +24,3 @@ export type {
 } from "./voice";
 
 export type { AgentTask, ScrapingResult, LiamCommand, LiamResponse, ManusJobStatus } from "./agent";
-
-export type {
-  MemoryEntityType,
-  AiMemoryEntry,
-  CreateMemoryInput,
-  SearchMemoryInput,
-} from "./memory";

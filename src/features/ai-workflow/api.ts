@@ -99,31 +99,6 @@ export function fetchWorkflowPlan(accessToken: string, taskId: string, organizat
   }>(accessToken, `tasks/${taskId}/plan?${query}`);
 }
 
-export function fetchWorkflowGraphContext(accessToken: string, organizationId: string) {
-  const query = new URLSearchParams({ organization_id: organizationId });
-  return workflowRequest<{
-    nodes: Array<{
-      organization_id: string;
-      id: string;
-      node_type: "project" | "task" | "person" | "document" | "file";
-      title: string;
-      status: string;
-      created_at: string;
-      metadata: Record<string, unknown>;
-    }>;
-    edges: Array<{
-      id: string;
-      source_type: string;
-      source_id: string;
-      target_type: string;
-      target_id: string;
-      relation_type: string;
-      created_at: string;
-      created_by: string | null;
-    }>;
-  }>(accessToken, `graph-context?${query}`);
-}
-
 export function decideWorkflowApproval(
   accessToken: string,
   taskId: string,

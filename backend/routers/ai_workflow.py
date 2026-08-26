@@ -699,37 +699,6 @@ async def get_task_plan(
     }
 
 
-@router.get("/graph-context")
-async def get_workflow_graph_context(
-    organization_id: str = Query(min_length=36, max_length=36),
-    actor: WorkflowActor = Depends(require_workflow_actor),
-):
-    await _authorize(organization_id, actor)
-    # The durable knowledge graph lives in `graph_nodes` / `graph_relations`.
-    # (`knowledge_nodes` / `knowledge_edges` were drop-in views removed by the
-    # v2 knowledge-graph migration.) Degrade gracefully if the tables are not
-    # yet provisioned so the UI never receives a hard gateway 503.
-    try:
-        nodes, edges = await asyncio.gather(
-            ai_workflow_store.select(
-                "graph_nodes",
-                organization_id=organization_id,
-                order="created_at.desc",
-                limit=500,
-            ),
-            ai_workflow_store.select(
-                "graph_relations",
-                organization_id=organization_id,
-                order="created_at.desc",
-                limit=750,
-            ),
-        )
-    except Exception:
-        logger.exception("graph-context unavailable; returning empty graph")
-        nodes, edges = [], []
-    return {"nodes": nodes or [], "edges": edges or []}
-
-
 async def _control_task(
     action: Literal["pause", "resume", "retry", "cancel"],
     task_id: str,

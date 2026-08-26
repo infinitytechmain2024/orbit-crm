@@ -120,41 +120,6 @@ async def _load_entity_context(
             order="created_at.desc",
             limit=50,
         )
-    knowledge_catalog = await ai_workflow_store.select(
-        "company_knowledge",
-        organization_id=organization_id,
-        filters={"is_active": "eq.true"},
-        columns="id,slug,title,category,current_version",
-        order="updated_at.desc",
-        limit=50,
-    )
-    context["company_knowledge_catalog"] = knowledge_catalog
-    if knowledge_catalog:
-        knowledge_ids = ",".join(item["id"] for item in knowledge_catalog)
-        versions = await ai_workflow_store.select(
-            "company_knowledge_versions",
-            organization_id=organization_id,
-            filters={"knowledge_id": f"in.({knowledge_ids})"},
-            columns="knowledge_id,version,content,source,created_at",
-            order="created_at.desc",
-            limit=100,
-        )
-        current_version = {item["id"]: item["current_version"] for item in knowledge_catalog}
-        context["company_knowledge"] = [
-            version for version in versions
-            if current_version.get(version["knowledge_id"]) == version["version"]
-        ]
-    context["user_memory"] = await ai_workflow_store.select(
-        "ai_user_memory",
-        organization_id=organization_id,
-        filters={
-            "user_id": f"eq.{user_id}",
-            "or": f"(expires_at.is.null,expires_at.gt.{datetime.now(UTC).isoformat()})",
-        },
-        columns="entity_type,entity_id,key_phrase,memory_value,confidence,source,last_verified_at",
-        order="confidence.desc",
-        limit=settings.OPENCLAW_MAX_CONTEXT_RECORDS,
-    )
     client_id = entity_id if entity_type in {"client", "lead"} else entity.get("client_id")
     if client_id:
         context["recent_interactions"] = await ai_workflow_store.select(

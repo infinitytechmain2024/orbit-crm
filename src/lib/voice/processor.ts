@@ -1,5 +1,3 @@
-import { getMemoryForIntent } from "./memory";
-
 export interface VoiceIntent {
   type: "CREATE_TASK" | "ESTIMATE_PROJECT" | "WEB_SEARCH_LEADS" | "UNKNOWN";
   entities: {
@@ -75,21 +73,13 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   throw new Error("Транскрибация временно недоступна: backend не отвечает");
 }
 
-export async function classifyIntent(transcript: string, userId?: string): Promise<VoiceIntent> {
-  let memoryContext = "";
-  if (userId) {
-    const memory = await getMemoryForIntent(userId, transcript);
-    if (Object.keys(memory).length > 0) {
-      memoryContext = `\n\nКонтекст памяти пользователя (используй для улучшения распознавания):\n${JSON.stringify(memory, null, 2)}`;
-    }
-  }
-
+export async function classifyIntent(transcript: string): Promise<VoiceIntent> {
   // Try Ollama via backend first
   try {
     const response = await fetch(`${BACKEND_URL}/api/voice/transcribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...COMMON_HEADERS },
-      body: JSON.stringify({ transcript, memory_context: memoryContext }),
+      body: JSON.stringify({ transcript }),
     });
     // Backend doesn't have a classify-only endpoint yet, so fall through
   } catch {
@@ -137,7 +127,7 @@ export async function processVoiceNote(
 
   // Fallback to OpenAI pipeline
   const transcript = await transcribeAudio(audioBlob);
-  const intent = await classifyIntent(transcript, userId);
+  const intent = await classifyIntent(transcript);
   const suggestedActions = await generateSuggestions(intent);
 
   return { transcript, intent, suggestedActions };

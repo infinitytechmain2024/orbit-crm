@@ -8,10 +8,10 @@ class MasterAgent:
         # Инициализируем наш единый провайдер вместо прямого httpx
         self.provider = NVIDIAUnifiedProvider()
 
-        # Словарь моделей под разные задачи
+        # Словарь моделей под разные задачи — llama-3.3 EOL 2026-08-26, gemma-4 unavailable
         self.models = {
-            "reasoning": "google/gemma-4-31b-it",
-            "default": "meta/llama-3.3-70b-instruct",
+            "reasoning": "openai/gpt-oss-120b",
+            "default": "openai/gpt-oss-120b",
             "nemotron": "nvidia/nemotron-3.5-lightning-30b-a3b"
         }
 

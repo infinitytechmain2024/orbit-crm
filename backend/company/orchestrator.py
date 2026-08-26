@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 # Конфигурация моделей для каждой роли
 # ---------------------------------------------------------------------------
 
-CEO_MODEL = "meta/llama-3.3-70b-instruct"
-DEVELOPER_MODEL = "google/gemma-4-31b-it"
+CEO_MODEL = "openai/gpt-oss-120b"
+DEVELOPER_MODEL = "openai/gpt-oss-120b"
 MARKETER_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
 
 

@@ -171,8 +171,8 @@ export const CEO_AGENT_CONFIG: CeoAgentConfig = {
   name: "Orbit Commander",
   role: "ceo",
   models: {
-    primary: "nvidia/llama-3.3-70b-instruct",
-    fallback: ["nvidia/gemma-4-31b-it", "openai/gpt-4o"],
+    primary: "openai/gpt-oss-120b",
+    fallback: ["nvidia/nemotron-3-super-120b-a12b", "openai/gpt-4o"],
   },
   capabilities: [
     "portfolio_management",

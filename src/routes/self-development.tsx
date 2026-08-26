@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Loader2,
   RefreshCw,
-  RotateCcw,
   ShieldCheck,
   XCircle,
 } from "lucide-react";
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/self-development")({
 
 type Proposal = {
   id: string;
-  target_type: "knowledge" | "template" | "business_process";
+  target_type: "template" | "business_process";
   title: string;
   rationale: string;
   evidence: unknown[];
@@ -82,7 +81,7 @@ function ControlledImprovementPage() {
 
   useEffect(() => void load(), [load]);
 
-  const decide = async (proposal: Proposal, action: "approve" | "reject" | "rollback") => {
+  const decide = async (proposal: Proposal, action: "approve" | "reject") => {
     const reason = window.prompt("Укажите основание решения");
     if (!reason?.trim()) return;
     setBusy(true);
@@ -232,17 +231,6 @@ function ControlledImprovementPage() {
                       Отклонить
                     </button>
                   </div>
-                )}
-                {proposal.status === "applied" && proposal.target_type === "knowledge" && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void decide(proposal, "rollback")}
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
-                  >
-                    <RotateCcw className="size-4" />
-                    Создать версию отката
-                  </button>
                 )}
               </article>
             ))}

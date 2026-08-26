@@ -42,24 +42,24 @@ type ProviderConfig = {
 function getProviders(): ProviderConfig[] {
   const providers: ProviderConfig[] = [];
 
-  // NVIDIA NIM (primary)
+  // NVIDIA NIM (primary) — llama-3.3 EOL 2026-08-26, replaced with gpt-oss-120b
   if (process.env.NVIDIA_API_KEY) {
     providers.push({
       name: "nvidia",
       url: "https://integrate.api.nvidia.com/v1/chat/completions",
       apiKey: process.env.NVIDIA_API_KEY,
-      model: process.env.NVIDIA_MODEL || "meta/llama-3.3-70b-instruct",
+      model: process.env.NVIDIA_MODEL || "openai/gpt-oss-120b",
     });
   }
 
-  // Groq (fallback — has chat completions, not just Whisper)
+  // Groq (fallback — has chat completions, not just Whisper) — llama-3.3 retired 2026-08-16 per Groq deprecation
   if (process.env.GROQ_API_KEY) {
     const baseUrl = process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1";
     providers.push({
       name: "groq",
       url: `${baseUrl}/chat/completions`,
       apiKey: process.env.GROQ_API_KEY,
-      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+      model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
     });
   }
 

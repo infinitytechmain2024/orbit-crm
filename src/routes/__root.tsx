@@ -7,12 +7,11 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CrmProvider } from "../lib/crm-store";
-import type { CrmSnapshot } from "../lib/crm-repository";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { AuthScreen } from "../components/crm/AuthScreen";
 import { Toaster } from "../components/ui/sonner";
@@ -162,24 +161,6 @@ function RootComponent() {
 
 function ProtectedApp() {
   const { status } = useAuth();
-  const [graphPreview, setGraphPreview] = useState<CrmSnapshot | null>(null);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV || !new URLSearchParams(window.location.search).has("graphPreview")) {
-      return;
-    }
-    void import("../lib/graph-preview-data").then(({ GRAPH_PREVIEW_SNAPSHOT }) => {
-      setGraphPreview(GRAPH_PREVIEW_SNAPSHOT);
-    });
-  }, []);
-
-  if (graphPreview) {
-    return (
-      <CrmProvider previewSnapshot={graphPreview}>
-        <Outlet />
-      </CrmProvider>
-    );
-  }
 
   if (status === "loading") {
     return (

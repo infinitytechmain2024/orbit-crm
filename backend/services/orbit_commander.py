@@ -829,7 +829,6 @@ class OrbitCommander:
         )
         task = updated[0]
         await self.create_event(task, "workflow_created", "Orbit Commander принял задачу и начал анализ.")
-        await self._graph_relation(task, "task", task["id"], "project", task.get("project_id"), "belongs_to")
         await self.audit(
             task["organization_id"],
             actor_type="user",
@@ -974,8 +973,6 @@ class OrbitCommander:
                 agent_id=agent["id"],
                 metadata={"step": index + 1, "phase": phase},
             )
-            await self._graph_relation(child, "task", child["id"], "task", root["id"], "belongs_to")
-            await self._graph_relation(child, "task", child["id"], "person", agent["id"], "assigned_to")
 
         for step in created_steps:
             child = key_to_task[step["key"]]
@@ -996,7 +993,6 @@ class OrbitCommander:
                     upsert=True,
                     on_conflict="task_id,depends_on_task_id",
                 )
-                await self._graph_relation(child, "task", child["id"], "task", upstream["id"], "depends_on")
 
         plan_payload = {
             "goal": str(plan.get("goal") or root["title"]),
@@ -1097,7 +1093,6 @@ class OrbitCommander:
                 "entity_id": request["id"],
             },
         )
-        await self._graph_relation(root, "task", root["id"], "approval", request["id"], "requires_approval")
         return request
 
     async def resolve_approval(
@@ -1965,49 +1960,7 @@ class OrbitCommander:
             },
         )
         artifact = rows[0]
-        await self._graph_relation(task, "task", task["id"], "document", artifact["id"], "contains")
         return artifact
-
-    async def _graph_relation(
-        self,
-        task: dict[str, Any],
-        source_type: str,
-        source_id: Optional[str],
-        target_type: str,
-        target_id: Optional[str],
-        relation_type: str,
-    ) -> None:
-        if not source_id or not target_id:
-            return
-        try:
-            existing = await self.store.select(
-                "graph_relations",
-                organization_id=task["organization_id"],
-                filters={
-                    "source_type": f"eq.{source_type}",
-                    "source_id": f"eq.{source_id}",
-                    "target_type": f"eq.{target_type}",
-                    "target_id": f"eq.{target_id}",
-                    "relation_type": f"eq.{relation_type}",
-                },
-                limit=1,
-            )
-            if existing:
-                return
-            await self.store.insert(
-                "graph_relations",
-                {
-                    "organization_id": task["organization_id"],
-                    "source_type": source_type,
-                    "source_id": source_id,
-                    "target_type": target_type,
-                    "target_id": target_id,
-                    "relation_type": relation_type,
-                    "created_by": task["created_by"],
-                },
-            )
-        except Exception as error:
-            logger.warning("Could not persist graph relation: %s", redact_error(error))
 
     async def _block_workflow(self, run: dict[str, Any], task: dict[str, Any], reason: str) -> None:
         root = await self.store.one("ai_tasks", organization_id=task["organization_id"], row_id=run["root_task_id"])

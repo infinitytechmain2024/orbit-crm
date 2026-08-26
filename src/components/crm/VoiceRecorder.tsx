@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Loader2, CheckCircle, XCircle, Send, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { processVoiceNoteFn, executeIntentFn, aiLearnFn } from "@/lib/voice/server-functions";
+import { processVoiceNoteFn, executeIntentFn } from "@/lib/voice/server-functions";
 
 type VoiceRecorderState =
   "idle" | "recording" | "processing" | "preview" | "executing" | "done" | "error";
@@ -41,8 +41,6 @@ export function VoiceRecorder({ onResult, onError, className, onTaskCreated }: V
     result?: Record<string, unknown>;
     error?: string;
   } | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackProjectId, setFeedbackProjectId] = useState<string>("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -122,7 +120,6 @@ export function VoiceRecorder({ onResult, onError, className, onTaskCreated }: V
       setState("recording");
       setResult(null);
       setExecutionResult(null);
-      setShowFeedback(false);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Не удалось начать запись";
       onError?.(errorMsg);
@@ -198,40 +195,16 @@ export function VoiceRecorder({ onResult, onError, className, onTaskCreated }: V
     }
   };
 
-  const handleFeedback = async (correctedProjectId?: string) => {
-    if (!result) return;
-
-    const originalPhrase = result.intent.entities.projectName || "";
-    const correctedValue = correctedProjectId
-      ? { project_id: correctedProjectId }
-      : { corrected: true };
-
-    try {
-      await aiLearnFn({
-        request: new Request("", {
-          method: "POST",
-          body: JSON.stringify({ originalPhrase, correctedValue, entityType: "project" }),
-        }),
-      });
-      setShowFeedback(false);
-    } catch (err) {
-      console.error("Feedback error:", err);
-    }
-  };
-
   const reset = useCallback(() => {
     setState("idle");
     setResult(null);
     setExecutionResult(null);
-    setShowFeedback(false);
-    setFeedbackProjectId("");
   }, []);
 
   const retry = useCallback(() => {
     setState("idle");
     setResult(null);
     setExecutionResult(null);
-    setShowFeedback(false);
   }, []);
 
   useEffect(() => {
@@ -379,29 +352,6 @@ export function VoiceRecorder({ onResult, onError, className, onTaskCreated }: V
                       </span>
                     </p>
                   )}
-                </div>
-              )}
-              {executionResult.action === "CREATE_TASK" && result?.intent.entities.projectName && (
-                <div className="pt-2 border-t border-border/50">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Проект верный? Если нет, выберите правильный:
-                  </p>
-                  <div className="flex gap-2">
-                    <select
-                      value={feedbackProjectId}
-                      onChange={(e) => setFeedbackProjectId(e.target.value)}
-                      className="flex-1 rounded border border-border bg-surface px-2 py-1 text-xs"
-                    >
-                      <option value="">— Выбрать проект —</option>
-                    </select>
-                    <button
-                      onClick={() => handleFeedback(feedbackProjectId)}
-                      disabled={!feedbackProjectId}
-                      className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-                    >
-                      Исправить
-                    </button>
-                  </div>
                 </div>
               )}
               <button

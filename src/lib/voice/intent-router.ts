@@ -84,12 +84,6 @@ async function executeCreateTask(
     };
   }
 
-  // Save project mapping for future reference
-  if (projectName && projectId) {
-    const { saveProjectMapping } = await import("./memory");
-    await saveProjectMapping(userId, projectName, projectId);
-  }
-
   return {
     success: true,
     action: "CREATE_TASK",
