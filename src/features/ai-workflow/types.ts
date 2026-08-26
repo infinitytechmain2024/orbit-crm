@@ -209,12 +209,20 @@ export type WorkflowOverview = {
   notifications: WorkflowNotification[];
   provider: {
     nvidia_configured: boolean;
+    nvidia_missing?: string[];
+    supabase_configured?: boolean;
+    supabase_missing?: string[];
     configured?: string[];
     voice_configured: boolean;
     autorun: boolean;
     worker_enabled?: boolean;
     openclaw_configured?: boolean;
     openclaw_url?: string;
+    openclaw_configured_detail?: {
+      configured: boolean;
+      connected?: boolean;
+      missing: string[];
+    };
   };
 };
 

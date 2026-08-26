@@ -117,6 +117,20 @@ function AIWorkflowPage() {
   const workflow = useAiWorkflow(accessToken, organizationId, projectId, preview);
   const demoMode = preview || workflow.isDemoFallback;
   const { overview } = workflow;
+  // Older backend deployments returned the overview collections without the
+  // optional provider diagnostics block. Keep the dashboard render-safe while
+  // backend and frontend versions roll forward independently.
+  const provider = overview.provider;
+  const nvidiaConfigured = provider?.nvidia_configured ?? false;
+  const nvidiaMissing = provider?.nvidia_missing ?? [];
+  const supabaseConfigured = provider?.supabase_configured ?? true;
+  const supabaseMissing = provider?.supabase_missing ?? [];
+  const openclawConfigured = provider?.openclaw_configured ?? false;
+  const openclawDetail = provider?.openclaw_configured_detail ?? {
+    configured: openclawConfigured,
+    connected: openclawConfigured,
+    missing: [] as string[],
+  };
 
   // New hooks for live backend status and progress
   const backendStatus = useBackendStatus();
@@ -477,7 +491,7 @@ function AIWorkflowPage() {
         )}
 
         {/* OpenClaw Status Indicator */}
-        {overview.provider.openclaw_configured && (
+        {openclawConfigured && (
           <div className="mb-3 flex items-center justify-end gap-2">
             <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -485,7 +499,7 @@ function AIWorkflowPage() {
             </span>
           </div>
         )}
-        {!overview.provider.openclaw_configured && !workflow.isLoading && (
+        {!openclawConfigured && !workflow.isLoading && (
           <div className="mb-3 flex items-center justify-end gap-2">
             <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
               Local Models Only
@@ -504,36 +518,35 @@ function AIWorkflowPage() {
         )}
 
         {/* NVIDIA not configured warning - only show when backend is online */}
-        {backendStatus.status === "online" &&
-          !overview.provider.nvidia_configured &&
-          !workflow.isLoading && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-600 dark:text-amber-100">
-              <AlertTriangle className="size-3.5" />
-              {overview.provider.nvidia_missing.length > 0
-                ? "NVIDIA API key не настроен: Отсутствует: " +
-                  ", ".join(overview.provider.nvidia_missing)
-                : "NVIDIA не подключена: маршрутизация работает, выполнение создаёт demo-результаты."}
-            </div>
-          )}
+        {backendStatus.status === "online" && !nvidiaConfigured && !workflow.isLoading && (
+          <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-600 dark:text-amber-100">
+            <AlertTriangle className="size-3.5" />
+            {nvidiaMissing.length > 0
+              ? "NVIDIA API key не настроен: Отсутствует: " + nvidiaMissing.join(", ")
+              : "NVIDIA не подключена: маршрутизация работает, выполнение создаёт demo-результаты."}
+          </div>
+        )}
 
         {/* Supabase not configured warning */}
-        {backendStatus.status === "online" &&
-          !overview.provider.supabase_configured &&
-          !workflow.isLoading && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/[0.035] px-3 py-2 text-[10px] text-destructive">
-              <AlertTriangle className="size-3.5" />
-              {overview.provider.supabase_missing.length > 0
-                ? "Supabase не настроен: Отсутствует: " +
-                  ", ".join(overview.provider.supabase_missing)
-                : "Supabase backend is not configured"}
-            </div>
-          )}
+        {backendStatus.status === "online" && !supabaseConfigured && !workflow.isLoading && (
+          <div className="mb-3 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/[0.035] px-3 py-2 text-[10px] text-destructive">
+            <AlertTriangle className="size-3.5" />
+            {supabaseMissing.length > 0
+              ? "Supabase не настроен: Отсутствует: " + supabaseMissing.join(", ")
+              : "Supabase backend is not configured"}
+          </div>
+        )}
 
         {/* OpenClaw not available warning */}
-        {!overview.provider.openclaw_configured_detail.configured && !workflow.isLoading && (
+        {!openclawDetail.configured && !workflow.isLoading && (
           <div className="mb-3 flex items-center justify-end gap-2">
             <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
-              <svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
+              <svg
+                className="size-3.5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                stroke="currentColor"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -542,20 +555,22 @@ function AIWorkflowPage() {
           </div>
         )}
 
-        {!overview.provider.openclaw_configured_detail.configured &&
-          overview.provider.openclaw_configured_detail.missing.length > 0 &&
-          !workflow.isLoading && (
-            <div className="mb-3 flex items-center justify-end gap-2">
-              <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
-                <svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                OpenClaw Gateway недоступен: Отсутствует:{" "}
-                {overview.provider.openclaw_configured_detail.missing.join(", ")}
-              </span>
-            </div>
-          )}
+        {!openclawDetail.configured && openclawDetail.missing.length > 0 && !workflow.isLoading && (
+          <div className="mb-3 flex items-center justify-end gap-2">
+            <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
+              <svg
+                className="size-3.5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              OpenClaw Gateway недоступен: Отсутствует: {openclawDetail.missing.join(", ")}
+            </span>
+          </div>
+        )}
 
         {workflow.isLoading ? (
           <div className="grid min-h-[65vh] place-items-center rounded-2xl border border-border bg-surface/75">
