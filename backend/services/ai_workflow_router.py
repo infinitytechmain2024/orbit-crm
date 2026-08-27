@@ -234,16 +234,17 @@ class AIWorkflowRouter:
         agent_id: Optional[str]= None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
+        payload: dict[str, Any] = {"message": message}
+        if metadata:
+            payload["metadata"] = metadata
         rows = await self.store.insert(
             "task_events",
             {
                 "organization_id": task["organization_id"],
                 "task_id": task["id"],
-                "project_id": task.get("project_id"),
-                "agent_id": agent_id if agent_id is not None else task.get("agent_id"),
                 "event_type": event_type,
-                "message": message,
-                "metadata": metadata or {},
+                "payload": payload,
+                "actor_agent_id": agent_id if agent_id is not None else task.get("agent_id"),
             },
         )
         return rows[0] if rows else None
