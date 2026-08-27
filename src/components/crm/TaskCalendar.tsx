@@ -1,5 +1,5 @@
 import { DragEvent, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, SquareMousePointer } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, SquareMousePointer, Clock } from "lucide-react";
 import {
   addDays,
   addMonths,
@@ -9,6 +9,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  startOfDay,
   startOfMonth,
   startOfToday,
   startOfWeek,
@@ -32,6 +33,7 @@ import {
   todayLocalIsoDate,
 } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
+import { QuickTaskModal } from "./QuickTaskModal";
 
 const WEEK_STARTS_ON = 1;
 const WEEKDAYS: string[] = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -71,7 +73,9 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export type CalendarViewMode = "month" | "week";
+export type CalendarViewMode = "month" | "week" | "day";
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 type TaskCalendarProps = {
   onCreateDate: (dueDate: string) => void;
@@ -87,6 +91,10 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
   const [filters, setFilters] = useState<TaskFilters>({ ...DEFAULT_TASK_FILTERS });
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [quickTaskModal, setQuickTaskModal] = useState<{ open: boolean; date: string; hour?: number }>({
+    open: false,
+    date: todayLocalIsoDate(),
+  });
 
   const today = todayLocalIsoDate();
 
@@ -106,7 +114,8 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
   const navigate = (dir: -1 | 1) => {
     setCurrentDate((current) => {
       if (view === "month") return dir === -1 ? subMonths(current, 1) : addMonths(current, 1);
-      return dir === -1 ? subWeeks(current, 1) : addWeeks(current, 1);
+      if (view === "week") return dir === -1 ? subWeeks(current, 1) : addWeeks(current, 1);
+      return dir === -1 ? addDays(current, -1) : addDays(current, 1);
     });
   };
 
@@ -116,9 +125,12 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
     if (view === "month") {
       return capitalize(format(currentDate, "LLLL yyyy", { locale: ru }));
     }
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: WEEK_STARTS_ON });
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: WEEK_STARTS_ON });
-    return `${format(weekStart, "d MMM", { locale: ru })} — ${format(weekEnd, "d MMM", { locale: ru })}, ${capitalize(format(weekStart, "LLLL yyyy", { locale: ru }))}`;
+    if (view === "week") {
+      const weekStart = startOfWeek(currentDate, { weekStartsOn: WEEK_STARTS_ON });
+      const weekEnd = endOfWeek(weekStart, { weekStartsOn: WEEK_STARTS_ON });
+      return `${format(weekStart, "d MMM", { locale: ru })} — ${format(weekEnd, "d MMM", { locale: ru })}, ${capitalize(format(weekStart, "LLLL yyyy", { locale: ru }))}`;
+    }
+    return capitalize(format(currentDate, "EEEE, d MMMM yyyy", { locale: ru }));
   }, [view, currentDate]);
 
   const handleDragStart = (id: string) => {
@@ -133,7 +145,7 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
 
   const dragOver = (event: DragEvent<HTMLDivElement>) => event.preventDefault();
 
-  const handleDrop = async (targetIso: string) => {
+  const handleDateDrop = async (targetIso: string) => {
     if (!draggedId) return;
     const task = visibleTasks.find((item) => item.id === draggedId);
     if (!task) return;
@@ -158,6 +170,46 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
     setDraggedId(null);
   };
 
+  const handleTimeDrop = async (targetDate: string, targetHour: number) => {
+    if (!draggedId) return;
+    const task = visibleTasks.find((item) => item.id === draggedId);
+    if (!task) return;
+
+    const patch: TaskPatch = {};
+    if (task.startDate && task.dueDate) {
+      const duration = differenceInCalendarDays(
+        parseLocalDate(task.dueDate),
+        parseLocalDate(task.startDate),
+      );
+      patch.startDate = targetDate;
+      patch.dueDate = localDateStr(addDays(parseLocalDate(targetDate), duration));
+    } else if (task.dueDate) {
+      patch.dueDate = targetDate;
+    } else if (task.startDate) {
+      patch.startDate = targetDate;
+    } else {
+      patch.dueDate = targetDate;
+    }
+
+    // Store time info in tags for display purposes (since DB doesn't have time fields yet)
+    const timeTag = `${String(targetHour).padStart(2, "0")}:00`;
+    const existingTimeTag = task.tags.find((t) => t.includes(":"));
+    const newTags = task.tags.filter((t) => !t.includes(":")).concat(timeTag);
+    patch.tags = newTags;
+
+    await updateTask(task.id, patch);
+    setDraggedId(null);
+  };
+
+  const handleCellClick = (date: string, hour?: number) => {
+    if (isMutating) return;
+    setQuickTaskModal({ open: true, date, hour });
+  };
+
+  const handleQuickTaskSaved = () => {
+    setQuickTaskModal({ open: false, date: todayLocalIsoDate() });
+  };
+
   const resetFilters = () => setFilters({ ...DEFAULT_TASK_FILTERS });
 
   const activeFilters =
@@ -170,6 +222,13 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
 
   return (
     <div className="space-y-4">
+      <QuickTaskModal
+        open={quickTaskModal.open}
+        onClose={() => setQuickTaskModal({ open: false, date: todayLocalIsoDate() })}
+        initialDate={quickTaskModal.date}
+        initialHour={quickTaskModal.hour}
+        onSaved={handleQuickTaskSaved}
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
@@ -200,30 +259,20 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
         </div>
 
         <div className="flex gap-1 rounded-xl border border-border bg-surface-2/40 p-1">
-          <button
-            type="button"
-            onClick={() => setView("month")}
-            className={cn(
-              "rounded-lg px-4 py-1.5 text-sm font-medium transition",
-              view === "month"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Месяц
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("week")}
-            className={cn(
-              "rounded-lg px-4 py-1.5 text-sm font-medium transition",
-              view === "week"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Неделя
-          </button>
+          {(["month", "week", "day"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={cn(
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition",
+                view === v
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {v === "month" ? "Месяц" : v === "week" ? "Неделя" : "День"}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -250,11 +299,12 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 dragOver={dragOver}
-                onDateDrop={handleDrop}
+                onDateDrop={handleDateDrop}
                 onCreateDate={onCreateDate}
                 onSelectTask={onSelectTask}
                 isMutating={isMutating}
                 today={today}
+                onCellClick={handleCellClick}
               />
             )}
             {view === "week" && (
@@ -266,11 +316,30 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 dragOver={dragOver}
-                onDateDrop={handleDrop}
+                onDateDrop={handleDateDrop}
+                onTimeDrop={handleTimeDrop}
                 onCreateDate={onCreateDate}
                 onSelectTask={onSelectTask}
                 isMutating={isMutating}
                 today={today}
+                onCellClick={handleCellClick}
+              />
+            )}
+            {view === "day" && (
+              <DayView
+                currentDate={currentDate}
+                tasks={gridTasks}
+                draggedId={draggedId}
+                isDragging={isDragging}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                dragOver={dragOver}
+                onTimeDrop={handleTimeDrop}
+                onCreateDate={onCreateDate}
+                onSelectTask={onSelectTask}
+                isMutating={isMutating}
+                today={today}
+                onCellClick={handleCellClick}
               />
             )}
           </div>
@@ -461,13 +530,15 @@ type SharedViewProps = {
   onDragEnd: () => void;
   dragOver: (event: DragEvent<HTMLDivElement>) => void;
   onDateDrop: (iso: string) => void;
+  onTimeDrop?: (date: string, hour: number) => void;
   onCreateDate: (date: string) => void;
   onSelectTask: (task: Task) => void;
   isMutating: boolean;
   today: string;
+  onCellClick?: (date: string, hour?: number) => void;
 };
 
-function MonthView({ currentDate, tasks, today, isMutating, ...rest }: SharedViewProps) {
+function MonthView({ currentDate, tasks, today, isMutating, onCellClick, ...rest }: SharedViewProps) {
   const monthStart = startOfMonth(currentDate);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: WEEK_STARTS_ON });
   const gridEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: WEEK_STARTS_ON });
@@ -493,7 +564,7 @@ function MonthView({ currentDate, tasks, today, isMutating, ...rest }: SharedVie
           const tasksHere = tasks.filter((task) => taskMatchesDate(task, cellDate));
           const onDateClick = () => {
             if (isMutating) return;
-            rest.onCreateDate(cellDate);
+            onCellClick?.(cellDate);
           };
           return (
             <div
@@ -539,7 +610,7 @@ function MonthView({ currentDate, tasks, today, isMutating, ...rest }: SharedVie
   );
 }
 
-function WeekView({ currentDate, tasks, today, isMutating, ...rest }: SharedViewProps) {
+function WeekView({ currentDate, tasks, today, isMutating, onCellClick, onTimeDrop, ...rest }: SharedViewProps) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: WEEK_STARTS_ON });
   const days = eachDayOfInterval({
     start: weekStart,
@@ -577,33 +648,134 @@ function WeekView({ currentDate, tasks, today, isMutating, ...rest }: SharedView
             <div
               key={cellDate}
               className={cn(
-                "relative min-h-[9rem] group border-b border-r border-border p-1 last:border-r-0",
+                "relative min-h-[12rem] group border-b border-r border-border p-1 last:border-r-0",
                 isToday && "bg-primary/5",
               )}
-              onDragOver={rest.dragOver}
-              onDrop={() => rest.onDateDrop(cellDate)}
             >
-              <div className="space-y-0.5 overflow-hidden">
-                {tasksHere.map((task) => (
-                  <TaskChip
-                    key={task.id}
-                    task={task}
-                    draggedId={rest.draggedId}
-                    isDragging={rest.isDragging}
-                    onDragStart={rest.onDragStart}
-                    onDragEnd={rest.onDragEnd}
-                    onSelectTask={rest.onSelectTask}
-                  />
+              <div className="space-y-0.5 overflow-hidden max-h-[calc(12rem-2rem)] overflow-y-auto">
+                {HOURS.map((hour) => (
+                  <div
+                    key={hour}
+                    onDragOver={rest.dragOver}
+                    onDrop={() => onTimeDrop?.(cellDate, hour)}
+                    className="h-5 border-b border-border/30 px-0.5 transition hover:bg-primary/5 relative group"
+                    style={{ minHeight: "24px" }}
+                  >
+                    <span className="absolute left-1 top-0 text-[9px] text-muted-foreground/50">
+                      {String(hour).padStart(2, "0")}:00
+                    </span>
+                    {tasksHere
+                      .filter((task) => getTaskHour(task) === hour)
+                      .map((task) => (
+                        <TaskChip
+                          key={task.id}
+                          task={task}
+                          draggedId={rest.draggedId}
+                          isDragging={rest.isDragging}
+                          onDragStart={rest.onDragStart}
+                          onDragEnd={rest.onDragEnd}
+                          onSelectTask={rest.onSelectTask}
+                        />
+                      ))}
+                  </div>
                 ))}
               </div>
               {tasksHere.length === 0 && (
                 <div className="mt-1 flex items-center justify-center">
-                  <EmptyCell disabled={isMutating} onClick={() => rest.onCreateDate(cellDate)} />
+                  <EmptyCell disabled={isMutating} onClick={() => onCellClick?.(cellDate)} />
                 </div>
               )}
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function getTaskHour(task: Task): number {
+  const timeTag = task.tags.find((t) => t.includes(":"));
+  if (timeTag) {
+    const hour = parseInt(timeTag.split(":")[0], 10);
+    return isNaN(hour) ? 9 : hour;
+  }
+  return 9;
+}
+
+function DayView({ currentDate, tasks, today, isMutating, onCellClick, onTimeDrop, ...rest }: SharedViewProps) {
+  const dayDate = localDateStr(currentDate);
+  const isToday = dayDate === today;
+  const tasksHere = tasks.filter((task) => taskMatchesDate(task, dayDate));
+
+  return (
+    <div className="panel overflow-hidden">
+      <div className="grid grid-cols-2 border-b border-border">
+        <div className="border-r border-border p-2 text-center">
+          <span className="text-sm font-semibold">
+            {isToday ? "Сегодня" : capitalize(format(currentDate, "EEEE", { locale: ru }))}
+          </span>
+          <span className="block text-xs text-muted-foreground mt-1">
+            {capitalize(format(currentDate, "d MMMM yyyy", { locale: ru }))}
+          </span>
+        </div>
+        <div className="p-2 text-center">
+          <button
+            type="button"
+            onClick={() => onCellClick?.(dayDate)}
+            className="text-xs text-muted-foreground hover:text-primary transition"
+          >
+            + Задача на этот день
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2">
+        <div className="border-r border-border h-full">
+          {HOURS.map((hour) => (
+            <div
+              key={hour}
+              className="h-10 border-b border-border px-2 pt-1 text-[10px] text-muted-foreground flex items-center"
+            >
+              <span className="w-12 text-right pr-2">{String(hour).padStart(2, "0")}:00</span>
+            </div>
+          ))}
+        </div>
+        <div className="relative min-h-[600px]">
+          {HOURS.map((hour) => (
+            <div
+              key={hour}
+              onDragOver={rest.dragOver}
+              onDrop={() => onTimeDrop?.(dayDate, hour)}
+              className="h-10 border-b border-border p-1 transition hover:bg-primary/5 relative"
+              style={{ minHeight: "40px" }}
+            >
+              <div className="absolute inset-0 flex flex-col space-y-0.5 p-0.5">
+                {tasksHere
+                  .filter((task) => getTaskHour(task) === hour)
+                  .map((task) => (
+                    <TaskChip
+                      key={task.id}
+                      task={task}
+                      draggedId={rest.draggedId}
+                      isDragging={rest.isDragging}
+                      onDragStart={rest.onDragStart}
+                      onDragEnd={rest.onDragEnd}
+                      onSelectTask={rest.onSelectTask}
+                    />
+                  ))}
+              </div>
+              {tasksHere.filter((task) => getTaskHour(task) === hour).length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => onCellClick?.(dayDate, hour)}
+                  className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition"
+                  disabled={isMutating}
+                >
+                  <Plus className="size-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-# 🚀 Orbit Lead Generator
+# 🚀 Orbit Leads Prospector
 
 AI-система автоматического поиска потенциальных клиентов для Orbit CRM.
 
@@ -7,28 +7,31 @@ AI-система автоматического поиска потенциал
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Orbit CRM (Frontend)                         │
-│  /lead-search — UI для запуска поиска и просмотра отчётов      │
+│  /lead-search — UI для запуска поиска и просмотра результатов   │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ REST API
 ┌──────────────────────────▼──────────────────────────────────────┐
-│              Lead Generator API (FastAPI)                       │
-│  POST /api/search — запуск поиска                              │
-│  GET  /api/search/{id} — статус задачи                         │
-│  GET  /api/reports — список отчётов                            │
-│  POST /api/notion/sync — экспорт в Notion                      │
+│              Leads Prospector API (FastAPI)                     │
+│  POST /api/search — запуск поиска                               │
+│  GET  /api/search/{id} — статус + результаты задачи            │
+│  GET  /api/sessions — список сохранённых поисков               │
+│  POST /api/sessions — сохранить результаты                      │
+│  GET  /api/sessions/{id} — загрузить результаты                 │
 └──────┬───────────────────┬──────────────────────────────────────┘
        │                   │
        ▼                   ▼
 ┌──────────────┐   ┌──────────────────────────────────────────┐
-│  Llama 3.2   │   │           Markdown Reports               │
-│  (Ollama)    │   │  ./reports/leads_report_YYYY-MM-DD.md    │
-│  localhost   │   └───────────────────┬──────────────────────┘
-│  :11434      │                       │
-└──────────────┘                       ▼
-                              ┌─────────────────┐
-                              │   Notion API    │
-                              │  Leads Database │
-                              └─────────────────┘
+│  Llama 3.2   │   │           Supabase                        │
+│  (Ollama)    │   │  lead_clients + search_sessions tables     │
+│  localhost   │   └───────────────────────────────────────────┘
+│  :11434      │
+└──────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────┐
+│         Google Maps + OpenManus (Playwright)      │
+│  Поиск бизнесов → парсинг контактов → валидация  │
+└──────────────────────────────────────────────────┘
 ```
 
 ## Быстрый старт
@@ -49,9 +52,9 @@ ollama pull llama3.2
 ### 2. Настройка переменных окружения
 
 ```bash
-cd lead-generator
+cd leads-prospector
 cp .env.example .env
-# Отредактировать .env — ввести NOTION_API_KEY и NOTION_DATABASE_ID
+# Отредактировать .env — ввести Supabase URL, service role key и organization ID
 ```
 
 ### 3. Запуск
@@ -70,59 +73,41 @@ chmod +x start.sh
 ### 4. Использование
 
 1. Откройте Orbit CRM → раздел «AI Поиск лидов»
-2. Настройте параметры поиска (отрасль, локация, ключевые слова)
-3. Нажмите «Начать поиск»
-4. Дождитесь завершения (AI-агент проанализирует источники)
-5. Просмотрите отчёт и экспортируйте в Notion
+2. Настройте параметры поиска (отрасль, локация, лимит)
+3. Нажмите «Find Leads»
+4. Следите за прогрессом (0→100%) в реальном времени
+5. Просмотрите таблицу результатов и сохраните в Supabase
 
 ## API Endpoints
 
 | Метод  | Путь                      | Описание                        |
 | ------ | ------------------------- | ------------------------------- |
 | `GET`  | `/api/health`             | Health check                    |
-| `GET`  | `/api/status`             | Статус системы (Ollama, Notion) |
+| `GET`  | `/api/status`             | Статус системы (Ollama, Supabase)|
 | `POST` | `/api/search`             | Запуск поиска лидов             |
-| `GET`  | `/api/search/{job_id}`    | Статус задачи                   |
+| `GET`  | `/api/search/{job_id}`    | Статус + результаты задачи      |
 | `GET`  | `/api/search`             | Список всех задач               |
 | `GET`  | `/api/reports`            | Список отчётов                  |
 | `GET`  | `/api/reports/{filename}` | Чтение отчёта                   |
-| `POST` | `/api/notion/sync`        | Синхронизация с Notion          |
+| `GET`  | `/api/sessions`           | Список сохранённых поисков      |
+| `POST` | `/api/sessions`           | Сохранить результаты поиска      |
+| `GET`  | `/api/sessions/{id}`      | Загрузить сохранённый поиск     |
 
-## Настройка Notion
+## Настройка Supabase
 
-### Создание интеграции
+### Структура таблиц
 
-1. Перейдите на https://www.notion.so/my-integrations
-2. Нажмите «New integration»
-3. Назовите её «Orbit Lead Generator»
-4. Выберите workspace
-5. Скопируйте «Internal Integration Secret»
-
-### Создание базы данных
-
-1. Создайте новую страницу в Notion
-2. Добавьте таблицу (Table) с колонками:
-   - **Name** (Title)
-   - **Company** (Text)
-   - **Industry** (Text)
-   - **Location** (Text)
-   - **Email** (Email)
-   - **Phone** (Phone)
-   - **Website** (URL)
-   - **LinkedIn** (URL)
-   - **ICP Score** (Number)
-   - **Status** (Status: New, Contacted, Qualified, Converted, Rejected)
-   - **Created At** (Date)
-3. Подключите интеграцию к базе (Share → Invite → выберите интеграцию)
-4. Скопируйте ID базы из URL: `https://notion.so/{database_id}?v=...`
+- **lead_clients** — сохранённые лиды (business_name, email, phone, website, etc.)
+- **search_sessions** — сохранённые поисковые сессии (criteria, total_found, created_at)
 
 ### Конфигурация
 
 В `.env`:
 
 ```
-NOTION_API_KEY=ntn_xxxxxxxxxxxxx
-NOTION_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+DEFAULT_ORGANIZATION_ID=your-organization-id
 ```
 
 ## Структура Markdown-отчёта
@@ -175,6 +160,6 @@ nohup ./start.sh prod > lead-generator.log 2>&1 &
 ## Требования
 
 - Python 3.10+
-- Ollama с моделью Llama 3.2
-- Notion API ключ (опционально)
-- Playwright (для browser-based поиска)
+- Ollama с моделью Llama 3.2 (`ollama pull llama3.2`)
+- Supabase проект (для хранения лидов и сессий)
+- Playwright (для browser-based парсинга)

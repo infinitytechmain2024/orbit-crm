@@ -4,6 +4,7 @@ import { Calendar as CalendarIcon, Columns3, List, Plus } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { TaskCalendar } from "@/components/crm/TaskCalendar";
 import { TaskEditor } from "@/components/crm/TaskEditor";
+import { Progress } from "@/components/ui/progress";
 import { useCrm } from "@/lib/crm-store";
 import {
   PRIORITY_LABEL,
@@ -145,6 +146,10 @@ function TasksPage() {
                       )}
                     >
                       <p className="line-clamp-3 text-sm font-medium leading-snug">{task.title}</p>
+                      <div className="mt-2">
+                        <Progress value={task.progress} className="h-1.5" />
+                        <p className="mt-1 text-[10px] text-muted-foreground">{task.progress}%</p>
+                      </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span
                           className={cn(
@@ -198,6 +203,7 @@ function TasksPage() {
                   <th className="px-4 py-3">Исполнитель</th>
                   <th className="px-4 py-3">Приоритет</th>
                   <th className="px-4 py-3">Срок</th>
+                  <th className="px-4 py-3">Прогресс</th>
                   <th className="px-4 py-3">Чек-лист</th>
                 </tr>
               </thead>
@@ -240,6 +246,12 @@ function TasksPage() {
                       {PRIORITY_LABEL[task.priority]}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{task.due ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Progress value={task.progress} className="h-1.5 flex-1" />
+                        <span className="text-xs text-muted-foreground">{task.progress}%</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {task.checklistItems.length
                         ? `${task.checklistItems.filter((item) => item.completedAt).length}/${task.checklistItems.length}`

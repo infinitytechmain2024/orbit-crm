@@ -17,6 +17,7 @@ import {
   FolderKanban,
   Bot,
   Network,
+  Sparkles,
   Menu,
   ChevronLeft,
   ChevronRight,
@@ -42,6 +43,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/lead-search", label: "AI Поиск лидов", icon: Bot },
   { to: "/mail", label: "Почта", icon: Mail },
   { to: "/finance", label: "Финансы", icon: Wallet },
+  { to: "/prompt-generator", label: "Генератор промптов", icon: Sparkles },
 ];
 
 export function AppShell({

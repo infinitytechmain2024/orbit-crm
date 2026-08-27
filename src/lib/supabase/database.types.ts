@@ -1014,6 +1014,7 @@ export type Database = {
           organization_id: string;
           parent_task_id: string | null;
           priority: Database["public"]["Enums"]["task_priority"];
+          progress: number;
           project_id: string | null;
           sort_order: number;
           source: string;
@@ -1046,6 +1047,7 @@ export type Database = {
           organization_id: string;
           parent_task_id?: string | null;
           priority?: Database["public"]["Enums"]["task_priority"];
+          progress?: number;
           project_id?: string | null;
           sort_order?: number;
           source?: string;
@@ -1078,6 +1080,7 @@ export type Database = {
           organization_id?: string;
           parent_task_id?: string | null;
           priority?: Database["public"]["Enums"]["task_priority"];
+          progress?: number;
           project_id?: string | null;
           sort_order?: number;
           source?: string;

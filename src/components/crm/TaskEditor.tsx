@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Archive,
   Check,
+  Clock,
   Download,
   ExternalLink,
   FileUp,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 import { authenticatedFetch } from "@/lib/api-client";
+import { Progress } from "@/components/ui/progress";
 
 type TaskAssistObjective = "plan_task" | "summarize_history" | "qa_review";
 
@@ -51,6 +53,7 @@ type TaskDraft = {
   labelIds: string[];
   watcherIds: string[];
   newLabels: string;
+  progress: number;
 };
 
 type TaskEditorProps = {
@@ -100,6 +103,7 @@ function createDraft(
     labelIds: task?.labels.map((label) => label.id) ?? [],
     watcherIds: task?.watcherIds ?? [],
     newLabels: "",
+    progress: task?.progress ?? (task ? 0 : 5),
   };
 }
 
@@ -262,6 +266,7 @@ export function TaskEditor({
       newLabelNames: splitLabels(draft.newLabels),
       parentTaskId: draft.parentTaskId || null,
       priority: draft.priority,
+      progress: draft.progress,
       projectId: draft.projectId || null,
       startDate: draft.startDate || null,
       status: draft.status,
@@ -666,6 +671,49 @@ export function TaskEditor({
             className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm uppercase outline-none"
           />
         </Field>
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface-2/35 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">Прогресс</span>
+            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+              {draft.progress}%
+            </span>
+          </div>
+          {task?.estimatedTimeRemaining !== null && task?.estimatedTimeRemaining !== undefined && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="size-3.5" />
+              Осталось ~{task.estimatedTimeRemaining} мин
+            </div>
+          )}
+        </div>
+        <Progress value={draft.progress} className="h-2.5" />
+        <div className="mt-3 flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={draft.progress}
+            disabled={busy || isMutating}
+            onChange={(event) => setField("progress", Number(event.target.value))}
+            className="flex-1 accent-primary"
+          />
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={5}
+            value={draft.progress}
+            disabled={busy || isMutating}
+            onChange={(event) => {
+              const val = Math.min(100, Math.max(0, Number(event.target.value) || 0));
+              setField("progress", val);
+            }}
+            className="w-16 rounded-lg border border-border bg-surface-2 px-2 py-1 text-center text-sm outline-none"
+          />
+        </div>
       </div>
 
       <section className="grid gap-4 lg:grid-cols-2">

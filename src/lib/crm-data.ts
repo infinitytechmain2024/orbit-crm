@@ -81,6 +81,8 @@ export type Task = {
   comments: TaskComment[];
   files: TaskFile[];
   financeOperationsCount: number;
+  progress: number;
+  estimatedTimeRemaining: number | null;
   // BrainDump → AI Workflow dispatch (prompt section 3.A)
   source: string;
   workflowStatus: WorkflowDispatchStatus;
@@ -113,6 +115,7 @@ export type TaskInput = {
   checklistTitles?: string[];
   subtaskTitles?: string[];
   tags?: string[];
+  progress?: number;
   // BrainDump → AI Workflow dispatch
   source?: string;
   workflowStatus?: WorkflowDispatchStatus;
@@ -144,6 +147,7 @@ export type TaskPatch = Partial<
     | "labelIds"
     | "newLabelNames"
     | "tags"
+    | "progress"
   >
 >;
 

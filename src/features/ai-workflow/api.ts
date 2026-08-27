@@ -9,6 +9,13 @@ import type {
 
 type ApiErrorPayload = { detail?: string; error?: string };
 
+const backendErrorMessages: Record<number, string> = {
+  502: "Сервер отвечает с ошибкой. Попробуйте еще раз через минуту.",
+  503: "Сервис временно недоступен. Администратор был уведомлен.",
+};
+
+const isTransientError = (status: number) => status === 502 || status === 503;
+
 async function workflowRequest<T>(
   accessToken: string,
   path: string,
@@ -29,7 +36,23 @@ async function workflowRequest<T>(
     } catch {
       // Preserve the stable user-facing fallback below.
     }
-    throw new Error(payload.detail || payload.error || `AI Workflow API: ${response.status}`);
+
+    const status = response.status;
+    let userMessage = backendErrorMessages[status] || `Ошибка ${status}: ${payload.detail || payload.error || "неизвестная ошибка"}`;
+
+    // Translate specific proxy messages to user-friendly Russian
+    if (payload.detail) {
+      const lower = payload.detail.toLowerCase();
+      if (lower.includes("waking up") || lower.includes("засыпает")) {
+        userMessage = "Backend просыпается, подождите 1–2 минуты и попробуйте снова.";
+      } else if (lower.includes("unavailable")) {
+        userMessage = "Сервер временно недоступен. Попробуйте позже.";
+      } else if (lower.includes("not configured")) {
+        userMessage = "Ошибка конфигурации сервиса. Администратору нужна помощь.";
+      }
+    }
+
+    throw new Error(userMessage);
   }
   return (await response.json()) as T;
 }

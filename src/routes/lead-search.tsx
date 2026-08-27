@@ -1,16 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   Search,
   Clock,
   CheckCircle,
-  FileText,
   ExternalLink,
   RefreshCw,
   Bot,
-  Database,
   AlertCircle,
   Save,
+  Download,
+  Trash2,
+  X,
+  MapPin,
+  Globe,
+  Mail,
+  Phone,
+  Star,
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
@@ -19,6 +25,7 @@ import type { SearchFilters } from "@/types/search";
 import { bulkCreateLeadClients, type LeadClientInput } from "@/lib/crm-repository";
 import { useAuth } from "@/lib/auth";
 import { useCrm } from "@/lib/crm-store";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/lead-search")({
@@ -27,7 +34,7 @@ export const Route = createFileRoute("/lead-search")({
       { title: "Lead Search — Orbit CRM" },
       {
         name: "description",
-        content: "AI-powered lead generation with OpenManus + Liam",
+        content: "AI-powered lead generation with Google Maps + OpenManus",
       },
       { property: "og:title", content: "Lead Search — Orbit CRM" },
       { property: "og:description", content: "AI Lead Generation" },
@@ -37,145 +44,175 @@ export const Route = createFileRoute("/lead-search")({
   component: LeadSearchPage,
 });
 
-const LEAD_GEN_API = import.meta.env.VITE_LEAD_GEN_URL || "http://localhost:8090";
-
-interface SearchJob {
-  job_id: string;
-  status: "idle" | "running" | "completed" | "failed";
-  leads_found: number;
-  report_path: string | null;
-  error: string | null;
-  created_at: string | null;
-}
-
 interface LeadResult {
-  company_name: string;
-  email: string | null;
-  phone: string | null;
-  website: string | null;
-  location: string;
+  id: string;
+  business_name: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
   category: string;
+  rating: number;
+  reviews: number;
+  source: string;
+  google_maps_url: string;
 }
 
-interface SystemStatus {
-  ollama: { available: boolean; url: string };
-  notion: { configured: boolean; database_set: boolean };
-  gmaps: { available: boolean };
+interface SearchStage {
+  label: string;
+  progress: number;
+}
+
+const SEARCH_STAGES: SearchStage[] = [
+  { label: "Geocoding location...", progress: 10 },
+  { label: "Searching Google Maps...", progress: 30 },
+  { label: "Found businesses, enriching data...", progress: 60 },
+  { label: "Scraping websites for contacts...", progress: 80 },
+  { label: "Finalizing results...", progress: 95 },
+];
+
+interface SavedSearch {
+  id: string;
+  name: string;
+  query_niche: string;
+  query_city: string;
+  query_country: string;
+  query_limit: number;
+  total_found: number;
+  created_at: string;
+  results: LeadResult[];
 }
 
 function LeadSearchPage() {
   const { user } = useAuth();
   const { organization } = useCrm();
-  const [currentJob, setCurrentJob] = useState<SearchJob | null>(null);
   const [leads, setLeads] = useState<LeadResult[]>([]);
-  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentStage, setCurrentStage] = useState<SearchStage | null>(null);
   const [lastFilters, setLastFilters] = useState<SearchFilters | null>(null);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Check system status
-  const checkStatus = useCallback(async () => {
+  const loadSavedSearches = useCallback(async () => {
+    if (!user || !organization) return;
+    setIsLoadingSaved(true);
     try {
-      const res = await fetch(`${LEAD_GEN_API}/api/status`);
-      if (res.ok) {
-        setSystemStatus(await res.json());
-      } else {
-        toast.error("Ошибка подключения", {
-          description: "Не удалось подключиться к серверу генерации лидов",
-        });
-      }
-    } catch {
-      setSystemStatus(null);
-      toast.error("Сервис недоступен", {
-        description: "Сервер генерации лидов не запущен на " + LEAD_GEN_API,
-        action: {
-          label: "Как запустить?",
-          onClick: () =>
-            window.open("https://github.com/your-repo/lead-generator#readme", "_blank"),
-        },
-      });
+      const supabase = getSupabaseClient();
+      const { data, error: dbError } = await supabase
+        .from("saved_searches" as never)
+        .select("*")
+        .eq("organization_id", organization.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (dbError) throw dbError;
+      setSavedSearches((data as unknown as SavedSearch[]) || []);
+    } catch (e) {
+      console.error("Failed to load saved searches:", e);
+    } finally {
+      setIsLoadingSaved(false);
     }
-  }, []);
-
-  useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
-
-  // Poll job status
-  useEffect(() => {
-    if (!currentJob || currentJob.status !== "running") return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${LEAD_GEN_API}/api/search/${currentJob.job_id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setCurrentJob(data);
-          if (data.status === "completed" || data.status === "failed") {
-            setIsSearching(false);
-            if (data.status === "completed" && data.leads) {
-              setLeads(data.leads);
-            }
-          }
-        }
-      } catch {
-        // silently fail
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [currentJob]);
+  }, [user, organization]);
 
   const handleSearch = async (filters: SearchFilters) => {
     setError(null);
     setIsSearching(true);
     setLeads([]);
     setLastFilters(filters);
+    setCurrentStage(SEARCH_STAGES[0] ?? null);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
-      const res = await fetch(`${LEAD_GEN_API}/api/search`, {
+      for (let i = 0; i < SEARCH_STAGES.length - 1; i++) {
+        if (controller.signal.aborted) break;
+        setCurrentStage(SEARCH_STAGES[i] ?? null);
+        await new Promise((r) => setTimeout(r, 300));
+      }
+
+      if (controller.signal.aborted) {
+        setIsSearching(false);
+        setCurrentStage(null);
+        return;
+      }
+
+      setCurrentStage(SEARCH_STAGES[SEARCH_STAGES.length - 1] ?? null);
+
+      const res = await fetch("/api/lead-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          criteria: {
-            industry: filters.niche,
-            location: `${filters.city}, ${filters.country}`,
-            company_size: "any",
-            keywords: [],
-            max_results: filters.leadLimit,
-            website_status: filters.websiteStatus,
-          },
+          niche: filters.niche,
+          city: filters.city,
+          country: filters.country,
+          limit: filters.leadLimit,
         }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.detail || "Search failed");
+        throw new Error(data.error || `Search failed (${res.status})`);
       }
 
       const data = await res.json();
-      setCurrentJob({
-        job_id: data.job_id,
-        status: "running",
-        leads_found: 0,
-        report_path: null,
-        error: null,
-        created_at: new Date().toISOString(),
-      });
+      setLeads(data.leads || []);
+      setCurrentStage({ label: "Complete!", progress: 100 });
+
+      if (data.leads?.length > 0) {
+        toast.success(`Found ${data.leads.length} leads`);
+      } else {
+        toast.info("No leads found for this query. Try different filters.");
+      }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Search failed");
+      if (e instanceof DOMException && e.name === "AbortError") {
+        toast.info("Search cancelled");
+      } else {
+        const msg = e instanceof Error ? e.message : "Search failed";
+        setError(msg);
+        toast.error(msg);
+      }
+    } finally {
       setIsSearching(false);
+      abortControllerRef.current = null;
+      setTimeout(() => setCurrentStage(null), 2000);
     }
   };
 
-  const saveLeadsToSupabase = async () => {
-    if (!user || leads.length === 0 || !lastFilters) return;
+  const handleCancel = () => {
+    abortControllerRef.current?.abort();
+    setIsSearching(false);
+    setCurrentStage(null);
+  };
 
+  const saveToSupabase = async () => {
+    if (!user || !organization || leads.length === 0 || !lastFilters) return;
     setIsSaving(true);
     try {
+      const name = `${lastFilters.niche} in ${lastFilters.city} — ${new Date().toLocaleDateString()}`;
+
+      const supabase = getSupabaseClient();
+      const { error: dbError } = await supabase.from("saved_searches" as never).insert({
+        organization_id: organization.id,
+        user_id: user.id,
+        name,
+        query_niche: lastFilters.niche,
+        query_city: lastFilters.city,
+        query_country: lastFilters.country,
+        query_limit: lastFilters.leadLimit,
+        results: leads,
+        total_found: leads.length,
+      } as never);
+
+      if (dbError) throw dbError;
+      toast.success("Search results saved");
+
       const inputs: LeadClientInput[] = leads.map((lead) => ({
-        businessName: lead.company_name || "Unknown",
+        businessName: lead.business_name || "Unknown",
         category: lead.category || lastFilters.niche,
         cityLocation: lastFilters.city,
         country: lastFilters.country,
@@ -184,73 +221,89 @@ function LeadSearchPage() {
         email: lead.email || "-",
         websiteUrl: lead.website || "-",
         whatsappStatus: "Unverified",
-        googleMapsUrl: null,
+        googleMapsUrl: lead.google_maps_url || null,
         priority: "Middle",
         status: "Lead",
         websiteStatusType: lead.website ? "good" : "no_website",
         sourceQuery: `${lastFilters.niche} in ${lastFilters.city}`,
       }));
 
-      if (!organization) throw new Error("Organization is not available");
       await bulkCreateLeadClients(user.id, organization.id, inputs);
-      alert(`Successfully saved ${inputs.length} leads to Supabase!`);
-    } catch (e: unknown) {
-      alert(`Failed to save leads: ${e instanceof Error ? e.message : "Unknown error"}`);
+      toast.success(`Saved ${inputs.length} leads to CRM`);
+    } catch (e) {
+      toast.error(`Save failed: ${e instanceof Error ? e.message : "Unknown error"}`);
     } finally {
       setIsSaving(false);
     }
   };
 
-  return (
-    <AppShell title="AI Lead Search" subtitle="Find potential clients with AI-powered search">
-      <div className="space-y-6">
-        {/* System Status Bar */}
-        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface-2/40 p-4">
-          <div className="flex items-center gap-2">
-            <Bot className="size-4 text-primary" />
-            <span className="text-xs font-medium">System:</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {systemStatus?.ollama.available ? (
-              <span className="flex items-center gap-1 rounded-full bg-badge-green-bg px-2 py-0.5 text-xs text-badge-green">
-                <CheckCircle className="size-3" /> Llama 3.2
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 rounded-full bg-badge-red-bg px-2 py-0.5 text-xs text-badge-red">
-                <AlertCircle className="size-3" /> Ollama offline
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            {systemStatus?.notion?.configured ? (
-              <span className="flex items-center gap-1 rounded-full bg-badge-green-bg px-2 py-0.5 text-xs text-badge-green">
-                <Database className="size-3" /> Notion
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 rounded-full bg-badge-yellow-bg px-2 py-0.5 text-xs text-badge-yellow">
-                <Database className="size-3" /> Notion not configured
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            {systemStatus?.gmaps?.available ? (
-              <span className="flex items-center gap-1 rounded-full bg-badge-green-bg px-2 py-0.5 text-xs text-badge-green">
-                <CheckCircle className="size-3" /> Google Maps
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 rounded-full bg-badge-yellow-bg px-2 py-0.5 text-xs text-badge-yellow">
-                <AlertCircle className="size-3" /> GMaps offline
-              </span>
-            )}
-          </div>
-          <button
-            onClick={checkStatus}
-            className="ml-auto rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
-          >
-            <RefreshCw className="size-3.5" />
-          </button>
-        </div>
+  const loadSavedSearch = (saved: SavedSearch) => {
+    setLeads(saved.results || []);
+    setLastFilters({
+      country: saved.query_country,
+      countryFlag: "",
+      city: saved.query_city,
+      state: "",
+      niche: saved.query_niche,
+      websiteStatus: "all",
+      leadLimit: saved.query_limit || 20,
+    });
+    setCurrentStage({ label: "Loaded from saved search", progress: 100 });
+    toast.info(`Loaded ${saved.results?.length || 0} leads from "${saved.name}"`);
+  };
 
+  const deleteSavedSearch = async (id: string) => {
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.from("saved_searches" as never).delete().eq("id", id);
+      if (error) throw error;
+      setSavedSearches((prev) => prev.filter((s) => s.id !== id));
+      toast.success("Deleted");
+    } catch (e) {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const exportCsv = () => {
+    if (leads.length === 0) return;
+    const headers = [
+      "Business Name",
+      "Address",
+      "Phone",
+      "Email",
+      "Website",
+      "Category",
+      "Rating",
+      "Reviews",
+      "Source",
+      "Maps URL",
+    ];
+    const rows = leads.map((l) => [
+      l.business_name,
+      l.address,
+      l.phone,
+      l.email,
+      l.website,
+      l.category,
+      String(l.rating),
+      String(l.reviews),
+      l.source,
+      l.google_maps_url,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-${lastFilters?.niche || "search"}-${lastFilters?.city || ""}-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exported");
+  };
+
+  return (
+    <AppShell title="AI Lead Search" subtitle="Find potential clients with Google Maps + OpenManus">
+      <div className="space-y-6">
         {/* Search Form */}
         <SkyscannerSearchPanel
           onSearch={handleSearch}
@@ -258,152 +311,283 @@ function LeadSearchPage() {
           initialFilters={lastFilters ?? undefined}
         />
 
-        {/* Error Message */}
+        {/* Cancel Button */}
+        {isSearching && (
+          <div className="flex justify-center">
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-2 rounded-xl border border-badge-red/30 bg-badge-red-bg px-4 py-2 text-sm font-medium text-badge-red transition hover:bg-badge-red/10"
+            >
+              <X className="size-4" />
+              Cancel Search
+            </button>
+          </div>
+        )}
+
+        {/* Error */}
         {error && (
           <div className="rounded-xl border border-badge-red/30 bg-badge-red-bg p-4 text-sm text-badge-red">
-            {error}
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{error}</span>
+            </div>
           </div>
         )}
 
-        {/* Job Status */}
-        {currentJob && currentJob.status === "running" && (
+        {/* Progress Bar */}
+        {currentStage && (
           <div className="rounded-xl border border-border bg-surface-2/40 p-6">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Clock className="size-4 animate-spin text-badge-blue" />
-                Job #{currentJob.job_id.slice(0, 8)}
+                {isSearching ? (
+                  <Clock className="size-4 animate-spin text-badge-blue" />
+                ) : currentStage.progress === 100 ? (
+                  <CheckCircle className="size-4 text-badge-green" />
+                ) : (
+                  <Clock className="size-4 text-muted-foreground" />
+                )}
+                {currentStage.label}
               </h3>
-              <span className="rounded-full bg-badge-blue-bg px-2 py-0.5 text-xs font-medium text-badge-blue">
-                Running
+              <span className="text-xs font-medium text-muted-foreground">
+                {currentStage.progress}%
               </span>
             </div>
-            <div className="space-y-3">
-              <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-                <div className="h-full w-full animate-pulse rounded-full bg-primary/60" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                AI agent is searching for potential clients...
-              </p>
+            <div className="h-2.5 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  currentStage.progress === 100 ? "bg-badge-green" : "bg-primary",
+                )}
+                style={{ width: `${currentStage.progress}%` }}
+              />
             </div>
           </div>
         )}
 
-        {/* Results Section */}
-        <div className="rounded-2xl border border-border bg-surface-2/60 p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <FileText className="size-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold">Results ({leads.length})</h3>
-          </div>
-
-          {leads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 grid size-16 place-items-center rounded-full bg-surface-2/80">
-                <Search className="size-7 text-muted-foreground/50" />
-              </div>
-              <h4 className="mb-1 text-sm font-medium">No leads found yet</h4>
-              <p className="text-xs text-muted-foreground/60">
-                Set filters and click Find Leads to start your search.
-              </p>
+        {/* Actions Bar */}
+        {leads.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface-2/40 p-4">
+            <span className="text-sm font-medium">{leads.length} leads found</span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={exportCsv}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition hover:bg-surface-2"
+              >
+                <Download className="size-3.5" />
+                Export CSV
+              </button>
+              <button
+                onClick={saveToSupabase}
+                disabled={isSaving || !user}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                  isSaving
+                    ? "bg-primary/50 text-primary-foreground cursor-not-allowed"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90",
+                )}
+              >
+                {isSaving ? (
+                  <>
+                    <Clock className="size-3.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-3.5" />
+                    Save to CRM
+                  </>
+                )}
+              </button>
             </div>
-          ) : (
-            <>
-              {/* Save to Supabase Button */}
-              <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-surface-2/40 p-4">
-                <div>
-                  <p className="text-sm font-medium">{leads.length} leads found</p>
-                  <p className="text-xs text-muted-foreground">
-                    Save these leads to your CRM database
-                  </p>
-                </div>
-                <button
-                  onClick={saveLeadsToSupabase}
-                  disabled={isSaving || !user}
-                  className={cn(
-                    "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition",
-                    isSaving
-                      ? "bg-primary/50 text-primary-foreground cursor-not-allowed"
-                      : "bg-primary text-primary-foreground hover:bg-primary/90",
-                  )}
-                >
-                  {isSaving ? (
-                    <>
-                      <Clock className="size-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="size-4" />
-                      Save to Supabase
-                    </>
-                  )}
-                </button>
-              </div>
+          </div>
+        )}
 
-              {/* Leads Table */}
-              <div className="overflow-hidden rounded-xl border border-border">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-surface-2/60">
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                          Business Name
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                          Category
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                          Contact
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                          Email
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                          Website
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {leads.map((lead, idx) => (
-                        <tr key={idx} className="transition hover:bg-surface-2/40">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="grid size-8 place-items-center rounded-lg bg-primary/12 text-xs font-semibold text-primary">
-                                {lead.company_name?.charAt(0) || "?"}
-                              </div>
-                              <span className="font-medium">{lead.company_name || "Unknown"}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {lead.category || "-"}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {lead.phone || "-"}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {lead.email || "-"}
-                          </td>
-                          <td className="px-4 py-3">
-                            {lead.website ? (
+        {/* Results Table */}
+        {leads.length > 0 && (
+          <div className="overflow-hidden rounded-xl border border-border">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-surface-2/60">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Business Name
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Address
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Phone
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Email
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Website
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Category
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Rating
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      Source
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {leads.map((lead) => (
+                    <tr key={lead.id} className="transition hover:bg-surface-2/40">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="grid size-8 place-items-center rounded-lg bg-primary/12 text-xs font-semibold text-primary">
+                            {lead.business_name?.charAt(0) || "?"}
+                          </div>
+                          <div>
+                            <span className="font-medium">{lead.business_name || "Unknown"}</span>
+                            {lead.google_maps_url && (
                               <a
-                                href={lead.website}
+                                href={lead.google_maps_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                                className="ml-1.5 inline-flex items-center text-xs text-primary hover:underline"
                               >
-                                <ExternalLink className="size-3" />
-                                Visit
+                                <MapPin className="size-3" />
                               </a>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">-</span>
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="max-w-[200px] truncate px-4 py-3 text-xs text-muted-foreground">
+                        {lead.address || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {lead.phone ? (
+                          <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-primary">
+                            <Phone className="size-3" />
+                            {lead.phone}
+                          </a>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {lead.email ? (
+                          <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-primary">
+                            <Mail className="size-3" />
+                            {lead.email}
+                          </a>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {lead.website ? (
+                          <a
+                            href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            <Globe className="size-3" />
+                            Visit
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {lead.category || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {lead.rating > 0 ? (
+                          <span className="flex items-center gap-1">
+                            <Star className="size-3 fill-yellow-400 text-yellow-400" />
+                            {lead.rating}
+                            {lead.reviews > 0 && (
+                              <span className="text-muted-foreground">({lead.reviews})</span>
+                            )}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            lead.source === "google_maps"
+                              ? "bg-badge-green-bg text-badge-green"
+                              : "bg-badge-blue-bg text-badge-blue",
+                          )}
+                        >
+                          {lead.source === "google_maps" ? "GMaps" : "OSM"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {leads.length === 0 && !isSearching && !currentStage && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mb-4 grid size-16 place-items-center rounded-full bg-surface-2/80">
+              <Bot className="size-7 text-muted-foreground/50" />
+            </div>
+            <h4 className="mb-1 text-sm font-medium">Ready to find leads</h4>
+            <p className="text-xs text-muted-foreground/60">
+              Set niche and city, then click Find Leads to start.
+            </p>
+          </div>
+        )}
+
+        {/* Saved Searches */}
+        <div className="rounded-xl border border-border bg-surface-2/40 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Saved Searches</h3>
+            <button
+              onClick={loadSavedSearches}
+              disabled={isLoadingSaved || !user}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+            >
+              <RefreshCw className={cn("size-3", isLoadingSaved && "animate-spin")} />
+              {savedSearches.length === 0 ? "Load" : "Refresh"}
+            </button>
+          </div>
+          {savedSearches.length === 0 ? (
+            <p className="text-xs text-muted-foreground/60">
+              No saved searches yet. Run a search and save results to see them here.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {savedSearches.map((saved) => (
+                <div
+                  key={saved.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-surface-2/40 px-3 py-2 transition hover:bg-surface-2/60"
+                >
+                  <button
+                    onClick={() => loadSavedSearch(saved)}
+                    className="flex-1 text-left"
+                  >
+                    <div className="text-xs font-medium">{saved.name}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {saved.total_found} leads &middot;{" "}
+                      {new Date(saved.created_at).toLocaleDateString()}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => deleteSavedSearch(saved.id)}
+                    className="rounded p-1 text-muted-foreground transition hover:bg-badge-red-bg hover:text-badge-red"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
                 </div>
-              </div>
-            </>
+              ))}
+            </div>
           )}
         </div>
       </div>

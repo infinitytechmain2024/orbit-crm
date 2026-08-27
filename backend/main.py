@@ -43,6 +43,7 @@ from backend.routers.openclaw_goals import router as openclaw_goals_router
 from backend.routers.controlled_learning import router as controlled_learning_router
 from backend.routers.selfdev import router as selfdev_router
 from backend.routers.whisper_router import router as whisper_router
+from backend.routers.stripe_router import router as stripe_router
 from backend.middleware.rate_limit import WorkflowRateLimitMiddleware
 from backend.middleware.correlation import CorrelationMiddleware
 from backend.services.stt import stt_service
@@ -51,10 +52,28 @@ from backend.services.intent_executor import execute_intent, ExecutionResult
 from backend.services.workflow_worker import workflow_worker
 from backend.services.openclaw_client import openclaw_client
 
+import traceback
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Global exception handler to log errors and return user-friendly messages."""
+    request_id = getattr(request, "headers", {}).get("x-request-id", "unknown")
+    logger.error(
+        f"Unhandled exception [request_id: {request_id}]: {exc}",
+        extra={"exc_info": True, "request_id": request_id},
+    )
+    safe_detail = "Внутренняя ошибка сервера. Попробуйте позже или свядите поддержку."
+    return JSONResponse(
+        status_code=500,
+        content={"error": "InternalServerError", "detail": safe_detail, "request_id": request_id},
+    )
+
 CORS_ORIGINS = list(settings.CORS_ORIGINS)
+CORS_ORIGIN_REGEX = settings.CORS_ORIGIN_REGEX
 
 # ============================
 # Ollama Auto-Start
@@ -137,6 +156,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -156,6 +176,7 @@ app.include_router(ai_workflow_api_router)
 app.include_router(ceo_router)
 app.include_router(ai_router)
 app.include_router(websocket_router)
+app.include_router(stripe_router)
 
 
 # ============================
@@ -435,34 +456,63 @@ async def _execute_lead_search(
             "started_at": "now()",
         }).eq("id", job_id).execute()
 
-        # Run GMaps search
-        from backend.tools.gmaps_tool import gmaps_tool
-        result = await gmaps_tool.execute(
-            keywords=niche,
-            location=city,
-            limit=max_results,
-        )
+        # Try GMaps Docker scraper first
+        result = None
+        try:
+            from backend.tools.gmaps_tool import gmaps_tool
+            result = await gmaps_tool.execute(
+                keywords=niche,
+                location=city,
+                limit=max_results,
+            )
+            if not result.success:
+                logger.warning(f"GMaps Docker scraper failed: {result.error}, trying browser")
+                result = None
+        except Exception as e:
+            logger.warning(f"GMaps Docker scraper unavailable: {e}")
 
-        if not result.success:
-            supabase_service.client.table("lead_search_jobs").update({
-                "status": "failed",
-                "error": result.error,
-                "completed_at": "now()",
-            }).eq("id", job_id).execute()
-            return
+        # Fallback: browser-based Google Maps scraping
+        if result is None or not result.success:
+            try:
+                from backend.tools.gmaps_browser_scraper import search_google_maps_browser
+                browser_leads = await search_google_maps_browser(
+                    niche=niche,
+                    city=city,
+                    limit=max_results,
+                    headless=True,
+                )
+                if browser_leads:
+                    from dataclasses import dataclass
+                    @dataclass
+                    class BrowserResult:
+                        success: bool
+                        leads: list
+                        count: int
+                        error: str | None = None
+                    result = BrowserResult(success=True, leads=browser_leads, count=len(browser_leads))
+                else:
+                    raise Exception("Browser search returned no results")
+            except Exception as e2:
+                logger.error(f"Browser search also failed: {e2}")
+                supabase_service.client.table("lead_search_jobs").update({
+                    "status": "failed",
+                    "error": f"GMaps scraper and browser search both failed: {e2}",
+                    "completed_at": "now()",
+                }).eq("id", job_id).execute()
+                return
 
         # Save leads to lead_clients table
         saved = 0
         for lead in result.leads:
             try:
-                emails = lead.get("emails", "")
+                emails = lead.get("emails", "") or lead.get("email", "")
                 first_email = emails.split(",")[0].strip() if emails else "-"
                 website = lead.get("website", "").strip() or "-"
                 phone = lead.get("phone", "").strip() or None
 
                 supabase_service.client.table("lead_clients").insert({
                     "user_id": user_id,
-                    "business_name": lead.get("title", "Unknown"),
+                    "business_name": lead.get("title", "") or lead.get("business_name", "Unknown"),
                     "category": lead.get("category", ""),
                     "city_location": city,
                     "country": "United States",
@@ -474,12 +524,12 @@ async def _execute_lead_search(
                     "priority": "Middle",
                     "status": "Lead",
                     "website_status_type": "good" if website != "-" else "no_website",
-                    "source": "google_maps",
+                    "source": lead.get("source", "google_maps"),
                     "source_query": f"{niche} in {city}",
                 }).execute()
                 saved += 1
             except Exception as e:
-                logger.warning(f"Failed to save lead '{lead.get('title')}': {e}")
+                logger.warning(f"Failed to save lead '{lead.get('title', lead.get('business_name', ''))}': {e}")
 
         # Mark as completed
         supabase_service.client.table("lead_search_jobs").update({

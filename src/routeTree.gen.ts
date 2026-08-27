@@ -19,6 +19,7 @@ import { Route as LeadSearchRouteImport } from './routes/lead-search'
 import { Route as MailRouteImport } from './routes/mail'
 import { Route as OpenclawTasksRouteImport } from './routes/openclaw-tasks'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as PromptGeneratorRouteImport } from './routes/prompt-generator'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as SelfDevelopmentRouteImport } from './routes/self-development'
 import { Route as TasksRouteImport } from './routes/tasks'
@@ -60,6 +61,11 @@ const ClientsRoute = ClientsRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromptGeneratorRoute = PromptGeneratorRouteImport.update({
+  id: '/prompt-generator',
+  path: '/prompt-generator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeadSearchRoute = LeadSearchRouteImport.update({

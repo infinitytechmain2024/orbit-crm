@@ -1,5 +1,5 @@
 #!/bin/bash
-# Orbit Lead Generator — Startup Script
+# Orbit Leads Prospector — Startup Script
 # Usage: ./start.sh [dev|prod]
 
 set -e
@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"
 MODE="${1:-dev}"
 
 echo "╔══════════════════════════════════════════════════╗"
-echo "║     Orbit Lead Generator — Starting...          ║"
+echo "║     Orbit Leads Prospector — Starting...        ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
@@ -38,7 +38,7 @@ pip install -q -r requirements.txt
 if [ ! -f ".env" ]; then
     echo "⚠️  No .env file found. Copying from .env.example..."
     cp .env.example .env
-    echo "📝 Please edit .env with your settings (Notion API key, etc.)"
+    echo "📝 Please edit .env with your Supabase and LLM settings"
 fi
 
 # 4. Check Ollama
@@ -76,14 +76,16 @@ mkdir -p reports
 # 7. Start the server
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
-echo "║  🚀 Starting Lead Generator API                 ║"
+echo "║  🚀 Starting Leads Prospector API              ║"
 echo "║  📖 Docs: http://localhost:8090/docs            ║"
 echo "║  🔗 API:  http://localhost:8090/api/health      ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
+LEAD_GEN_PORT="${LEAD_GEN_PORT:-8090}"
+
 if [ "$MODE" = "prod" ]; then
-    python3 -m uvicorn main:app --host 0.0.0.0 --port 8090 --workers 2
+    python3 -m uvicorn main:app --host 0.0.0.0 --port "$LEAD_GEN_PORT" --workers 2
 else
-    python3 -m uvicorn main:app --host 0.0.0.0 --port 8090 --reload
+    python3 -m uvicorn main:app --host 0.0.0.0 --port "$LEAD_GEN_PORT" --reload
 fi

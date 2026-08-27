@@ -452,6 +452,13 @@ function pushGroupedValue<T>(target: Map<string, T[]>, key: string, value: T): v
 function mapTask(row: TaskRow, relations: TaskRelationMaps = emptyTaskRelations()): Task {
   const labels = relations.labelsByTask.get(row.id) ?? [];
   const tags = [...new Set([...(row.tags ?? []), ...labels.map((label) => label.name)])];
+  const estimatedMinutes = row.estimated_minutes === null ? null : Number(row.estimated_minutes);
+  const actualMinutes = Number(row.actual_minutes);
+  const progress = Math.min(100, Math.max(0, Number((row as unknown as Record<string, unknown>)["progress"] ?? 0)));
+  const estimatedTimeRemaining =
+    estimatedMinutes !== null && estimatedMinutes > 0
+      ? Math.max(0, Math.round(estimatedMinutes * (1 - progress / 100)))
+      : null;
 
   return {
     id: row.id,
@@ -466,8 +473,8 @@ function mapTask(row: TaskRow, relations: TaskRelationMaps = emptyTaskRelations(
     startDate: row.start_date,
     dueDate: row.due_date,
     due: row.due_date ? dateLabelFormatter.format(new Date(`${row.due_date}T00:00:00`)) : null,
-    estimatedMinutes: row.estimated_minutes === null ? null : Number(row.estimated_minutes),
-    actualMinutes: Number(row.actual_minutes),
+    estimatedMinutes,
+    actualMinutes,
     assigneeId: row.assignee_id,
     assigneeIds: relations.assigneeIdsByTask.get(row.id) ?? [],
     watcherIds: relations.watcherIdsByTask.get(row.id) ?? [],
@@ -486,6 +493,8 @@ function mapTask(row: TaskRow, relations: TaskRelationMaps = emptyTaskRelations(
     comments: relations.commentsByTask.get(row.id) ?? [],
     files: relations.filesByTask.get(row.id) ?? [],
     financeOperationsCount: relations.financeCountByTask.get(row.id) ?? 0,
+    progress,
+    estimatedTimeRemaining,
     source: (row as unknown as Record<string, unknown>)["source"] as string ?? "manual",
     workflowStatus: ((row as unknown as Record<string, unknown>)["workflow_status"] as Task["workflowStatus"]) ?? "manual",
     targetRole: ((row as unknown as Record<string, unknown>)["target_role"] as string | null) ?? null,
@@ -1249,6 +1258,7 @@ type NormalizedTaskInput = {
   newLabelNames: string[];
   parentTaskId: string | null;
   priority: Priority;
+  progress: number;
   projectId: string | null;
   sortOrder: number;
   startDate: string | null;
@@ -1364,6 +1374,11 @@ function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): Normali
     ? Boolean((input as Record<string, unknown>)["dispatchToWorkflow"])
     : (fallback?.dispatchToWorkflow ?? false);
 
+  const rawProgress = hasOwn(input, "progress")
+    ? (input.progress ?? 0)
+    : (fallback?.progress ?? 0);
+  const progress = Math.min(100, Math.max(0, Math.round(Number(rawProgress) || 0)));
+
   return {
     actualMinutes,
     assigneeId,
@@ -1379,6 +1394,7 @@ function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): Normali
     newLabelNames,
     parentTaskId,
     priority,
+    progress,
     projectId,
     sortOrder,
     startDate,
@@ -1426,6 +1442,7 @@ function taskPayload(
       workflow_status: normalized.workflowStatus,
       target_role: normalized.targetRole,
       dispatch_to_workflow: normalized.dispatchToWorkflow,
+      progress: normalized.progress,
     } as unknown as Record<string, unknown>),
   } as TablesInsert<"tasks">;
 }
@@ -1454,6 +1471,7 @@ function taskUpdatePayload(normalized: NormalizedTaskInput): TablesUpdate<"tasks
       workflow_status: normalized.workflowStatus,
       target_role: normalized.targetRole,
       dispatch_to_workflow: normalized.dispatchToWorkflow,
+      progress: normalized.progress,
     } as unknown as Record<string, unknown>),
   } as TablesUpdate<"tasks">;
 }

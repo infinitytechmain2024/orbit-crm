@@ -48,47 +48,75 @@ async function proxyRequest(
   if (userAuthorization) headers.set("x-supabase-authorization", userAuthorization);
   headers.set("authorization", `Bearer ${token}`);
 
-  // Render free plan cold start can take 30-60s; allow enough time.
+  // Determine timeout based on endpoint type
   const isTranscribe = path?.includes("transcribe");
-  const timeoutMs = isTranscribe ? 120_000 : 30_000;
+  const isAiWorkflow = path?.includes("ai-workflow");
+  const timeoutMs = isAiWorkflow ? 90_000 : isTranscribe ? 120_000 : 30_000;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const upstream = await fetch(target, {
-      method,
-      headers,
-      body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
-      redirect: "manual",
-      signal: controller.signal,
-    });
+  let attempt = 0;
+  const maxAttempts = 2;
 
-    clearTimeout(timer);
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      const upstream = await fetch(target, {
+        method,
+        headers,
+        body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
+        redirect: "manual",
+        signal: controller.signal,
+      });
 
-    const responseHeaders = new Headers(upstream.headers);
-    responseHeaders.delete("content-length");
-    responseHeaders.delete("content-encoding");
-    responseHeaders.set("cache-control", "no-store");
+      clearTimeout(timer);
 
-    return new Response(upstream.body, {
-      status: upstream.status,
-      statusText: upstream.statusText,
-      headers: responseHeaders,
-    });
-  } catch (error) {
-    clearTimeout(timer);
-    const reason = error instanceof Error ? error.message : "Unknown upstream error";
-    const isTimeout = error instanceof DOMException && error.name === "AbortError";
-    console.error("[backend proxy] upstream request failed", {
-      method,
-      path: path ?? "",
-      reason,
-      isTimeout,
-    });
-    return Response.json(
-      { error: isTimeout ? "Backend is waking up, please try again" : "Backend is unavailable" },
-      { status: 502 },
-    );
+      const responseHeaders = new Headers(upstream.headers);
+      responseHeaders.delete("content-length");
+      responseHeaders.delete("content-encoding");
+      responseHeaders.set("cache-control", "no-store");
+
+      // Retry on 502/503 if not last attempt
+      if ((upstream.status === 502 || upstream.status === 503) && attempt < maxAttempts) {
+        clearTimeout(timer);
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+
+      return new Response(upstream.body, {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers: responseHeaders,
+      });
+    } catch (error) {
+      clearTimeout(timer);
+      const reason = error instanceof Error ? error.message : "Unknown upstream error";
+      const isTimeout = error instanceof DOMException && error.name === "AbortError";
+
+      if (attempt < maxAttempts && (isTimeout || reason.includes("ECONNREFUSED") || reason.includes("ETIMEDOUT"))) {
+        attempt++;
+        logger.warn(`[backend proxy] retry attempt ${attempt}/${maxAttempts} after error: ${reason}`);
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+
+      console.error("[backend proxy] upstream request failed", {
+        method,
+        path: path ?? "",
+        reason,
+        isTimeout,
+      });
+      return Response.json(
+        { error: isTimeout ? "Backend is waking up, please try again" : "Backend is unavailable" },
+        { status: 502 },
+      );
+    }
   }
+
+  // Final attempt failed
+  return Response.json(
+    { error: "Backend is unavailable after retries" },
+    { status: 502 },
+  );
 }

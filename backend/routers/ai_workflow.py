@@ -574,6 +574,43 @@ async def run_task(
 ):
     await _authorize(request.organization_id, actor, "workflow.control")
     task = await _get_task(request.organization_id, task_id)
+
+    # Pre-flight health check — ensure backend dependencies are available
+    from backend.services.ai_workflow_store import ai_workflow_store as _store
+    from backend.services.openclaw_client import openclaw_client as _oc
+
+    if not _store.configured:
+        raise HTTPException(
+            status_code=503,
+            detail="AI Workflow backend is not configured (Supabase unavailable)",
+        )
+    }
+
+    # Quick Supabase ping to verify connectivity
+    try {
+        client = _store.client()
+        await client.get(
+            f"{settings.SUPABASE_URL.rstrip('/')}/rest/v1/lead_clients",
+            params={"select": "count", "organization_id": f"eq.{request.organization_id}"},
+            headers=_store._service_headers(),
+        )
+    } except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Supabase health ping failed: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection unavailable. Please try again.",
+        )
+
+    # Check OpenClaw availability if task requires external execution
+    try:
+        health = await _oc.health(use_cache=False)
+        if health.status != "online" and health.status != "offline":
+            logger.warning(f"OpenClaw health check: {health.status} - {health.error}")
+    } except Exception as e:
+        logger.warning(f"OpenClaw health check failed (non-fatal): {e}")
+
     if task.get("workflow_run_id"):
         if task["status"] == "paused":
             task = await orbit_commander.resume(task, actor.user_id)

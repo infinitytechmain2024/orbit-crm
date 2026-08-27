@@ -291,7 +291,10 @@ export function CrmProvider({
         if (!user || !organization) return null;
 
         return runMutation("Задача сохранена", async () => {
-          const task = await createTask(user.id, organization.id, input);
+          const task = await createTask(user.id, organization.id, {
+            ...input,
+            progress: input.progress ?? 5,
+          });
           const snapshot = await loadCrmWorkspace(user);
           applySnapshot(snapshot);
           return task;

@@ -118,8 +118,15 @@ class Settings(BaseSettings):
             "http://localhost:5174",
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
+            "https://aura-crm.vercel.app",
         ],
         validation_alias="CORS_ORIGINS",
+    )
+
+    # Regex for CORS origin matching — allows all *.vercel.app subdomains.
+    CORS_ORIGIN_REGEX: str = Field(
+        default=r"https://.*\.vercel\.app$",
+        validation_alias="CORS_ORIGIN_REGEX",
     )
 
     # Server-to-server auth: Vercel proxy must send this as `Authorization: Bearer <token>`
@@ -132,6 +139,11 @@ class Settings(BaseSettings):
         default=90,
         validation_alias="SELFDEV_PROVIDER_LEASE_SECONDS",
     )
+
+    # Stripe
+    STRIPE_SECRET_KEY: str = Field(default="", validation_alias="STRIPE_SECRET_KEY")
+    STRIPE_PUBLISHABLE_KEY: str = Field(default="", validation_alias="STRIPE_PUBLISHABLE_KEY")
+    STRIPE_WEBHOOK_SECRET: str = Field(default="", validation_alias="STRIPE_WEBHOOK_SECRET")
 
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":
