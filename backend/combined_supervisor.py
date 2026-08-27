@@ -132,7 +132,13 @@ async def run() -> int:
         )
         logger.info("process_started name=openclaw pid=%s", openclaw.pid)
         try:
-            await wait_for_openclaw(openclaw)
+            await wait_for_openclaw(
+                openclaw,
+                timeout_seconds=max(
+                    90.0,
+                    float(os.getenv("OPENCLAW_STARTUP_TIMEOUT_SECONDS") or "180"),
+                ),
+            )
         except RuntimeError as error:
             if openclaw.returncode is not None:
                 logger.warning("openclaw_unavailable error=%s", error)
