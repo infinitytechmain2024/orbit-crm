@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS "public"."receipts" (
     "category" "text",
     "description" "text",
     "merchant_name" "text",
-    "confidence" "float" NOT NULL DEFAULT 0,
+    "confidence" double precision NOT NULL DEFAULT 0,
     "status" "text" NOT NULL DEFAULT 'parsed',
     "finance_transaction_id" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,

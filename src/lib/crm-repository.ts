@@ -145,6 +145,14 @@ function toMessage(message: string, errorMessage: string): Error {
   return new Error(`${message}: ${errorMessage}`);
 }
 
+function isMissingStripeTableError(error: { code?: string; message?: string } | null): boolean {
+  return (
+    error?.code === "PGRST205" &&
+    typeof error.message === "string" &&
+    error.message.includes("stripe_")
+  );
+}
+
 function makeOrganizationSlug(id: string): string {
   return `orbit-${id.slice(0, 8).toLowerCase()}`;
 }
@@ -929,6 +937,7 @@ export async function fetchStripeTransactions(
     .eq("organization_id", organizationId)
     .order("occurred_on", { ascending: false });
 
+  if (isMissingStripeTableError(error)) return [];
   if (error) throw toMessage("Не удалось загрузить Stripe транзакции", error.message);
   return (data ?? []).map(mapStripeTransaction);
 }
@@ -943,6 +952,7 @@ export async function fetchStripeSubscriptions(
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false });
 
+  if (isMissingStripeTableError(error)) return [];
   if (error) throw toMessage("Не удалось загрузить Stripe подписки", error.message);
   return (data ?? []).map(mapStripeSubscription);
 }
@@ -955,6 +965,7 @@ export async function fetchStripeCustomer(organizationId: string): Promise<Strip
     .eq("organization_id", organizationId)
     .maybeSingle();
 
+  if (isMissingStripeTableError(error)) return null;
   if (error) throw toMessage("Не удалось загрузить Stripe клиента", error.message);
   return data ? mapStripeCustomer(data) : null;
 }
