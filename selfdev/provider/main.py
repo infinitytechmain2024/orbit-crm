@@ -46,7 +46,7 @@ class ProviderConfig:
             backend_url=required["SELFDEV_BACKEND_URL"].rstrip("/"),
             token=required["SELFDEV_PROVIDER_TOKEN"],
             organization_id=required["SELFDEV_ORGANIZATION_ID"],
-            name=os.getenv("SELFDEV_PROVIDER_NAME", "local-docker-provider").strip(),
+            name=(os.getenv("SELFDEV_PROVIDER_NAME") or "local-docker-provider").strip(),
             heartbeat_seconds=max(5.0, float(os.getenv("SELFDEV_HEARTBEAT_SECONDS") or "15")),
             execution_enabled=execution_enabled,
             agent_command=command,
@@ -76,6 +76,12 @@ class SelfDevProvider:
             "metadata": {"provider_version": "0.1.0", "execution_enabled": self.config.execution_enabled},
         }
         response = await self.client.post("/api/selfdev/providers/register", json=payload)
+        if response.is_error:
+            logger.warning(
+                "provider_registration_rejected status=%s detail=%s",
+                response.status_code,
+                response.text[:500],
+            )
         response.raise_for_status()
         self.provider_id = str(response.json()["provider_id"])
         logger.info("provider_registered provider_id=%s", self.provider_id)
