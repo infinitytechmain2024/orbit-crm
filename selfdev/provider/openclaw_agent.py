@@ -10,7 +10,7 @@ from pathlib import Path
 import httpx
 
 
-def repository_context(root: Path, limit: int = 45_000) -> str:
+def repository_context(root: Path, limit: int = 16_000) -> str:
     """Collect a bounded, non-secret source overview for the analysis agent."""
     chunks: list[str] = []
     size = 0
@@ -27,7 +27,7 @@ def repository_context(root: Path, limit: int = 45_000) -> str:
         remaining = limit - size
         if remaining <= 0:
             break
-        excerpt = text[: min(6000, remaining)]
+        excerpt = text[: min(2500, remaining)]
         chunks.append(f"\n--- {path.relative_to(root)} ---\n{excerpt}")
         size += len(excerpt)
     return "".join(chunks)
@@ -53,9 +53,10 @@ def main() -> None:
         headers={
             "authorization": f"Bearer {os.getenv('OPENCLAW_GATEWAY_TOKEN', '')}",
             "content-type": "application/json",
+            "x-openclaw-agent-id": "main",
         },
         json={
-            "model": "openclaw/default",
+            "model": "openclaw",
             "messages": [
                 {
                     "role": "system",
@@ -64,8 +65,9 @@ def main() -> None:
                 {"role": "user", "content": prompt},
             ],
             "stream": False,
+            "max_completion_tokens": 800,
         },
-        timeout=300,
+        timeout=90,
     )
     response.raise_for_status()
     payload = response.json()

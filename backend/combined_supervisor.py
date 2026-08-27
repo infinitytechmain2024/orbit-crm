@@ -37,6 +37,8 @@ def prepare_openclaw_config() -> None:
     config_path.chmod(0o600)
 
     default_model = os.getenv("OPENCLAW_DEFAULT_MODEL", "").strip()
+    if not default_model and os.getenv("GROQ_API_KEY", "").strip():
+        default_model = "groq/llama-3.1-8b-instant"
     if default_model:
         config = json.loads(config_path.read_text(encoding="utf-8"))
         config.setdefault("agents", {}).setdefault("defaults", {})["model"] = {
