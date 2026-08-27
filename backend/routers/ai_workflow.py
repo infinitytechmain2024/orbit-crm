@@ -173,7 +173,10 @@ async def get_overview(
     from backend.services.openclaw_client import openclaw_client
 
     await _authorize(organization_id, actor)
-    await orbit_commander.ensure_bootstrap(organization_id, actor.user_id)
+    try:
+        await orbit_commander.ensure_bootstrap(organization_id, actor.user_id)
+    except Exception:
+        logger.warning("ensure_bootstrap failed, continuing with overview", exc_info=True)
     task_filters = {"project_id": f"eq.{project_id}"} if project_id else None
     (
         departments,

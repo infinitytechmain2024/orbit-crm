@@ -67,7 +67,7 @@ export function AppShell({
   const userInitial = user?.email?.charAt(0).toUpperCase() ?? "A";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen overflow-hidden bg-background">
       <div className="pointer-events-none fixed inset-0 opacity-70 dark:opacity-70 light:opacity-40 [background:radial-gradient(60rem_40rem_at_15%_-10%,color-mix(in_oklab,var(--acc-1)_16%,transparent),transparent),radial-gradient(50rem_40rem_at_95%_10%,color-mix(in_oklab,var(--acc-2)_14%,transparent),transparent)]" />
 
       <aside
@@ -156,7 +156,7 @@ export function AppShell({
       </aside>
 
       <div
-        className={cn("relative transition-all duration-200", collapsed ? "lg:pl-16" : "lg:pl-64")}
+        className={cn("relative h-full overflow-y-auto transition-all duration-200", collapsed ? "lg:pl-16" : "lg:pl-64")}
       >
         <header className="sticky top-0 z-20 glass">
           <div className="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-8">
