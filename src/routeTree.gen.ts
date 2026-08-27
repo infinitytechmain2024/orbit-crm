@@ -163,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
   '/prompt-generator': typeof PromptGeneratorRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
@@ -189,6 +190,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/prompt-generator': typeof PromptGeneratorRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
@@ -217,6 +219,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/prompt-generator': typeof PromptGeneratorRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute

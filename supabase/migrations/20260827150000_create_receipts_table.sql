@@ -73,10 +73,5 @@ CREATE OR REPLACE TRIGGER "set_receipts_updated_at"
 BEFORE UPDATE ON "public"."receipts"
 FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
--- Trigger to sync with finance_transactions on status change
-CREATE OR REPLACE TRIGGER "sync_receipt_to_finance"
-AFTER UPDATE ON "public"."receipts"
-FOR EACH ROW EXECUTE FUNCTION "private"."sync_receipt_finance";
-
 GRANT ALL ON TABLE "public"."receipts" TO "service_role";
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."receipts" TO "authenticated";
