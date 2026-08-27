@@ -47,10 +47,10 @@ class ProviderConfig:
             token=required["SELFDEV_PROVIDER_TOKEN"],
             organization_id=required["SELFDEV_ORGANIZATION_ID"],
             name=os.getenv("SELFDEV_PROVIDER_NAME", "local-docker-provider").strip(),
-            heartbeat_seconds=max(5.0, float(os.getenv("SELFDEV_HEARTBEAT_SECONDS", "15"))),
+            heartbeat_seconds=max(5.0, float(os.getenv("SELFDEV_HEARTBEAT_SECONDS") or "15")),
             execution_enabled=execution_enabled,
             agent_command=command,
-            job_timeout_seconds=max(60.0, float(os.getenv("SELFDEV_JOB_TIMEOUT_SECONDS", "1800"))),
+            job_timeout_seconds=max(60.0, float(os.getenv("SELFDEV_JOB_TIMEOUT_SECONDS") or "1800")),
         )
 
 
