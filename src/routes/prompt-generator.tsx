@@ -123,7 +123,7 @@ function PromptGeneratorPage() {
   const [form, setForm] = useState<PromptForm>(DEFAULT_FORM);
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
-  const copyTimer = useRef<ReturnType<typeof setTimeout>>();
+  const copyTimer = useRef<number | undefined>(undefined);
   const previewRef = useRef<HTMLPreElement>(null);
 
   const prompt = generatePrompt(form);
