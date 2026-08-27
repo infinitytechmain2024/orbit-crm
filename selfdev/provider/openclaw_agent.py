@@ -33,6 +33,73 @@ def repository_context(root: Path, limit: int = 16_000) -> str:
     return "".join(chunks)
 
 
+def _message_content(payload: dict) -> str:
+    choices = payload.get("choices") or []
+    if not choices:
+        return ""
+    message = choices[0].get("message") or {}
+    return str(message.get("content") or "")
+
+
+def _chat_payload(prompt: str, *, model: str) -> dict:
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are the controlled self-development reviewer for Orbit CRM.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "stream": False,
+        "max_completion_tokens": 800,
+    }
+
+
+def _run_openclaw(prompt: str) -> str:
+    response = httpx.post(
+        os.getenv("OPENCLAW_URL", "http://127.0.0.1:18789").rstrip("/")
+        + "/v1/chat/completions",
+        headers={
+            "authorization": f"Bearer {os.getenv('OPENCLAW_GATEWAY_TOKEN', '')}",
+            "content-type": "application/json",
+            "x-openclaw-agent-id": "main",
+        },
+        json=_chat_payload(prompt, model="openclaw"),
+        timeout=float(os.getenv("SELFDEV_OPENCLAW_TIMEOUT_SECONDS") or "45"),
+    )
+    response.raise_for_status()
+    return _message_content(response.json())
+
+
+def _run_groq_fallback(prompt: str) -> str:
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("OpenClaw failed and GROQ_API_KEY is not configured")
+    model = os.getenv("SELFDEV_GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
+    base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+    response = httpx.post(
+        f"{base_url}/chat/completions",
+        headers={
+            "authorization": f"Bearer {api_key}",
+            "content-type": "application/json",
+        },
+        json=_chat_payload(prompt, model=model),
+        timeout=float(os.getenv("SELFDEV_GROQ_TIMEOUT_SECONDS") or "60"),
+    )
+    response.raise_for_status()
+    content = _message_content(response.json())
+    return "[fallback:groq]\n" + (content or "Groq completed without textual output.")
+
+
+def run_analysis(prompt: str) -> str:
+    try:
+        return _run_openclaw(prompt)
+    except (httpx.HTTPError, RuntimeError) as exc:
+        fallback = _run_groq_fallback(prompt)
+        return f"{fallback}\n\n[openclaw_error]\n{type(exc).__name__}: {str(exc)[:500]}"
+
+
 def main() -> None:
     job = json.loads(sys.stdin.read() or os.getenv("SELFDEV_JOB_JSON", "{}"))
     root = Path(os.getenv("SELFDEV_SOURCE_ROOT", "/app/orbit")).resolve()
@@ -48,30 +115,7 @@ def main() -> None:
         "Do not claim that code was changed or deployed.\n\nSOURCE SNAPSHOT:\n"
         f"{repository_context(root)}"
     )
-    response = httpx.post(
-        os.getenv("OPENCLAW_URL", "http://127.0.0.1:18789").rstrip("/") + "/v1/chat/completions",
-        headers={
-            "authorization": f"Bearer {os.getenv('OPENCLAW_GATEWAY_TOKEN', '')}",
-            "content-type": "application/json",
-            "x-openclaw-agent-id": "main",
-        },
-        json={
-            "model": "openclaw",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are the controlled self-development reviewer for Orbit CRM.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-            "stream": False,
-            "max_completion_tokens": 800,
-        },
-        timeout=90,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    print(payload["choices"][0]["message"]["content"])
+    print(run_analysis(prompt))
 
 
 if __name__ == "__main__":
