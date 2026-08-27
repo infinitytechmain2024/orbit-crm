@@ -26,14 +26,29 @@ const manager = SessionManager.create(sessionDir, sessionDir);
 
 // Build session: user("Summarize") → assistant("Here is the summary") → user("Analyze Q3") → assistant("Q3 analysis...") → compaction(firstKept=user_Analyze_Q3)
 manager.appendMessage({ role: "user", content: "Summarize reports", timestamp: 1 });
-manager.appendMessage(makeAgentAssistantMessage({ content: [{ type: "text", text: "Here is the summary" }], timestamp: 2 }));
+manager.appendMessage(
+  makeAgentAssistantMessage({
+    content: [{ type: "text", text: "Here is the summary" }],
+    timestamp: 2,
+  }),
+);
 const firstKeptId = manager.appendMessage({ role: "user", content: "Analyze Q3", timestamp: 3 });
-manager.appendMessage(makeAgentAssistantMessage({ content: [{ type: "text", text: "Q3 analysis shows..." }], timestamp: 4 }));
+manager.appendMessage(
+  makeAgentAssistantMessage({
+    content: [{ type: "text", text: "Q3 analysis shows..." }],
+    timestamp: 4,
+  }),
+);
 manager.appendCompaction("Summary of previous work.", firstKeptId, 5000);
 
 // Post-compaction
 manager.appendMessage({ role: "user", content: "Any more insights?", timestamp: 5 });
-manager.appendMessage(makeAgentAssistantMessage({ content: [{ type: "text", text: "Additional insights" }], timestamp: 6 }));
+manager.appendMessage(
+  makeAgentAssistantMessage({
+    content: [{ type: "text", text: "Additional insights" }],
+    timestamp: 6,
+  }),
+);
 
 const sessionFile = manager.getSessionFile()!;
 console.log("Source session file:", sessionFile);
@@ -61,7 +76,7 @@ for (const msg of context.messages) {
     console.log(`  [compactionSummary] summary="${summary}"`);
   } else if ("content" in msg) {
     const text = Array.isArray(msg.content)
-      ? (msg.content[0] as TextContent)?.text ?? JSON.stringify(msg.content)
+      ? ((msg.content[0] as TextContent)?.text ?? JSON.stringify(msg.content))
       : msg.content;
     console.log(`  [${msg.role}] "${text}"`);
   }
@@ -71,8 +86,13 @@ console.log();
 const roles = context.messages.map((m) => m.role);
 console.log("=== VERIFICATION ===");
 console.log("Role sequence:", JSON.stringify(roles));
-console.log("compactionSummary → assistant (no gap):", roles[0] === "compactionSummary" && roles[1] === "assistant");
-console.log("BEFORE fix shows:      [compactionSummary, user, assistant, ...]  ← missing assistant");
+console.log(
+  "compactionSummary → assistant (no gap):",
+  roles[0] === "compactionSummary" && roles[1] === "assistant",
+);
+console.log(
+  "BEFORE fix shows:      [compactionSummary, user, assistant, ...]  ← missing assistant",
+);
 console.log("AFTER  fix shows:", JSON.stringify(roles));
 console.log();
 

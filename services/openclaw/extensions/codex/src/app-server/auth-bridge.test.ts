@@ -858,8 +858,7 @@ describe("bridgeCodexAppServerStartOptions", () => {
   it("does not replace a prepared persisted store changed during refresh", async () => {
     const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-app-server-"));
     let resolveRefresh:
-      | ((value: { access: string; refresh: string; expires: number }) => void)
-      | undefined;
+      ((value: { access: string; refresh: string; expires: number }) => void) | undefined;
     oauthMocks.refreshOpenAICodexToken.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

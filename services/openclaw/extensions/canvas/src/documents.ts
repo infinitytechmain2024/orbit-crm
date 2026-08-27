@@ -185,9 +185,9 @@ export function resolveCanvasHttpPathToLocalPath(
       resolveCanvasDocumentDir(documentId, options),
       normalizedEntrypoint,
     );
-    if (
-      !(candidatePath === documentsDir || candidatePath.startsWith(`${documentsDir}${path.sep}`))
-    ) {
+    if (!(
+      candidatePath === documentsDir || candidatePath.startsWith(`${documentsDir}${path.sep}`)
+    )) {
       return null;
     }
     return candidatePath;

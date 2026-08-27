@@ -357,8 +357,7 @@ describe("sanitizeSessionHistory", () => {
     vi.mocked(mockedHelpers.isGoogleModelApi).mockReturnValue(false);
     const result = await sanitizeOpenAIHistory(messages);
     return result.find((message) => message.role === "assistant") as
-      | (AgentMessage & { usage?: unknown })
-      | undefined;
+      (AgentMessage & { usage?: unknown }) | undefined;
   };
 
   const expectAssistantUsageSnapshot = (assistant: unknown) => {
@@ -576,8 +575,7 @@ describe("sanitizeSessionHistory", () => {
     const result = await sanitizeOpenAIHistory(messages);
 
     const staleAssistant = result.find((message) => message.role === "assistant") as
-      | (AgentMessage & { usage?: unknown })
-      | undefined;
+      (AgentMessage & { usage?: unknown }) | undefined;
     expect(staleAssistant?.usage).toEqual(makeZeroUsageSnapshot());
   });
 
@@ -728,8 +726,7 @@ describe("sanitizeSessionHistory", () => {
     const result = await sanitizeOpenAIHistory(messages);
 
     const assistant = result.find((message) => message.role === "assistant") as
-      | (AgentMessage & { usage?: unknown })
-      | undefined;
+      (AgentMessage & { usage?: unknown }) | undefined;
     expect(assistant?.usage).toEqual(makeZeroUsageSnapshot());
   });
 

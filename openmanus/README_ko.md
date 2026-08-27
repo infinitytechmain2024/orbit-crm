@@ -13,7 +13,7 @@
 
 # 👋 OpenManus
 
-Manus는 놀라운 도구지만, OpenManus는 *초대 코드* 없이도 모든 아이디어를 실현할 수 있습니다! 🛫
+Manus는 놀라운 도구지만, OpenManus는 _초대 코드_ 없이도 모든 아이디어를 실현할 수 있습니다! 🛫
 
 우리 팀의 멤버인 [@Xinbin Liang](https://github.com/mannaandpoem)와 [@Jinyu Xiang](https://github.com/XiangJinyu) (핵심 작성자), 그리고 [@Zhaoyang Yu](https://github.com/MoshiQAQ), [@Jiayi Zhang](https://github.com/didiforgithub), [@Sirui Hong](https://github.com/stellaHSR)이 함께 했습니다. 우리는 [@MetaGPT](https://github.com/geekan/MetaGPT)로부터 왔습니다. 프로토타입은 단 3시간 만에 출시되었으며, 계속해서 발전하고 있습니다!
 
@@ -84,6 +84,7 @@ uv pip install -r requirements.txt
 ```
 
 ### 브라우저 자동화 도구 (선택사항)
+
 ```bash
 playwright install
 ```
@@ -127,6 +128,7 @@ python main.py
 이후 터미널에서 아이디어를 작성하세요!
 
 MCP 도구 버전을 사용하려면 다음을 실행하세요:
+
 ```bash
 python run_mcp.py
 ```
@@ -158,6 +160,7 @@ use_data_analysis_agent = true     # 기본적으로 비활성화되어 있으�
 **참고**: pull request를 제출하기 전에 pre-commit 도구를 사용하여 변경 사항을 확인하십시오. `pre-commit run --all-files`를 실행하여 검사를 실행합니다.
 
 ## 커뮤니티 그룹
+
 Feishu 네트워킹 그룹에 참여하여 다른 개발자들과 경험을 공유하세요!
 
 <div align="center" style="display: flex; gap: 20px;">
@@ -180,6 +183,7 @@ Feishu 네트워킹 그룹에 참여하여 다른 개발자들과 경험을 공�
 OpenManus는 MetaGPT 기여자들에 의해 개발되었습니다. 이 에이전트 커뮤니티에 깊은 감사를 전합니다!
 
 ## 인용
+
 ```bibtex
 @misc{openmanus2025,
   author = {Xinbin Liang and Jinyu Xiang and Zhaoyang Yu and Jiayi Zhang and Sirui Hong and Sheng Fan and Xiao Tang},

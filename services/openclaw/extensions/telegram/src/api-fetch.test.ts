@@ -190,8 +190,7 @@ describe("undici env proxy semantics", () => {
     const httpsProxyAgent = withoutProxyTls[kHttpsProxyAgent] as Record<PropertyKey, unknown>;
 
     const noProxyConnect = getOwnSymbolValue(noProxyAgent, "options")?.connect as
-      | { autoSelectFamily?: boolean; family?: number }
-      | undefined;
+      { autoSelectFamily?: boolean; family?: number } | undefined;
     expect(noProxyConnect?.family).toBe(connect.family);
     expect(noProxyConnect?.autoSelectFamily).toBe(connect.autoSelectFamily);
     expect(getOwnSymbolValue(httpsProxyAgent, "proxy tls settings")).toBeUndefined();

@@ -30,10 +30,10 @@ export class BaseLLM implements LLM {
   }
 
   async generate(prompt: string): Promise<LLMResponse> {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   async *generateStream(prompt: string): AsyncGenerator<string, void, unknown> {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 }

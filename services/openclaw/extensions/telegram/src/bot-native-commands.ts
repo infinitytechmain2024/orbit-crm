@@ -1422,8 +1422,7 @@ export const registerTelegramNativeCommands = ({
 
         let cachedTargetSessionKey: string | undefined;
         let cachedNativeCommandRuntime:
-          | Awaited<ReturnType<typeof loadTelegramNativeCommandRuntime>>
-          | undefined;
+          Awaited<ReturnType<typeof loadTelegramNativeCommandRuntime>> | undefined;
         const resolveNativeCommandRuntime = async () => {
           cachedNativeCommandRuntime ??= await loadTelegramNativeCommandRuntime();
           return cachedNativeCommandRuntime;

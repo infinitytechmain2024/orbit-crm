@@ -533,8 +533,7 @@ type SendFeishuMessageParams = {
 };
 
 type FeishuPostMessageElement =
-  | { tag: "at"; user_id: string; user_name?: string }
-  | { tag: "md"; text: string };
+  { tag: "at"; user_id: string; user_name?: string } | { tag: "md"; text: string };
 
 function buildFeishuPostMentionElements(mentions?: MentionTarget[]): FeishuPostMessageElement[] {
   if (!mentions?.length) {

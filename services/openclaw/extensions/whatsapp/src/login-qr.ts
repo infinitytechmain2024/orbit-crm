@@ -55,9 +55,7 @@ type ActiveLogin = {
 };
 
 type LoginQrRaceResult =
-  | { outcome: "qr"; qr: string }
-  | { outcome: "connected" }
-  | { outcome: "failed"; message: string };
+  { outcome: "qr"; qr: string } | { outcome: "connected" } | { outcome: "failed"; message: string };
 
 function waitForNextTask(): Promise<void> {
   return new Promise((resolve) => {

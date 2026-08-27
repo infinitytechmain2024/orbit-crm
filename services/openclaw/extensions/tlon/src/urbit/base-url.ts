@@ -2,8 +2,7 @@
 import { isBlockedHostnameOrIp } from "openclaw/plugin-sdk/ssrf-runtime";
 
 type UrbitBaseUrlValidation =
-  | { ok: true; baseUrl: string; hostname: string }
-  | { ok: false; error: string };
+  { ok: true; baseUrl: string; hostname: string } | { ok: false; error: string };
 
 function hasScheme(value: string): boolean {
   return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value);

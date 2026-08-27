@@ -14,8 +14,7 @@ export type SubagentAnnounceDeliveryFailureReason =
   | "visible_reply_missing";
 
 type SubagentAnnounceSteerOutcome =
-  | { status: "steered"; deliveredAt?: number; enqueuedAt?: number }
-  | { status: "none" | "dropped" };
+  { status: "steered"; deliveredAt?: number; enqueuedAt?: number } | { status: "none" | "dropped" };
 
 /** Result of trying to deliver a subagent announcement. */
 export type SubagentAnnounceDeliveryResult = {

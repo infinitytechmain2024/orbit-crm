@@ -35,8 +35,7 @@ export const DEFAULT_MEMORY_FILE_MAX_CHARS = 10_000;
 const WRITE_OVERHEAD_RESERVE = 21;
 
 type MemoryBlock =
-  | { kind: "preserved"; text: string }
-  | { kind: "promotion"; date: string; text: string };
+  { kind: "preserved"; text: string } | { kind: "promotion"; date: string; text: string };
 
 function parseMemoryBlocks(content: string): MemoryBlock[] {
   if (content.length === 0) {

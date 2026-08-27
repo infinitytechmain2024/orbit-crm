@@ -136,9 +136,7 @@ function isAnthropicCacheRetentionTarget(
 function usesClaudeCliModelSelection(config: OpenClawConfig): boolean {
   const primary = resolveModelPrimaryValue(
     config.agents?.defaults?.model as
-      | string
-      | { primary?: string; fallbacks?: string[] }
-      | undefined,
+      string | { primary?: string; fallbacks?: string[] } | undefined,
   );
   const parsedPrimary = primary ? parseProviderModelRef(primary, "anthropic") : null;
   if (parsedPrimary?.provider === CLAUDE_CLI_BACKEND_ID) {
@@ -247,9 +245,7 @@ function collectClaudeCliRuntimeRefsFromConfig(config: OpenClawConfig): string[]
   const refs = new Set<string>(
     collectClaudeCliRuntimeRefs(
       config.agents?.defaults?.model as
-        | string
-        | { primary?: string; fallbacks?: string[] }
-        | undefined,
+        string | { primary?: string; fallbacks?: string[] } | undefined,
     ),
   );
   for (const ref of collectClaudeCliRuntimeRefsFromModelMap(config.agents?.defaults?.models)) {

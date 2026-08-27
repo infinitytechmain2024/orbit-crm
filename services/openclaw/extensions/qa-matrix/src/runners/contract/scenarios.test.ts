@@ -106,7 +106,8 @@ async function writeMatrixInboundDedupePluginStateEntry(params: {
         PRIMARY KEY (plugin_id, namespace, entry_key)
       );
     `);
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO plugin_state_entries (
         plugin_id, namespace, entry_key, value_json, created_at, expires_at
       ) VALUES (?, ?, ?, ?, ?, ?)
@@ -114,7 +115,8 @@ async function writeMatrixInboundDedupePluginStateEntry(params: {
         value_json = excluded.value_json,
         created_at = excluded.created_at,
         expires_at = excluded.expires_at
-    `).run(
+    `,
+    ).run(
       "matrix",
       "inbound-dedupe",
       matrixInboundDedupePluginStateKey(params),

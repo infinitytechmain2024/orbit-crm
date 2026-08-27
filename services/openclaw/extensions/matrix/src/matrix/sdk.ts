@@ -342,8 +342,7 @@ export class MatrixClient {
   private readonly sendQueue = new KeyedAsyncQueue();
   private readonly recoveryKeyStore: MatrixRecoveryKeyStore;
   private cryptoBootstrapper?:
-    | import("./sdk/crypto-bootstrap.js").MatrixCryptoBootstrapper<MatrixRawEvent>
-    | undefined;
+    import("./sdk/crypto-bootstrap.js").MatrixCryptoBootstrapper<MatrixRawEvent> | undefined;
   private readonly autoBootstrapCrypto: boolean;
   private stopPersistPromise: Promise<void> | null = null;
   private verificationSummaryListenerBound = false;

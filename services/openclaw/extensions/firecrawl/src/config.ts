@@ -106,9 +106,7 @@ function resolveFirecrawlFetchConfig(cfg?: OpenClawConfig): FirecrawlFetchConfig
 }
 
 type ConfiguredSecretResolution =
-  | { status: "available"; value: string }
-  | { status: "missing" }
-  | { status: "blocked" };
+  { status: "available"; value: string } | { status: "missing" } | { status: "blocked" };
 
 function resolveConfiguredSecret(
   value: unknown,

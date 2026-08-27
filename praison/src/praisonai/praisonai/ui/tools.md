@@ -1,11 +1,13 @@
 # Understanding Tool Integration in AI Agents - A Beginner's Guide
 
 ## Overview
+
 This guide explains how to properly integrate tools (functions) that an AI agent can use, making them both understandable to the OpenAI API and executable by your code.
 
 ## Key Components
 
 ### 1. Tool Definition Structure
+
 ```python
 # Example tool definition in tools.py
 def search_tool(query: str) -> list:
@@ -22,13 +24,14 @@ def search_tool(query: str) -> list:
 ```
 
 ### 2. Tool Dictionary Format
+
 ```python
 tools_dict = {
     'search_tool': {
         'type': 'function',
         'function': {
             'name': 'search_tool',
-            'description': '...', 
+            'description': '...',
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -44,6 +47,7 @@ tools_dict = {
 ## The Two-Part System
 
 ### Part 1: OpenAI API Communication
+
 ```python
 # task_tools: What OpenAI understands
 task_tools = []
@@ -53,6 +57,7 @@ task_tools.append(tool_def)  # Add clean JSON-serializable definition
 ```
 
 ### Part 2: Function Execution
+
 ```python
 # role_tools: What your code executes
 role_tools = []
@@ -72,16 +77,16 @@ for tool_name in tools_list:
     if tool_name in tools_dict:
         # 1. Get the tool definition
         tool_def = tools_dict[tool_name].copy()
-        
+
         # 2. Separate the callable function
         callable_func = tool_def.pop("callable")
-        
+
         # 3. Store the function for execution
         role_tools.append(callable_func)
-        
+
         # 4. Store the API definition
         task_tools.append(tool_def)
-        
+
         # 5. Give agent access to functions
         agent.tools = role_tools
 

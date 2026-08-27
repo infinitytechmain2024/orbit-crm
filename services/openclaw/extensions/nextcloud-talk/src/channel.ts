@@ -144,8 +144,7 @@ export const nextcloudTalkPlugin: ChannelPlugin<ResolvedNextcloudTalkAccount> =
         collectStatusIssues: (accounts) =>
           accounts.flatMap((account) => {
             const probe = account.probe as
-              | { ok?: boolean; code?: string; message?: string }
-              | undefined;
+              { ok?: boolean; code?: string; message?: string } | undefined;
             if (
               !probe ||
               probe.ok !== false ||

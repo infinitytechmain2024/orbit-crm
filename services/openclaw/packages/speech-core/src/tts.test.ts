@@ -19,14 +19,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 type MockSpeechSynthesisResult = Awaited<ReturnType<SpeechProviderPlugin["synthesize"]>>;
 
 const synthesizeMock = vi.hoisted(() =>
-  vi.fn(
-    async (request: SpeechSynthesisRequest): Promise<MockSpeechSynthesisResult> => ({
-      audioBuffer: Buffer.from("voice"),
-      fileExtension: ".ogg",
-      outputFormat: "ogg",
-      voiceCompatible: request.target === "voice-note",
-    }),
-  ),
+  vi.fn(async (request: SpeechSynthesisRequest): Promise<MockSpeechSynthesisResult> => ({
+    audioBuffer: Buffer.from("voice"),
+    fileExtension: ".ogg",
+    outputFormat: "ogg",
+    voiceCompatible: request.target === "voice-note",
+  })),
 );
 const prepareSynthesisMock = vi.hoisted(() =>
   vi.fn(async (_ctx: SpeechProviderPrepareSynthesisContext) => undefined),

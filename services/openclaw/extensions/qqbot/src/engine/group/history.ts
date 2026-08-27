@@ -128,15 +128,13 @@ export function toAttachmentSummaries(
   if (!attachments?.length) {
     return undefined;
   }
-  return attachments.map(
-    (att, i): AttachmentSummary => ({
-      type: inferAttachmentType(att.content_type),
-      filename: att.filename,
-      transcript: att.asr_refer_text || undefined,
-      localPath: localPaths?.[i] || undefined,
-      url: att.url || undefined,
-    }),
-  );
+  return attachments.map((att, i): AttachmentSummary => ({
+    type: inferAttachmentType(att.content_type),
+    filename: att.filename,
+    transcript: att.asr_refer_text || undefined,
+    localPath: localPaths?.[i] || undefined,
+    url: att.url || undefined,
+  }));
 }
 
 /**

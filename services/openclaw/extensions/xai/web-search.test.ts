@@ -682,8 +682,7 @@ describe("xai web search config resolution", () => {
     });
 
     const xSearch = next?.plugins?.entries?.xai?.config?.xSearch as
-      | { enabled?: boolean; model?: string }
-      | undefined;
+      { enabled?: boolean; model?: string } | undefined;
     expect(xSearch?.enabled).toBe(true);
     expect(xSearch?.model).toBe("grok-4-1-fast");
   });

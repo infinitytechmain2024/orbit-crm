@@ -46,13 +46,7 @@ export type SubagentCompletionState = {
 
 export type SubagentCompletionDeliveryState = {
   status:
-    | "not_required"
-    | "pending"
-    | "in_progress"
-    | "delivered"
-    | "failed"
-    | "suspended"
-    | "discarded";
+    "not_required" | "pending" | "in_progress" | "delivered" | "failed" | "suspended" | "discarded";
   payload?: PendingFinalDeliveryPayload;
   createdAt?: number;
   enqueuedAt?: number;
@@ -77,11 +71,7 @@ export type SubagentCompletionDeliveryState = {
     lastError?: string | null;
   };
   lastDropReason?:
-    | "queue_cap"
-    | "parent_run_ended"
-    | "sink_unavailable"
-    | "dedupe"
-    | "waiting_for_requester_turn";
+    "queue_cap" | "parent_run_ended" | "sink_unavailable" | "dedupe" | "waiting_for_requester_turn";
 };
 
 type SubagentKillReconciliationState = {

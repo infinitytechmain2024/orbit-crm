@@ -14,10 +14,10 @@ services:
     restart: unless-stopped
     command: ["-web", "-data-folder", "/gmapsdata"]
     ports:
-      - "127.0.0.1:8080:8080"   # localhost only — see warning above
+      - "127.0.0.1:8080:8080" # localhost only — see warning above
     volumes:
-      - gmaps_data:/gmapsdata    # job results persist here
-      - gmaps_cache:/opt         # Playwright browser cache (faster restarts)
+      - gmaps_data:/gmapsdata # job results persist here
+      - gmaps_cache:/opt # Playwright browser cache (faster restarts)
 
 volumes:
   gmaps_data:

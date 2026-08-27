@@ -178,8 +178,7 @@ function resolveParentProgressStreamingEntry(params: {
     return undefined;
   }
   const channels = params.cfg.channels as
-    | Record<string, AcpParentProgressStreamingConfig | undefined>
-    | undefined;
+    Record<string, AcpParentProgressStreamingConfig | undefined> | undefined;
   const channelCfg = channels?.[channelId];
   if (!channelCfg) {
     return undefined;

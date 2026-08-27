@@ -308,8 +308,7 @@ async function resolveIMessageStartupRowidWatermark(dbPath: string): Promise<num
     const { DatabaseSync } = await import("node:sqlite");
     database = new DatabaseSync(resolvedDbPath, { readOnly: true });
     const row = database.prepare("SELECT MAX(ROWID) AS maxRowid FROM message").get() as
-      | { maxRowid?: unknown }
-      | undefined;
+      { maxRowid?: unknown } | undefined;
     return typeof row?.maxRowid === "number" && Number.isFinite(row.maxRowid) ? row.maxRowid : null;
   } catch (err) {
     logVerbose(`imessage: startup rowid watermark unavailable for db=${dbPath}: ${String(err)}`);

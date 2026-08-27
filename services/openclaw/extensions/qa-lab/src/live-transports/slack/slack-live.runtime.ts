@@ -90,8 +90,7 @@ type SlackQaScenarioId =
 type SlackQaApprovalKind = "exec" | "plugin";
 type SlackQaApprovalDecision = "allow-always" | "allow-once" | "deny";
 type SlackQaCodexApprovalMethod =
-  | "item/commandExecution/requestApproval"
-  | "item/fileChange/requestApproval";
+  "item/commandExecution/requestApproval" | "item/fileChange/requestApproval";
 
 function assertSlackCodexApprovalModelSupported(modelRef: string) {
   const provider = splitQaModelRef(modelRef)?.provider.trim().toLowerCase();
@@ -133,9 +132,7 @@ type SlackQaCodexApprovalScenarioRun = {
 };
 
 type SlackQaScenarioRun =
-  | SlackQaApprovalScenarioRun
-  | SlackQaCodexApprovalScenarioRun
-  | SlackQaMessageScenarioRun;
+  SlackQaApprovalScenarioRun | SlackQaCodexApprovalScenarioRun | SlackQaMessageScenarioRun;
 
 type SlackQaBeforeRunResult =
   | string

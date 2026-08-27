@@ -37,14 +37,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-darwin-arm64/-/copilot-darwin-arm64-1.0.68.tgz",
       "integrity": "sha512-0G26AL9dlrwTa5IRTxPEnkX6Kz20CuetIwXzABmWwiXYcsR9rswM/NYICR3k53TOa0zL7aqFPnl98CW7J5XbZw==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "bin": {
         "copilot-darwin-arm64": "copilot"
       }
@@ -53,14 +49,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-darwin-x64/-/copilot-darwin-x64-1.0.68.tgz",
       "integrity": "sha512-RoClWH4CPH19pv5jrR0E6pBU6ljgrzL7idb7tV2pPtMYGTuwqW//XrIEE4n/5NVZmhzEiVBeq04THzOBeV493A==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "bin": {
         "copilot-darwin-x64": "copilot"
       }
@@ -69,14 +61,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-linux-arm64/-/copilot-linux-arm64-1.0.68.tgz",
       "integrity": "sha512-SXSOz/2xPeUM/ndKypBiQv+QGYaEM7oGytl1i+Yx4tJnOoIwLkkTmIaWUbBNn0n5DTEjUcWyDqHzxxo/42FKRQ==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "bin": {
         "copilot-linux-arm64": "copilot"
       }
@@ -85,14 +73,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-linux-x64/-/copilot-linux-x64-1.0.68.tgz",
       "integrity": "sha512-YdG1chniWyps7XEJ2YHUOJkcOc6BpDQZby/zOKCVdswzRXx7d3WiZ2P9lfDimBBmXXJEJ81Fqhv2ZK5eOmGlUw==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "bin": {
         "copilot-linux-x64": "copilot"
       }
@@ -101,14 +85,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-linuxmusl-arm64/-/copilot-linuxmusl-arm64-1.0.68.tgz",
       "integrity": "sha512-LTYZFOHpeLg4rCtsq3A/LMZxxRKFcCLmhnt8F7ovNYLNDJMkh3xdYanoXP0C0PO3uyUMiNJ+p5YXhZiBuo2yfw==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "bin": {
         "copilot-linuxmusl-arm64": "copilot"
       }
@@ -117,14 +97,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-linuxmusl-x64/-/copilot-linuxmusl-x64-1.0.68.tgz",
       "integrity": "sha512-oOMXZ9HPJAJaKSrXZIYuond4uOiUkK1uRhVPI3Cs74n7uEVKPWpNlTN+j/O754dnBa1+HJcuZSDMulTbnOgirg==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "bin": {
         "copilot-linuxmusl-x64": "copilot"
       }
@@ -147,14 +123,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-win32-arm64/-/copilot-win32-arm64-1.0.68.tgz",
       "integrity": "sha512-ZDqpJMP9Y5vqwvRxnIvZrVl8ibx/P66m3JTXQuzv6pitq7rkMEuNKscZ7cjJYN4N+BCOF5++5LKw8O1WHzXAAA==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "bin": {
         "copilot-win32-arm64": "copilot.exe"
       }
@@ -163,14 +135,10 @@
       "version": "1.0.68",
       "resolved": "https://registry.npmjs.org/@github/copilot-win32-x64/-/copilot-win32-x64-1.0.68.tgz",
       "integrity": "sha512-eplj/Y2B+amMLJ37oNE6G8gx85j8ucAuJz+CjzpzprNiBUq45lFL8ukGeDtaLMRvIeYAEDYdz5yUzu2XtCE7mA==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "SEE LICENSE IN LICENSE.md",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "bin": {
         "copilot-win32-x64": "copilot.exe"
       }

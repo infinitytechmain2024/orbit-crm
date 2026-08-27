@@ -64,9 +64,7 @@ type SignalApprovalRuntimeContext = {
 
 function readSignalApprovalRuntimeContext(context: unknown): SignalApprovalRuntimeContext {
   const value = context as
-    | { baseUrl?: unknown; account?: unknown; accountUuid?: unknown }
-    | null
-    | undefined;
+    { baseUrl?: unknown; account?: unknown; accountUuid?: unknown } | null | undefined;
   return {
     baseUrl:
       typeof value?.baseUrl === "string" && value.baseUrl.trim() ? value.baseUrl.trim() : undefined,

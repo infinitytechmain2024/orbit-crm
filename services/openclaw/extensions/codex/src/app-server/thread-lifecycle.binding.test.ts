@@ -479,8 +479,7 @@ describe("Codex app-server thread lifecycle bindings", () => {
     });
 
     const startParams = request.mock.calls.find(([method]) => method === "thread/start")?.[1] as
-      | { dynamicTools?: unknown[] }
-      | undefined;
+      { dynamicTools?: unknown[] } | undefined;
     expect(startParams?.dynamicTools).toEqual([
       expect.objectContaining({
         type: "function",
@@ -544,8 +543,7 @@ describe("Codex app-server thread lifecycle bindings", () => {
     });
 
     const startParams = request.mock.calls.find(([method]) => method === "thread/start")?.[1] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(request.mock.calls.map(([method]) => method)).toEqual([
       "thread/resume",
       "thread/unsubscribe",

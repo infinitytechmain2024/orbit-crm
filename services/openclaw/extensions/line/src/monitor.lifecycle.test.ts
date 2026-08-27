@@ -54,8 +54,7 @@ type WebhookRegistration = {
 
 function requireWebhookRegistration(): WebhookRegistration {
   const registration = registerWebhookTargetWithPluginRouteMock.mock.calls[0]?.[0] as
-    | WebhookRegistration
-    | undefined;
+    WebhookRegistration | undefined;
   if (!registration) {
     throw new Error("expected registered LINE webhook target");
   }

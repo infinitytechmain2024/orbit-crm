@@ -756,8 +756,7 @@ describe("truncateOversizedToolResultsInMessages", () => {
       runtimeContextMessage,
     ] as AgentMessage[]) as AgentMessage[];
     const providerCarrier = providerMessages.at(-1) as
-      | (AgentMessage & { runtimeContextCarrier?: boolean })
-      | undefined;
+      (AgentMessage & { runtimeContextCarrier?: boolean }) | undefined;
     expect(providerCarrier?.runtimeContextCarrier).toBe(true);
 
     const second = truncateOversizedToolResultsInMessages(

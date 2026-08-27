@@ -257,17 +257,8 @@ async def _show_expense_history(chat_id: str, user_id: str):
 async def _process_receipt_photo(chat_id: str, photo_file_id: str, user_id: str):
     """Background task: process receipt photo - download, OCR, save to DB."""
     try:
-        # Get file info from Telegram
-        file_info = await telegram_bot._make_request("getFile", {"file_id": photo_file_id})
-        file_path = file_info["file_path"]
-        file_url = f"https://api.telegram.org/file/bot{telegram_bot.token}/{file_path}"
-
-        # Download the photo
-        import httpx
-        client = await telegram_bot._get_client()
-        response = await client.get(file_url)
-        response.raise_for_status()
-        photo_bytes = response.content
+        # Get file bytes from Telegram using the bot's method
+        photo_bytes = await telegram_bot.download_file(photo_file_id)
 
         # Run OCR using OpenAI Vision
         ocr_result: ReceiptOCRResult = await receipt_ocr_service.extract_receipt_data(photo_bytes)
@@ -303,17 +294,11 @@ async def _process_receipt_photo(chat_id: str, photo_file_id: str, user_id: str)
             f"🎯 <b>Confidence:</b> {receipt['confidence']:.0%}"
         )
 
-        # Add inline keyboard for confirmation/actions
-        # Note: For simplicity, we just send the text; inline keyboards would require
-        # callback query handling which is more complex
-
+        # Send the confirmation message
         await telegram_bot.send_message(TelegramMessage(
             chat_id=chat_id,
             text=confirmation_text,
         ))
-
-        # Also create the finance transaction entry if not already done
-        # (The _save_receipt_to_db already handles this, but let's ensure)
 
     except Exception as e:
         logger.error(f"Error processing receipt photo: {e}", exc_info=True)

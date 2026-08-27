@@ -86,8 +86,7 @@ function setHookRunnerForTest(hookRunner: unknown): void {
   mockGetGlobalHookRunner.mockReturnValue(hookRunner as never);
   const globalStore = globalThis as Record<PropertyKey, unknown>;
   const state = (globalStore[hookRunnerGlobalStateKey] as
-    | HookRunnerGlobalStateForTest
-    | undefined) ?? {
+    HookRunnerGlobalStateForTest | undefined) ?? {
     hookRunner: null,
     registry: null,
   };

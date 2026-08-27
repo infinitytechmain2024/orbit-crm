@@ -99,8 +99,7 @@ describe("Codex plugin thread config", () => {
     });
 
     const disabledApps = pluginOverrideDisabled.configPatch?.apps as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(disabledApps?.["google-calendar-app"]).toEqual({
       enabled: true,
       destructive_enabled: false,
@@ -132,8 +131,7 @@ describe("Codex plugin thread config", () => {
     });
 
     const enabledApps = pluginOverrideEnabled.configPatch?.apps as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(enabledApps?.["google-calendar-app"]).toEqual({
       enabled: true,
       destructive_enabled: true,
@@ -793,9 +791,7 @@ describe("Codex plugin thread config", () => {
             apps: {
               "chatgpt-meetings": {
                 tools:
-                  configReadCount === 1
-                    ? { import_meeting: { approval_mode: "approve" } }
-                    : {},
+                  configReadCount === 1 ? { import_meeting: { approval_mode: "approve" } } : {},
               },
             },
           },

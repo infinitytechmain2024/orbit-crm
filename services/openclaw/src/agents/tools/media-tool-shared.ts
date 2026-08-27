@@ -167,9 +167,7 @@ type CapabilityProvider = {
 type CapabilityProviderSource = CapabilityProvider[] | (() => CapabilityProvider[]);
 
 type GenerationCapabilityProviderKey =
-  | "imageGenerationProviders"
-  | "videoGenerationProviders"
-  | "musicGenerationProviders";
+  "imageGenerationProviders" | "videoGenerationProviders" | "musicGenerationProviders";
 
 function parseCapabilityModelRefForProviders(params: {
   providers: CapabilityProvider[];

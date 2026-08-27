@@ -248,13 +248,11 @@ describe("startAcpSpawnParentStreamRelay", () => {
     );
     expect(progressEvent?.[0]).toContain("codex: hello from child");
     const progressOptions = progressEvent?.[1] as
-      | { contextKey?: unknown; sessionKey?: unknown }
-      | undefined;
+      { contextKey?: unknown; sessionKey?: unknown } | undefined;
     expect(progressOptions?.contextKey).toBe("acp-spawn:run-cron:progress");
     expect(progressOptions?.sessionKey).toBe("global");
     const heartbeatOptions = firstMockCall(requestHeartbeatMock, "heartbeat request")[0] as
-      | { agentId?: string; reason?: string }
-      | undefined;
+      { agentId?: string; reason?: string } | undefined;
     expect(heartbeatOptions?.agentId).toBe("ops");
     expect(heartbeatOptions?.reason).toBe("acp:spawn:stream");
     expect(heartbeatOptions).not.toHaveProperty("sessionKey");

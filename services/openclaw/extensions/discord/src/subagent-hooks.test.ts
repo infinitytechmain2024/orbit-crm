@@ -55,9 +55,9 @@ const hookMocks = vi.hoisted(() => {
   return {
     resolveDiscordAccountImpl,
     resolveDiscordAccount: vi.fn(resolveDiscordAccountImpl),
-    autoBindSpawnedDiscordSubagent: vi.fn(
-      async (): Promise<{ threadId: string } | null> => ({ threadId: "thread-1" }),
-    ),
+    autoBindSpawnedDiscordSubagent: vi.fn(async (): Promise<{ threadId: string } | null> => ({
+      threadId: "thread-1",
+    })),
     listThreadBindingsBySessionKey: vi.fn((_params?: unknown): ThreadBindingRecord[] => []),
     unbindThreadBindingsBySessionKey: vi.fn(() => []),
   };

@@ -18,12 +18,7 @@ import {
 } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 type MistralRealtimeTranscriptionEncoding =
-  | "pcm_s16le"
-  | "pcm_s32le"
-  | "pcm_f16le"
-  | "pcm_f32le"
-  | "pcm_mulaw"
-  | "pcm_alaw";
+  "pcm_s16le" | "pcm_s32le" | "pcm_f16le" | "pcm_f32le" | "pcm_mulaw" | "pcm_alaw";
 
 type MistralRealtimeTranscriptionProviderConfig = {
   apiKey?: string;

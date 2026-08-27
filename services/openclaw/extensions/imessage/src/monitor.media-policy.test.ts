@@ -68,8 +68,7 @@ describe("iMessage monitor attachment policy", () => {
 
     const attachmentPath = "/Users/openclaw/Library/Messages/Attachments/AA/BB/photo.heic";
     let onNotification:
-      | ((message: { method: string; params: unknown }) => void | Promise<void>)
-      | undefined;
+      ((message: { method: string; params: unknown }) => void | Promise<void>) | undefined;
     const client = {
       request: vi.fn(async () => ({ subscription: 1 })),
       waitForClose: vi.fn(async () => {

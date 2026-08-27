@@ -27,8 +27,7 @@ export const contextEngineCompactMock = vi.fn(async () => ({
   compacted: true as boolean,
   reason: undefined as string | undefined,
   result: { summary: "engine-summary", tokensAfter: 50 } as
-    | { summary: string; tokensAfter: number }
-    | undefined,
+    { summary: string; tokensAfter: number } | undefined,
 }));
 
 export const hookRunner = {

@@ -115,10 +115,7 @@ type GoogleMeetExportRequest = {
 
 type GoogleMeetExportWarning = {
   type:
-    | "smart_notes"
-    | "transcript_entries"
-    | "transcript_document_body"
-    | "smart_note_document_body";
+    "smart_notes" | "transcript_entries" | "transcript_document_body" | "smart_note_document_body";
   conferenceRecord: string;
   resource?: string;
   message: string;

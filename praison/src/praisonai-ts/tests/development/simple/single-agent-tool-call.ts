@@ -1,4 +1,4 @@
-import { Agent } from '../../../src/agent/proxy';
+import { Agent } from "../../../src/agent/proxy";
 
 const getWeather = {
   type: "function",
@@ -10,26 +10,26 @@ const getWeather = {
       properties: {
         location: {
           type: "string",
-          description: "City and country e.g. Bogotá, Colombia"
-        }
+          description: "City and country e.g. Bogotá, Colombia",
+        },
       },
       required: ["location"],
-      additionalProperties: false
+      additionalProperties: false,
     },
-    strict: true
-  }
+    strict: true,
+  },
 };
 
 // Make the function globally available
-(global as any).get_weather = async function(location: string) {
-    console.log(`Getting weather for ${location}...`);
-    return `20°C`;
+(global as any).get_weather = async function (location: string) {
+  console.log(`Getting weather for ${location}...`);
+  return `20°C`;
 };
 
-const agent = new Agent({ 
+const agent = new Agent({
   instructions: `You provide the current weather for requested locations.`,
   name: "WeatherAgent",
-  tools: [getWeather]
+  tools: [getWeather],
 });
 
 agent.start("What's the weather in Paris, France?");

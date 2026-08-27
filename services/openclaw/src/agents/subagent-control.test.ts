@@ -125,8 +125,7 @@ vi.mock("./run-wait.js", () => {
         sessionKey: params.sessionKey,
         limit: params.limit,
         callGateway: params.callGateway as
-          | ((request: CallGatewayOptions) => Promise<{ messages?: unknown[] }>)
-          | undefined,
+          ((request: CallGatewayOptions) => Promise<{ messages?: unknown[] }>) | undefined,
       });
       return {
         status: "ok",

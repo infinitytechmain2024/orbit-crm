@@ -20,10 +20,7 @@ import {
 } from "./format.js";
 
 type TelegramRichMessageReplyMarkup =
-  | InlineKeyboardMarkup
-  | ReplyKeyboardMarkup
-  | ReplyKeyboardRemove
-  | ForceReply;
+  InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply;
 
 export const TELEGRAM_RICH_TEXT_LIMIT = 32_768;
 const TELEGRAM_RICH_BLOCK_LIMIT = 500;

@@ -315,11 +315,7 @@ export type UiState = {
   captureTimelineLaneMode: "domain" | "provider" | "flow";
   captureTimelineLaneSort: "most-events" | "most-errors" | "severity" | "alphabetical";
   captureTimelinePreviousLaneSort:
-    | "most-events"
-    | "most-errors"
-    | "severity"
-    | "alphabetical"
-    | null;
+    "most-events" | "most-errors" | "severity" | "alphabetical" | null;
   captureTimelineLaneSearch: string;
   captureTimelineZoom: 75 | 100 | 150 | 200 | 300;
   captureTimelineSparklineMode: "session-relative" | "lane-relative";

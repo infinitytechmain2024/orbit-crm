@@ -257,8 +257,7 @@ describe("model-selection plugin runtime normalization", () => {
     const { normalizeModelRef } = await import("./model-selection-normalize.js");
     normalizeModelRef("custom", "my-model");
     const callArgs = normalizeProviderModelIdWithPluginMock.mock.calls[0]?.[0] as
-      | { plugins?: unknown }
-      | undefined;
+      { plugins?: unknown } | undefined;
     expect(callArgs).toBeDefined();
     expect(callArgs?.plugins).toBeUndefined();
   });

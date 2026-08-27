@@ -5,7 +5,15 @@
     "onStartup": false
   },
   "enabledByDefault": true,
-  "providers": ["qwen", "qwencloud", "modelstudio", "dashscope", "qwen-oauth", "qwen-portal", "qwen-cli"],
+  "providers": [
+    "qwen",
+    "qwencloud",
+    "modelstudio",
+    "dashscope",
+    "qwen-oauth",
+    "qwen-portal",
+    "qwen-cli"
+  ],
   "providerAuthAliases": {
     "qwen-portal": "qwen-oauth",
     "qwen-cli": "qwen-oauth"

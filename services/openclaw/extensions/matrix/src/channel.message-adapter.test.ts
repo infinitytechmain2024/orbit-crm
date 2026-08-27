@@ -182,8 +182,7 @@ describe("matrix channel message adapter", () => {
     });
 
     const matrixChannelData = rendered?.channelData?.matrix as
-      | { extraContent?: Record<string, unknown> }
-      | undefined;
+      { extraContent?: Record<string, unknown> } | undefined;
     expect(matrixChannelData?.extraContent).toEqual({
       "com.openclaw.presentation": {
         ...presentation,

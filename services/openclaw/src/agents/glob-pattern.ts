@@ -2,9 +2,7 @@
  * Compiles and matches lightweight glob patterns used by agent policies.
  */
 type CompiledGlobPattern =
-  | { kind: "all" }
-  | { kind: "exact"; value: string }
-  | { kind: "regex"; value: RegExp };
+  { kind: "all" } | { kind: "exact"; value: string } | { kind: "regex"; value: RegExp };
 
 function escapeRegex(value: string) {
   // Standard "escape string for regex literal" pattern.

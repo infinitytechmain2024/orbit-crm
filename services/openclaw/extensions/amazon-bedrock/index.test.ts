@@ -671,8 +671,7 @@ describe("amazon-bedrock provider plugin", () => {
     } as never);
 
     const result = wrapped?.(MODEL_DESCRIPTOR, { messages: [] } as never, {}) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
 
     expectWrappedResultFields(result, { region: "eu-central-1" });
   });

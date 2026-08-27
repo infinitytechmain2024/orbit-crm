@@ -21,8 +21,7 @@ export type AgentHarnessSupportContext = {
 };
 
 export type AgentHarnessSupport =
-  | { supported: true; priority?: number; reason?: string }
-  | { supported: false; reason?: string };
+  { supported: true; priority?: number; reason?: string } | { supported: false; reason?: string };
 
 export type AgentHarnessAttemptParams =
   import("../embedded-agent-runner/run/types.js").EmbeddedRunAttemptParams;
@@ -86,8 +85,7 @@ export type AgentHarnessResetParams = {
 };
 
 export type AgentHarnessResultClassification =
-  | "ok"
-  | NonNullable<AgentHarnessAttemptResult["agentHarnessResultClassification"]>;
+  "ok" | NonNullable<AgentHarnessAttemptResult["agentHarnessResultClassification"]>;
 
 export type AgentHarnessDeliveryDefaults = {
   /**

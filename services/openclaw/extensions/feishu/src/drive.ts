@@ -426,14 +426,7 @@ async function moveFile(client: Lark.Client, fileToken: string, type: string, fo
     path: { file_token: fileToken },
     data: {
       type: type as
-        | "doc"
-        | "docx"
-        | "sheet"
-        | "bitable"
-        | "folder"
-        | "file"
-        | "mindnote"
-        | "slides",
+        "doc" | "docx" | "sheet" | "bitable" | "folder" | "file" | "mindnote" | "slides",
       folder_token: folderToken,
     },
   });

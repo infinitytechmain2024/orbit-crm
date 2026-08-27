@@ -46,8 +46,7 @@ function resolveDynamicAgentConfig(
   accountId: string,
 ): DynamicAgentCreationConfig | undefined {
   return resolveFeishuAccount({ cfg, accountId }).config.dynamicAgentCreation as
-    | DynamicAgentCreationConfig
-    | undefined;
+    DynamicAgentCreationConfig | undefined;
 }
 
 function isAtDynamicAgentLimit(

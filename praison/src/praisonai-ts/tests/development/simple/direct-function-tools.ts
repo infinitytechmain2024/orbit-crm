@@ -1,4 +1,4 @@
-import { Agent } from '../../../src/agent/proxy';
+import { Agent } from "../../../src/agent/proxy";
 
 async function getWeather(location: string) {
   console.log(`Getting weather for ${location}...`);
@@ -11,10 +11,10 @@ async function getTime(location: string) {
   return `${now.getHours()}:${now.getMinutes()}`;
 }
 
-const agent = new Agent({ 
+const agent = new Agent({
   instructions: `You provide the current weather and time for requested locations.`,
   name: "DirectFunctionAgent",
-  tools: [getWeather, getTime]
+  tools: [getWeather, getTime],
 });
 
 agent.start("What's the weather and time in Paris, France and Tokyo, Japan?");

@@ -141,12 +141,7 @@ export class FileError extends Error {
 
 /** Stable, backend-independent execution error codes returned by {@link ExecutionEnv.exec}. */
 export type ExecutionErrorCode =
-  | "aborted"
-  | "timeout"
-  | "shell_unavailable"
-  | "spawn_error"
-  | "callback_error"
-  | "unknown";
+  "aborted" | "timeout" | "shell_unavailable" | "spawn_error" | "callback_error" | "unknown";
 
 /** Error returned by {@link ExecutionEnv.exec}. */
 export class ExecutionError extends Error {
@@ -162,10 +157,7 @@ export class ExecutionError extends Error {
 
 /** Stable compaction error codes returned by compaction helpers. */
 export type CompactionErrorCode =
-  | "aborted"
-  | "summarization_failed"
-  | "invalid_session"
-  | "unknown";
+  "aborted" | "summarization_failed" | "invalid_session" | "unknown";
 
 /** Error returned by compaction helpers. */
 export class CompactionError extends Error {
@@ -195,12 +187,7 @@ export class BranchSummaryError extends Error {
 }
 
 export type SessionErrorCode =
-  | "not_found"
-  | "invalid_session"
-  | "invalid_entry"
-  | "invalid_fork_target"
-  | "storage"
-  | "unknown";
+  "not_found" | "invalid_session" | "invalid_entry" | "invalid_fork_target" | "storage" | "unknown";
 
 /** Error thrown by session storage, repositories, and session tree operations. */
 export class SessionError extends Error {

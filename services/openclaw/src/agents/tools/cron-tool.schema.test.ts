@@ -203,11 +203,9 @@ describe("createCronToolSchema", () => {
 
   it("job.failureAlert uses plain object type for OpenAPI 3.0 compat", () => {
     const root = schemaRecord.properties as
-      | Record<string, { properties?: Record<string, unknown>; type?: unknown }>
-      | undefined;
+      Record<string, { properties?: Record<string, unknown>; type?: unknown }> | undefined;
     const jobProps = root?.job?.properties as
-      | Record<string, { type?: unknown; description?: string }>
-      | undefined;
+      Record<string, { type?: unknown; description?: string }> | undefined;
     const schema = jobProps?.failureAlert;
     // Must be a plain "object" type — not a type array — so providers that
     // enforce an OpenAPI 3.0 subset (e.g. Gemini via GitHub Copilot) accept it.
@@ -250,11 +248,9 @@ describe("createCronToolSchema", () => {
 
   it("job.agentId and job.sessionKey project to plain string type for OpenAPI 3.0 compat", () => {
     const root = providerSchemaRecord.properties as
-      | Record<string, { properties?: Record<string, unknown> }>
-      | undefined;
+      Record<string, { properties?: Record<string, unknown> }> | undefined;
     const jobProps = root?.job?.properties as
-      | Record<string, { type?: unknown; description?: string }>
-      | undefined;
+      Record<string, { type?: unknown; description?: string }> | undefined;
 
     // Provider projection must be plain "string" rather than a nullable union.
     // The raw runtime schema remains nullable so local validation accepts clears.
@@ -266,8 +262,7 @@ describe("createCronToolSchema", () => {
 
   it("patch.payload.toolsAllow projects to plain array type for OpenAPI 3.0 compat", () => {
     const root = providerSchemaRecord.properties as
-      | Record<string, { properties?: Record<string, unknown> }>
-      | undefined;
+      Record<string, { properties?: Record<string, unknown> }> | undefined;
     const patchProps = root?.patch?.properties as
       | Record<string, { properties?: Record<string, { type?: unknown; description?: string }> }>
       | undefined;

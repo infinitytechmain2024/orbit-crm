@@ -19,8 +19,7 @@ type DirectRoomTrackerOptions = {
   canPromoteRecentInvite?: (roomId: string) => boolean | Promise<boolean>;
   canPromoteUnmappedStrictRoom?: (roomId: string) => boolean | Promise<boolean>;
   shouldKeepLocallyPromotedDirectRoom?:
-    | ((roomId: string) => boolean | undefined | Promise<boolean | undefined>)
-    | undefined;
+    ((roomId: string) => boolean | undefined | Promise<boolean | undefined>) | undefined;
 };
 
 const DM_CACHE_TTL_MS = 30_000;

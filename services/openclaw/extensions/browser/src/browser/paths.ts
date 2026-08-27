@@ -60,9 +60,7 @@ type UploadPathResolutionOptions = {
 };
 
 type ResolvedManagedInboundMediaRef =
-  | { ok: true; path: string; uploadRootPrecedence: boolean }
-  | { ok: false; error: string }
-  | null;
+  { ok: true; path: string; uploadRootPrecedence: boolean } | { ok: false; error: string } | null;
 
 type DecodedInboundMediaId = { ok: true; path: string } | { ok: false; error: string };
 

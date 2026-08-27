@@ -1430,8 +1430,7 @@ describe("message tool delivery mode schema", () => {
       currentChannelProvider: "discord",
     });
     const bestEffort = getToolProperties(tool).bestEffort as
-      | { description?: string; type?: string }
-      | undefined;
+      { description?: string; type?: string } | undefined;
 
     expect(bestEffort?.type).toBe("boolean");
     expect(bestEffort?.description).toContain("required durable delivery");
@@ -1742,8 +1741,7 @@ describe("message tool path passthrough", () => {
   it("advertises canonical media params without compat aliases", () => {
     const properties = getToolProperties(createMessageTool());
     const attachments = properties.attachments as
-      | { items?: { properties?: Record<string, unknown> } }
-      | undefined;
+      { items?: { properties?: Record<string, unknown> } } | undefined;
     const attachmentProperties = attachments?.items?.properties ?? {};
 
     expect(properties).toHaveProperty("media");

@@ -1386,8 +1386,7 @@ describe("web monitor inbox", () => {
     });
     const message = { conversation: "pong" };
     let acceptLateSend:
-      | ((value: { key: { id: string }; message: { conversation: string } }) => void)
-      | undefined;
+      ((value: { key: { id: string }; message: { conversation: string } }) => void) | undefined;
     vi.useFakeTimers();
     try {
       sock.sendMessage.mockImplementationOnce(

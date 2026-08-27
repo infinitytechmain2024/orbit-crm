@@ -793,8 +793,7 @@ describe("Slack native command argument menus", () => {
 
   it("truncates button labels when static_select value limit would be exceeded", async () => {
     const firstElement = (await getFirstActionElementFromCommand(reportLongButtonHandler)) as
-      | { type?: string; text?: { text?: string }; value?: string; confirm?: unknown }
-      | undefined;
+      { type?: string; text?: { text?: string }; value?: string; confirm?: unknown } | undefined;
     expect(firstElement?.type).toBe("button");
     expect(firstElement?.text?.text).toHaveLength(75);
     expect(firstElement?.text?.text?.endsWith("…")).toBe(true);
@@ -840,8 +839,7 @@ describe("Slack native command argument menus", () => {
 
   it("escapes mrkdwn characters in confirm dialog text", async () => {
     const element = (await getFirstActionElementFromCommand(unsafeConfirmHandler)) as
-      | { confirm?: { text?: { text?: string } } }
-      | undefined;
+      { confirm?: { text?: { text?: string } } } | undefined;
     expect(element?.confirm?.text?.text).toContain(
       "Run */unsafeconfirm* with *mode\\_\\*\\`\\~&lt;&amp;&gt;* set to this value?",
     );
@@ -849,8 +847,7 @@ describe("Slack native command argument menus", () => {
 
   it("truncates confirm dialog text when long args force button fallback", async () => {
     const element = (await getFirstActionElementFromCommand(longConfirmHandler)) as
-      | { type?: string; confirm?: { text?: { text?: string } } }
-      | undefined;
+      { type?: string; confirm?: { text?: { text?: string } } } | undefined;
     const confirmText = element?.confirm?.text?.text;
     expect(element?.type).toBe("button");
     expect(confirmText).toHaveLength(300);

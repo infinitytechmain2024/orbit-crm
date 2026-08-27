@@ -257,8 +257,7 @@ describe("models-config", () => {
       owners: { providers: new Map() },
     } as unknown as Pick<PluginMetadataSnapshot, "index" | "manifestRegistry" | "owners">;
     let observedSnapshot:
-      | Pick<PluginMetadataSnapshot, "index" | "manifestRegistry" | "owners">
-      | undefined;
+      Pick<PluginMetadataSnapshot, "index" | "manifestRegistry" | "owners"> | undefined;
 
     await resolveProvidersForModelsJsonWithDeps(
       {
@@ -340,8 +339,7 @@ describe("models-config", () => {
       owners: { providers: new Map() },
     } as unknown as Pick<PluginMetadataSnapshot, "index" | "manifestRegistry" | "owners">;
     let observedSnapshot:
-      | Pick<PluginMetadataSnapshot, "index" | "manifestRegistry" | "owners">
-      | undefined;
+      Pick<PluginMetadataSnapshot, "index" | "manifestRegistry" | "owners"> | undefined;
 
     await planOpenClawModelsJsonWithDeps(
       {

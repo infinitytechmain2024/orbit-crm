@@ -235,8 +235,7 @@ describe("createCopilotByokProxy", () => {
 
       expect(response.status).toBe(200);
       const call = ssrfRuntimeMock.fetchWithSsrFGuard.mock.calls[0]?.[0] as
-        | { init?: { headers?: Record<string, string> } }
-        | undefined;
+        { init?: { headers?: Record<string, string> } } | undefined;
       expect(call?.init?.headers).not.toHaveProperty("authorization");
     } finally {
       await proxy?.close();

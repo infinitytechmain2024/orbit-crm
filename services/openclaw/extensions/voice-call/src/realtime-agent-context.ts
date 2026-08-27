@@ -84,8 +84,7 @@ export async function buildRealtimeVoiceInstructions(params: {
 
   if (contextConfig.includeIdentity) {
     const identity = params.agentRuntime.resolveAgentIdentity(params.coreConfig, agentId) as
-      | VoiceIdentityLike
-      | undefined;
+      VoiceIdentityLike | undefined;
     const identityLines = [
       normalizeString(identity?.name) ? `- Name: ${normalizeString(identity?.name)}` : undefined,
       normalizeString(identity?.emoji) ? `- Emoji: ${normalizeString(identity?.emoji)}` : undefined,

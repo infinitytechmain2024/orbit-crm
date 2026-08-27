@@ -161,16 +161,14 @@ function resolveProviderVariant(model: string): AimockRequestSnapshot["providerV
 
 function extractPlannedToolName(entry: JournalEntry) {
   const response = entry.response.fixture?.response as
-    | { toolCalls?: Array<{ name?: unknown }> }
-    | undefined;
+    { toolCalls?: Array<{ name?: unknown }> } | undefined;
   const name = response?.toolCalls?.[0]?.name;
   return typeof name === "string" && name.length > 0 ? name : undefined;
 }
 
 function extractPlannedToolCallId(entry: JournalEntry) {
   const response = entry.response.fixture?.response as
-    | { toolCalls?: Array<{ id?: unknown; callId?: unknown; toolCallId?: unknown }> }
-    | undefined;
+    { toolCalls?: Array<{ id?: unknown; callId?: unknown; toolCallId?: unknown }> } | undefined;
   const candidate =
     response?.toolCalls?.[0]?.id ??
     response?.toolCalls?.[0]?.callId ??

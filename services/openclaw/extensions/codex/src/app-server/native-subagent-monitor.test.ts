@@ -53,27 +53,25 @@ function createRuntime() {
       error?: string;
     }>;
   };
-  const createRunningTaskRun = vi.fn(
-    (params): AgentHarnessTaskRecord => ({
-      taskId: params.sourceId ?? params.runId,
-      runtime: "subagent",
-      sourceId: params.sourceId,
-      requesterSessionKey: "agent:main:main",
-      ownerKey: "agent:main:main",
-      scopeKind: "session",
-      agentId: params.agentId,
-      runId: params.runId,
-      label: params.label,
-      task: params.task,
-      status: "running",
-      deliveryStatus: params.deliveryStatus ?? "not_applicable",
-      notifyPolicy: params.notifyPolicy ?? "silent",
-      createdAt: params.startedAt ?? Date.now(),
-      startedAt: params.startedAt,
-      lastEventAt: params.lastEventAt,
-      progressSummary: params.progressSummary,
-    }),
-  );
+  const createRunningTaskRun = vi.fn((params): AgentHarnessTaskRecord => ({
+    taskId: params.sourceId ?? params.runId,
+    runtime: "subagent",
+    sourceId: params.sourceId,
+    requesterSessionKey: "agent:main:main",
+    ownerKey: "agent:main:main",
+    scopeKind: "session",
+    agentId: params.agentId,
+    runId: params.runId,
+    label: params.label,
+    task: params.task,
+    status: "running",
+    deliveryStatus: params.deliveryStatus ?? "not_applicable",
+    notifyPolicy: params.notifyPolicy ?? "silent",
+    createdAt: params.startedAt ?? Date.now(),
+    startedAt: params.startedAt,
+    lastEventAt: params.lastEventAt,
+    progressSummary: params.progressSummary,
+  }));
   const taskRuntime = {
     createRunningTaskRun,
     tryCreateRunningTaskRun: vi.fn((params) => createRunningTaskRun(params)),
@@ -85,12 +83,10 @@ function createRuntime() {
   return {
     ...taskRuntime,
     createAgentHarnessTaskRuntime: vi.fn(() => taskRuntime),
-    deliverAgentHarnessTaskCompletion: vi.fn(
-      async (): Promise<DeliveryResult> => ({
-        delivered: true,
-        path: "direct" as const,
-      }),
-    ),
+    deliverAgentHarnessTaskCompletion: vi.fn(async (): Promise<DeliveryResult> => ({
+      delivered: true,
+      path: "direct" as const,
+    })),
   };
 }
 

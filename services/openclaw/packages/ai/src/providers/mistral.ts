@@ -102,11 +102,7 @@ type MistralReasoningEffort = "none" | "high";
 
 interface MistralOptions extends StreamOptions {
   toolChoice?:
-    | "auto"
-    | "none"
-    | "any"
-    | "required"
-    | { type: "function"; function: { name: string } };
+    "auto" | "none" | "any" | "required" | { type: "function"; function: { name: string } };
   promptMode?: "reasoning";
   reasoningEffort?: MistralReasoningEffort;
 }

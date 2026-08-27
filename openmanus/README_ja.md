@@ -84,6 +84,7 @@ uv pip install -r requirements.txt
 ```
 
 ### ブラウザ自動化ツール（オプション）
+
 ```bash
 playwright install
 ```
@@ -127,6 +128,7 @@ python main.py
 その後、ターミナルからプロンプトを入力してください！
 
 MCP ツールバージョンを使用する場合は、以下を実行します：
+
 ```bash
 python run_mcp.py
 ```
@@ -149,7 +151,6 @@ use_data_analysis_agent = true     # デフォルトでは無効、trueに変更
 
 これに加えて、エージェントが正常に動作するために必要な依存関係をインストールする必要があります：[具体的なインストールガイド](app/tool/chart_visualization/README_ja.md##インストール)
 
-
 ## 貢献方法
 
 我々は建設的な意見や有益な貢献を歓迎します！issueを作成するか、プルリクエストを提出してください。
@@ -159,6 +160,7 @@ use_data_analysis_agent = true     # デフォルトでは無効、trueに変更
 **注意**: プルリクエストを送信する前に、pre-commitツールを使用して変更を確認してください。`pre-commit run --all-files`を実行してチェックを実行します。
 
 ## コミュニティグループ
+
 Feishuのネットワーキンググループに参加して、他の開発者と経験を共有しましょう！
 
 <div align="center" style="display: flex; gap: 20px;">
@@ -181,6 +183,7 @@ Feishuのネットワーキンググループに参加して、他の開発者�
 OpenManusはMetaGPTのコントリビューターによって構築されました。このエージェントコミュニティに大きな感謝を！
 
 ## 引用
+
 ```bibtex
 @misc{openmanus2025,
   author = {Xinbin Liang and Jinyu Xiang and Zhaoyang Yu and Jiayi Zhang and Sirui Hong and Sheng Fan and Xiao Tang},

@@ -118,8 +118,7 @@ export function resolveMatrixAccountConfig(params: {
   const merged = resolveMergedAccountConfig<MatrixConfig>({
     channelConfig: base,
     accounts: params.cfg.channels?.matrix?.accounts as
-      | Record<string, Partial<MatrixConfig>>
-      | undefined,
+      Record<string, Partial<MatrixConfig>> | undefined,
     accountId,
     normalizeAccountId,
     nestedObjectKeys: ["dm", "actions", "execApprovals", "botLoopProtection"],

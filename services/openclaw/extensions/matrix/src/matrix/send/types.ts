@@ -58,10 +58,7 @@ type MatrixReplyMeta = {
 };
 
 export type MatrixMediaInfo =
-  | FileWithThumbnailInfo
-  | DimensionalFileInfo
-  | TimedFileInfo
-  | VideoFileInfo;
+  FileWithThumbnailInfo | DimensionalFileInfo | TimedFileInfo | VideoFileInfo;
 
 export type MatrixTextContent = TextualMessageEventContent & MatrixReplyMeta;
 
@@ -107,10 +104,7 @@ export type MatrixSendOpts = {
 };
 
 export type MatrixMediaMsgType =
-  | typeof MsgType.Image
-  | typeof MsgType.Audio
-  | typeof MsgType.Video
-  | typeof MsgType.File;
+  typeof MsgType.Image | typeof MsgType.Audio | typeof MsgType.Video | typeof MsgType.File;
 
 export type MatrixTextMsgType = typeof MsgType.Text | typeof MsgType.Notice;
 

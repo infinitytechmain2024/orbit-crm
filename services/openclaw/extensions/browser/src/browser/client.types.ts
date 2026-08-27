@@ -6,12 +6,7 @@
 /** Browser transport backing the selected profile. */
 export type BrowserTransport = "cdp" | "chrome-mcp" | "extension";
 type BrowserHeadlessSource =
-  | "request"
-  | "env"
-  | "profile"
-  | "config"
-  | "linux-display-fallback"
-  | "default";
+  "request" | "env" | "profile" | "config" | "linux-display-fallback" | "default";
 
 /** Browser status response returned by the control server. */
 export type BrowserStatus = {

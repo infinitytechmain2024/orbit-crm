@@ -23,6 +23,7 @@ import { Route as PromptGeneratorRouteImport } from './routes/prompt-generator'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as SelfDevelopmentRouteImport } from './routes/self-development'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as ApiLeadSearchRouteImport } from './routes/api/lead-search'
 import { Route as ApiNvidiaChatRouteImport } from './routes/api/nvidia-chat'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks.$taskId'
 import { Route as ApiAiWorkflowSplatRouteImport } from './routes/api/ai-workflow/$'
@@ -63,11 +64,6 @@ const FinanceRoute = FinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PromptGeneratorRoute = PromptGeneratorRouteImport.update({
-  id: '/prompt-generator',
-  path: '/prompt-generator',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LeadSearchRoute = LeadSearchRouteImport.update({
   id: '/lead-search',
   path: '/lead-search',
@@ -88,6 +84,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PromptGeneratorRoute = PromptGeneratorRouteImport.update({
+  id: '/prompt-generator',
+  path: '/prompt-generator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsRoute = RequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
@@ -101,6 +102,11 @@ const SelfDevelopmentRoute = SelfDevelopmentRouteImport.update({
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLeadSearchRoute = ApiLeadSearchRouteImport.update({
+  id: '/api/lead-search',
+  path: '/api/lead-search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiNvidiaChatRoute = ApiNvidiaChatRouteImport.update({
@@ -156,13 +162,16 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/requests': typeof RequestsRoute
   '/self-development': typeof SelfDevelopmentRoute
   '/tasks': typeof TasksRouteWithChildren
+  '/api/lead-search': typeof ApiLeadSearchRoute
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
@@ -180,13 +189,16 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/requests': typeof RequestsRoute
   '/self-development': typeof SelfDevelopmentRoute
   '/tasks': typeof TasksRouteWithChildren
+  '/api/lead-search': typeof ApiLeadSearchRoute
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
@@ -205,13 +217,16 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRoute
   '/finance': typeof FinanceRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/lead-search': typeof LeadSearchRoute
   '/mail': typeof MailRoute
   '/openclaw-tasks': typeof OpenclawTasksRoute
   '/projects': typeof ProjectsRoute
+  '/prompt-generator': typeof PromptGeneratorRoute
   '/requests': typeof RequestsRoute
   '/self-development': typeof SelfDevelopmentRoute
   '/tasks': typeof TasksRouteWithChildren
+  '/api/lead-search': typeof ApiLeadSearchRoute
   '/api/nvidia-chat': typeof ApiNvidiaChatRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/api/ai-workflow/$': typeof ApiAiWorkflowSplatRoute
@@ -235,9 +250,11 @@ export interface FileRouteTypes {
     | '/mail'
     | '/openclaw-tasks'
     | '/projects'
+    | '/prompt-generator'
     | '/requests'
     | '/self-development'
     | '/tasks'
+    | '/api/lead-search'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
@@ -259,9 +276,11 @@ export interface FileRouteTypes {
     | '/mail'
     | '/openclaw-tasks'
     | '/projects'
+    | '/prompt-generator'
     | '/requests'
     | '/self-development'
     | '/tasks'
+    | '/api/lead-search'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
@@ -283,9 +302,11 @@ export interface FileRouteTypes {
     | '/mail'
     | '/openclaw-tasks'
     | '/projects'
+    | '/prompt-generator'
     | '/requests'
     | '/self-development'
     | '/tasks'
+    | '/api/lead-search'
     | '/api/nvidia-chat'
     | '/tasks/$taskId'
     | '/api/ai-workflow/$'
@@ -308,9 +329,11 @@ export interface RootRouteChildren {
   MailRoute: typeof MailRoute
   OpenclawTasksRoute: typeof OpenclawTasksRoute
   ProjectsRoute: typeof ProjectsRoute
+  PromptGeneratorRoute: typeof PromptGeneratorRoute
   RequestsRoute: typeof RequestsRoute
   SelfDevelopmentRoute: typeof SelfDevelopmentRoute
   TasksRoute: typeof TasksRouteWithChildren
+  ApiLeadSearchRoute: typeof ApiLeadSearchRoute
   ApiNvidiaChatRoute: typeof ApiNvidiaChatRoute
   ApiAiWorkflowSplatRoute: typeof ApiAiWorkflowSplatRoute
   ApiAiAnalyzeTasksRoute: typeof ApiAiAnalyzeTasksRoute
@@ -393,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prompt-generator': {
+      id: '/prompt-generator'
+      path: '/prompt-generator'
+      fullPath: '/prompt-generator'
+      preLoaderRoute: typeof PromptGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests': {
       id: '/requests'
       path: '/requests'
@@ -412,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lead-search': {
+      id: '/api/lead-search'
+      path: '/api/lead-search'
+      fullPath: '/api/lead-search'
+      preLoaderRoute: typeof ApiLeadSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/nvidia-chat': {
@@ -501,9 +538,11 @@ const rootRouteChildren: RootRouteChildren = {
   MailRoute: MailRoute,
   OpenclawTasksRoute: OpenclawTasksRoute,
   ProjectsRoute: ProjectsRoute,
+  PromptGeneratorRoute: PromptGeneratorRoute,
   RequestsRoute: RequestsRoute,
   SelfDevelopmentRoute: SelfDevelopmentRoute,
   TasksRoute: TasksRouteWithChildren,
+  ApiLeadSearchRoute: ApiLeadSearchRoute,
   ApiNvidiaChatRoute: ApiNvidiaChatRoute,
   ApiAiWorkflowSplatRoute: ApiAiWorkflowSplatRoute,
   ApiAiAnalyzeTasksRoute: ApiAiAnalyzeTasksRoute,

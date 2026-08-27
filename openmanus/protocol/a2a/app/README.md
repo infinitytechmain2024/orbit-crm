@@ -3,10 +3,9 @@
 This is an experimental integration of the A2A protocol (https://google.github.io/A2A/#/documentation) with OpenManus, currently supporting only non-streaming mode.
 
 ## Prerequisites
+
 - conda activate 'Your OpenManus python env'
 - pip install a2a-sdk==0.2.5
-
-
 
 ## Setup & Running
 
@@ -17,7 +16,7 @@ This is an experimental integration of the A2A protocol (https://google.github.i
    python -m protocol.a2a.app.main
    ```
 
-2. Clone A2A official repository and run A2A Client,there are two ways to use A2AClient——CLI and  Register A2A Agent Server in UI.(details at https://github.com/google/A2A):
+2. Clone A2A official repository and run A2A Client,there are two ways to use A2AClient——CLI and Register A2A Agent Server in UI.(details at https://github.com/google/A2A):
 
    ```bash
    git clone https://github.com/google-a2a/a2a-samples.git
@@ -29,7 +28,6 @@ This is an experimental integration of the A2A protocol (https://google.github.i
 
 3. Send tasks to OpenManus via A2A Client CLI or Register A2A Agent Server in UI
 
-
 ## Examples
 
 **Get Agent Card**
@@ -40,7 +38,6 @@ Request:
 curl http://localhost:10000/.well-known/agent.json
 
 ```
-
 
 ```
 Response:
@@ -187,7 +184,6 @@ Response:
     }
 }
 ```
-
 
 ## Learn More
 

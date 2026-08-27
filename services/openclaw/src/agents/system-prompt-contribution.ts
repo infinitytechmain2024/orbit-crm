@@ -5,9 +5,7 @@
  */
 /** Core system-prompt sections that providers may replace. */
 export type ProviderSystemPromptSectionId =
-  | "interaction_style"
-  | "tool_call_style"
-  | "execution_bias";
+  "interaction_style" | "tool_call_style" | "execution_bias";
 
 /** Provider guidance merged into the assembled agent system prompt. */
 export type ProviderSystemPromptContribution = {

@@ -127,8 +127,7 @@ type ResolvedOpenAICompletionsCompat = Omit<
 };
 
 type ChatCompletionInstructionMessageParam =
-  | ChatCompletionDeveloperMessageParam
-  | ChatCompletionSystemMessageParam;
+  ChatCompletionDeveloperMessageParam | ChatCompletionSystemMessageParam;
 
 type ChatCompletionTextPartWithCacheControl = ChatCompletionContentPartText & {
   cache_control?: OpenAICompatCacheControl;

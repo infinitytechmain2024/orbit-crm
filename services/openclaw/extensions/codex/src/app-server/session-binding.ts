@@ -210,8 +210,7 @@ export type CodexSessionGenerationAdoptionResult = "adopted" | "current" | "abse
 export type CodexSessionGenerationRetirementResult = "applied" | "absent" | "conflict";
 
 export type CodexSessionGenerationReclaimPlan =
-  | { kind: "resolved"; result: boolean }
-  | { kind: "verify"; expectedPreviousSessionId: string };
+  { kind: "resolved"; result: boolean } | { kind: "verify"; expectedPreviousSessionId: string };
 
 const bindingLeaseSchema = z.object({
   token: z.string().refine((value) => Boolean(value.trim())),

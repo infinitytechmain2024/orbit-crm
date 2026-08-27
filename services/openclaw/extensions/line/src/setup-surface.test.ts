@@ -473,8 +473,7 @@ describe("linePlugin gateway.startAccount", () => {
       expect(monitorLineProvider).toHaveBeenCalledTimes(1);
     });
     const startupParams = (monitorLineProvider.mock.calls as unknown[][])[0]?.[0] as
-      | { accountId?: string; channelAccessToken?: string; channelSecret?: string }
-      | undefined;
+      { accountId?: string; channelAccessToken?: string; channelSecret?: string } | undefined;
     expect(startupParams?.channelAccessToken).toBe("token");
     expect(startupParams?.channelSecret).toBe("secret");
     expect(startupParams?.accountId).toBe("default");

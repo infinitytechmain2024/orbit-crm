@@ -233,14 +233,11 @@ function createHarness(params?: {
     runDetachedTask,
     roomMessageListener: listeners.get("room.message") as RoomEventListener | undefined,
     roomDecryptedEventListener: listeners.get("room.decrypted_event") as
-      | RoomEventListener
-      | undefined,
+      RoomEventListener | undefined,
     failedDecryptListener: listeners.get("room.failed_decryption") as
-      | FailedDecryptListener
-      | undefined,
+      FailedDecryptListener | undefined,
     verificationSummaryListener: listeners.get("verification.summary") as
-      | VerificationSummaryListener
-      | undefined,
+      VerificationSummaryListener | undefined,
     roomInviteListener: listeners.get("room.invite") as RoomEventListener | undefined,
     roomJoinListener: listeners.get("room.join") as RoomEventListener | undefined,
   };

@@ -14,10 +14,7 @@ import {
 type TelegramErrorPolicy = "always" | "once" | "silent";
 
 type TelegramErrorConfig =
-  | TelegramAccountConfig
-  | TelegramDirectConfig
-  | TelegramGroupConfig
-  | TelegramTopicConfig;
+  TelegramAccountConfig | TelegramDirectConfig | TelegramGroupConfig | TelegramTopicConfig;
 
 const errorCooldownStore = new Map<string, Map<string, number>>();
 const DEFAULT_ERROR_COOLDOWN_MS = 14400000;

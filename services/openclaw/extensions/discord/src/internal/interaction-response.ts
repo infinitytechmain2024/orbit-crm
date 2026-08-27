@@ -2,10 +2,7 @@
 import { InteractionResponseType, MessageFlags } from "discord-api-types/v10";
 
 export type InteractionResponseState =
-  | "unacknowledged"
-  | "deferred"
-  | "deferred-update"
-  | "replied";
+  "unacknowledged" | "deferred" | "deferred-update" | "replied";
 
 type InteractionReplyAction = "initial" | "edit" | "follow-up";
 

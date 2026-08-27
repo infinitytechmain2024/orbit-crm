@@ -62,8 +62,7 @@ describe("slack channel message adapter", () => {
 
   function expectLastSendSlackCall(): [string, string, Record<string, unknown>] {
     const call = sendSlack.mock.calls.at(-1) as unknown as
-      | [string, string, Record<string, unknown>]
-      | undefined;
+      [string, string, Record<string, unknown>] | undefined;
     if (!call) {
       throw new Error("Expected sendSlack to be called");
     }

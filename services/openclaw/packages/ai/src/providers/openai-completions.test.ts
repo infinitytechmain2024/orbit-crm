@@ -513,8 +513,7 @@ describe("OpenAI-compatible completions params", () => {
 
   it("replays update_plan-style empty non-image tool results as no output", async () => {
     let capturedMessages:
-      | Array<{ role?: string; content?: unknown; tool_call_id?: string }>
-      | undefined;
+      Array<{ role?: string; content?: unknown; tool_call_id?: string }> | undefined;
     const stream = streamOpenAICompletions(
       model,
       {
@@ -567,8 +566,7 @@ describe("OpenAI-compatible completions params", () => {
 
   it("preserves image-bearing tool results with image placeholders and attachments", async () => {
     let capturedMessages:
-      | Array<{ role?: string; content?: unknown; tool_call_id?: string }>
-      | undefined;
+      Array<{ role?: string; content?: unknown; tool_call_id?: string }> | undefined;
     const stream = streamOpenAICompletions(
       { ...model, input: ["text", "image"] },
       {

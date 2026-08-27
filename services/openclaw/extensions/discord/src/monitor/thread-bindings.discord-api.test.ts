@@ -161,8 +161,7 @@ describe("resolveChannelIdForBinding", () => {
     expect(
       (
         firstMockCall(createDiscordRestClient, "createDiscordRestClient")[0] as
-          | { cfg?: OpenClawConfig }
-          | undefined
+          { cfg?: OpenClawConfig } | undefined
       )?.cfg,
     ).toBe(cfg);
   });

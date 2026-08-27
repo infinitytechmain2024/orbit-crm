@@ -37,8 +37,7 @@ describe("tlon doctor", () => {
     expect(
       (
         result.config.channels?.tlon?.accounts?.alt as
-          | { network?: Record<string, unknown> }
-          | undefined
+          { network?: Record<string, unknown> } | undefined
       )?.network,
     ).toEqual({
       dangerouslyAllowPrivateNetwork: false,

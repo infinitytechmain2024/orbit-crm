@@ -440,8 +440,7 @@ export class WhatsAppConnectionController {
 
   getSelfIdentity(): WhatsAppSelfIdentity | null {
     const user = this.socketRef.current?.user as
-      | { id?: string | null; lid?: string | null }
-      | undefined;
+      { id?: string | null; lid?: string | null } | undefined;
     if (!user) {
       return null;
     }

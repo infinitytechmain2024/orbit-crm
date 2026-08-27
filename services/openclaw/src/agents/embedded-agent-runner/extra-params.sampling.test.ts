@@ -232,8 +232,7 @@ describe("createStreamFnWithExtraParams sampling overrides", () => {
 
     const callOptions = (underlying as unknown as { mock: { calls: unknown[][] } }).mock
       .calls[0]?.[2] as
-      | { responseFormat?: Record<string, unknown>; temperature?: number }
-      | undefined;
+      { responseFormat?: Record<string, unknown>; temperature?: number } | undefined;
     expect(callOptions?.responseFormat).toEqual({ type: "json_object" });
     expect(callOptions?.temperature).toBe(0.4);
   });

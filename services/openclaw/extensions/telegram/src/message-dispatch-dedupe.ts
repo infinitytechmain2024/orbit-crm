@@ -16,9 +16,7 @@ export type TelegramMessageDispatchReplayGuard = ClaimableDedupe &
   Required<Pick<ClaimableDedupe, "forget">>;
 
 type TelegramMessageDispatchClaim =
-  | { kind: "claimed"; key: string }
-  | { kind: "duplicate" }
-  | { kind: "invalid" };
+  { kind: "claimed"; key: string } | { kind: "duplicate" } | { kind: "invalid" };
 
 type TelegramMessageDispatchReplayForgetFailure = {
   key: string;

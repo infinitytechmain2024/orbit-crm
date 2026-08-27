@@ -188,8 +188,7 @@ function isFinishedForSteerControl(entry: SubagentRunRecord, hasPendingDescendan
 }
 
 type SubagentKillTargetState =
-  | { state: "finalizing" }
-  | { state: "terminal"; task: DetachedTaskTerminalState };
+  { state: "finalizing" } | { state: "terminal"; task: DetachedTaskTerminalState };
 
 function resolveSubagentKillTargetState(
   entry: SubagentRunRecord,

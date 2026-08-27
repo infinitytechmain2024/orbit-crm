@@ -171,12 +171,7 @@ type ActiveRecallPluginConfig = {
   deniedChatIds?: string[];
   thinking?: ActiveMemoryThinkingLevel;
   promptStyle?:
-    | "balanced"
-    | "strict"
-    | "contextual"
-    | "recall-heavy"
-    | "precision-heavy"
-    | "preference-only";
+    "balanced" | "strict" | "contextual" | "recall-heavy" | "precision-heavy" | "preference-only";
   toolsAllow?: string[];
   promptOverride?: string;
   promptAppend?: string;
@@ -212,12 +207,7 @@ type ResolvedActiveRecallPluginConfig = {
   deniedChatIds: string[];
   thinking: ActiveMemoryThinkingLevel;
   promptStyle:
-    | "balanced"
-    | "strict"
-    | "contextual"
-    | "recall-heavy"
-    | "precision-heavy"
-    | "preference-only";
+    "balanced" | "strict" | "contextual" | "recall-heavy" | "precision-heavy" | "preference-only";
   toolsAllow: string[];
   promptOverride?: string;
   promptAppend?: string;
@@ -333,21 +323,9 @@ let setupGraceTimeoutMs = DEFAULT_SETUP_GRACE_TIMEOUT_MS;
 let timeoutPartialDataGraceMs = TIMEOUT_PARTIAL_DATA_GRACE_MS;
 
 type ActiveMemoryThinkingLevel =
-  | "off"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh"
-  | "adaptive"
-  | "max";
+  "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "max";
 type ActiveMemoryPromptStyle =
-  | "balanced"
-  | "strict"
-  | "contextual"
-  | "recall-heavy"
-  | "precision-heavy"
-  | "preference-only";
+  "balanced" | "strict" | "contextual" | "recall-heavy" | "precision-heavy" | "preference-only";
 
 const ACTIVE_MEMORY_STATUS_PREFIX = "🧩 Active Memory:";
 const ACTIVE_MEMORY_DEBUG_PREFIX = "🔎 Active Memory Debug:";

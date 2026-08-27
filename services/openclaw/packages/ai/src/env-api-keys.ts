@@ -5,9 +5,7 @@ let join: typeof import("node:path").join | null = null;
 
 type DynamicImport = (specifier: string) => Promise<unknown>;
 type NodeBuiltinModule =
-  | typeof import("node:fs")
-  | typeof import("node:os")
-  | typeof import("node:path");
+  typeof import("node:fs") | typeof import("node:os") | typeof import("node:path");
 
 const dynamicImport: DynamicImport = (specifier) => import(specifier);
 const NODE_FS_SPECIFIER = "node:fs";
@@ -16,8 +14,7 @@ const NODE_PATH_SPECIFIER = "node:path";
 
 function loadNodeBuiltinModule(specifier: string): NodeBuiltinModule | null {
   const getBuiltinModule = (typeof process !== "undefined" ? process : undefined) as
-    | (NodeJS.Process & { getBuiltinModule?: (id: string) => unknown })
-    | undefined;
+    (NodeJS.Process & { getBuiltinModule?: (id: string) => unknown }) | undefined;
   if (typeof getBuiltinModule?.getBuiltinModule === "function") {
     return getBuiltinModule.getBuiltinModule(specifier) as NodeBuiltinModule;
   }
@@ -32,8 +29,7 @@ function loadNodeHelpersSync(): boolean {
     const fsModule = loadNodeBuiltinModule(NODE_FS_SPECIFIER) as typeof import("node:fs") | null;
     const osModule = loadNodeBuiltinModule(NODE_OS_SPECIFIER) as typeof import("node:os") | null;
     const pathModule = loadNodeBuiltinModule(NODE_PATH_SPECIFIER) as
-      | typeof import("node:path")
-      | null;
+      typeof import("node:path") | null;
     existsSync ??= fsModule?.existsSync ?? null;
     homedir ??= osModule?.homedir ?? null;
     join ??= pathModule?.join ?? null;
@@ -163,7 +159,7 @@ function getApiKeyEnvVars(provider: string): readonly string[] | undefined {
 
   const envMap: Record<string, string> = {
     openai: "OPENAI_API_KEY",
-    "meta": "MODEL_API_KEY",
+    meta: "MODEL_API_KEY",
     "azure-openai-responses": "AZURE_OPENAI_API_KEY",
     deepseek: "DEEPSEEK_API_KEY",
     google: "GEMINI_API_KEY",

@@ -2,6 +2,7 @@
 description: Scrape Google Maps business listings for a query + city (drives the google-maps-scraper skill)
 argument-hint: <business type> in <city, ST> [depth]
 ---
+
 The user wants to scrape Google Maps business listings. Query: **$ARGUMENTS**
 
 Use the `google-maps-scraper` skill. Execute:
@@ -9,7 +10,7 @@ Use the `google-maps-scraper` skill. Execute:
 1. **Health-check** the API: `curl -s http://localhost:8080/api/v1/jobs`. If it's down, run `docker compose up -d` from the kit root, wait ~10s, and retry.
 2. **Parse** the business type and city from the query. Look up the city's **latitude/longitude** (as strings).
 3. **ASK about social profiles — always, before scraping.** Ask the user ONE short question:
-   *"Want me to also grab their social profiles (Instagram / Facebook / LinkedIn)? Emails are already included by default. (yes / no)"*
+   _"Want me to also grab their social profiles (Instagram / Facebook / LinkedIn)? Emails are already included by default. (yes / no)"_
    Wait for the answer. **Skip the question only if** the user already said yes/no to socials in their request.
    If **yes** → add `--socials` in step 4. If **no** → leave it off. (Socials add no LLM-token cost and one extra HTTP fetch per site — see the skill.)
 4. **Create the job with EMAIL EXTRACTION ON** (`"email": true` in the body — emails are the #1 lead field). Required fields — `keywords` (location baked into each term), `lat`/`lon` (strings), `max_time` (seconds, default `300`), `depth` (the number in the query, else `5`). Easiest path: `python3 scripts/scrape.py "<keyword>" --city "<City, ST>" --depth <n>` (emails are already on by default; append `--socials` if the user said yes in step 3).

@@ -20,8 +20,7 @@ type HttpMcpServerLaunchConfig = {
 };
 
 type HttpMcpServerLaunchResult =
-  | { ok: true; config: HttpMcpServerLaunchConfig }
-  | { ok: false; reason: string };
+  { ok: true; config: HttpMcpServerLaunchConfig } | { ok: false; reason: string };
 
 /** Normalizes an HTTP MCP server config record into a launchable transport config. */
 export function resolveHttpMcpServerLaunchConfig(

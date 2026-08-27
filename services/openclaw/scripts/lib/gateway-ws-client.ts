@@ -12,10 +12,7 @@ type GatewayResFrame = {
 };
 export type GatewayEventFrame = { type: "event"; event: string; seq?: number; payload?: unknown };
 export type GatewayFrame =
-  | GatewayReqFrame
-  | GatewayResFrame
-  | GatewayEventFrame
-  | { type: string; [key: string]: unknown };
+  GatewayReqFrame | GatewayResFrame | GatewayEventFrame | { type: string; [key: string]: unknown };
 
 export function createArgReader(argv = process.argv.slice(2)) {
   const get = (flag: string) => {

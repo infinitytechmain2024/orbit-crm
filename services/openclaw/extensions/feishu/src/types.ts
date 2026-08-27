@@ -10,9 +10,7 @@ export type FeishuAccountConfig = z.infer<typeof FeishuAccountConfigSchema>;
 export type FeishuDomain = "feishu" | "lark" | (string & {});
 
 export type FeishuDefaultAccountSelectionSource =
-  | "explicit-default"
-  | "mapped-default"
-  | "fallback";
+  "explicit-default" | "mapped-default" | "fallback";
 type FeishuAccountSelectionSource = "explicit" | FeishuDefaultAccountSelectionSource;
 
 export type ResolvedFeishuAccount = {

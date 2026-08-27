@@ -47,21 +47,18 @@ describe("runEmbeddedAttempt cwd/workspace split", () => {
     });
 
     const bootstrapCall = hoisted.resolveBootstrapFilesForRunMock.mock.calls[0]?.[0] as
-      | { agentId?: string; workspaceDir?: string }
-      | undefined;
+      { agentId?: string; workspaceDir?: string } | undefined;
     expect(bootstrapCall?.workspaceDir).not.toBe("/tmp/task-repo");
     expect(bootstrapCall?.agentId).toBe("main");
 
     const toolsCall = hoisted.createOpenClawCodingToolsMock.mock.calls[0]?.[0] as
-      | { cwd?: string; workspaceDir?: string; spawnWorkspaceDir?: string }
-      | undefined;
+      { cwd?: string; workspaceDir?: string; spawnWorkspaceDir?: string } | undefined;
     expect(toolsCall?.cwd).toBe(taskRepo);
     expect(toolsCall?.workspaceDir).toBe(bootstrapCall?.workspaceDir);
     expect(toolsCall?.spawnWorkspaceDir).toBe(bootstrapCall?.workspaceDir);
 
     const resourceLoaderInit = hoisted.defaultResourceLoaderInitMock.mock.calls[0]?.[0] as
-      | { cwd?: string }
-      | undefined;
+      { cwd?: string } | undefined;
     expect(resourceLoaderInit?.cwd).toBe(taskRepo);
   });
 
@@ -78,8 +75,7 @@ describe("runEmbeddedAttempt cwd/workspace split", () => {
     });
 
     const toolsCall = hoisted.createOpenClawCodingToolsMock.mock.calls[0]?.[0] as
-      | { currentChannelId?: string; currentMessagingTarget?: string }
-      | undefined;
+      { currentChannelId?: string; currentMessagingTarget?: string } | undefined;
     expect(toolsCall).toMatchObject({
       currentChannelId: "D123",
       currentMessagingTarget: "user:U123",

@@ -43,8 +43,7 @@ export function hasRenderableReplyPayload(payload: ReplyPayload): boolean {
     return true;
   }
   const discordData = payload.channelData?.discord as
-    | { components?: TopLevelComponents[] }
-    | undefined;
+    { components?: TopLevelComponents[] } | undefined;
   if (Array.isArray(discordData?.components) && discordData.components.length > 0) {
     return true;
   }
@@ -79,8 +78,7 @@ export async function deliverDiscordInteractionReply(params: {
   const { interaction, payload, textLimit, maxLinesPerMessage, preferFollowUp, chunkMode } = params;
   const reply = resolveSendableOutboundReplyParts(payload);
   const discordData = payload.channelData?.discord as
-    | { components?: TopLevelComponents[] }
-    | undefined;
+    { components?: TopLevelComponents[] } | undefined;
   let firstMessageComponents =
     Array.isArray(discordData?.components) && discordData.components.length > 0
       ? discordData.components

@@ -43,16 +43,7 @@ import {
 } from "./realtime-provider-shared.js";
 
 type OpenAIRealtimeVoice =
-  | "alloy"
-  | "ash"
-  | "ballad"
-  | "cedar"
-  | "coral"
-  | "echo"
-  | "marin"
-  | "sage"
-  | "shimmer"
-  | "verse";
+  "alloy" | "ash" | "ballad" | "cedar" | "coral" | "echo" | "marin" | "sage" | "shimmer" | "verse";
 
 type OpenAIRealtimeVoiceProviderConfig = {
   apiKey?: string;
@@ -245,8 +236,7 @@ function asUnitInterval(value: unknown): number | undefined {
 }
 
 type OpenAIRealtimeApiKeyResolution =
-  | { status: "available"; value: string }
-  | { status: "missing" };
+  { status: "available"; value: string } | { status: "missing" };
 
 const OPENAI_REALTIME_PLATFORM_AUTH_REQUIRED =
   "OpenAI Realtime voice requires an OpenAI API key or Codex OAuth sign-in";

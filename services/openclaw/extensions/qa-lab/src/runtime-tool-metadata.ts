@@ -7,14 +7,10 @@ import {
 import type { QaRuntimeParityTier, QaSeedScenarioWithSource } from "./scenario-catalog.js";
 
 export type QaRuntimeToolBucket =
-  | "codex-native-workspace"
-  | "openclaw-dynamic-integration"
-  | "optional-profile-or-plugin";
+  "codex-native-workspace" | "openclaw-dynamic-integration" | "optional-profile-or-plugin";
 
 export type QaRuntimeToolExpectedLayer =
-  | "codex-native-workspace"
-  | "openclaw-dynamic"
-  | "profile-or-plugin";
+  "codex-native-workspace" | "openclaw-dynamic" | "profile-or-plugin";
 
 export type QaRuntimeCapabilityLayer =
   | "codex-native-workspace"

@@ -21,16 +21,17 @@ tests/
 
 ## 🎭 Mock vs Real Tests
 
-| Test Type | Location | API Calls | Cost | Speed | When to Use |
-|-----------|----------|-----------|------|-------|-------------|
-| **Mock Tests** | `tests/integration/` | ❌ Mocked | 🆓 Free | ⚡ Fast | Development, CI/CD |
-| **Real Tests** | `tests/e2e/` | ✅ Actual | 💰 Paid | 🐌 Slow | Pre-release, debugging |
+| Test Type      | Location             | API Calls | Cost    | Speed   | When to Use            |
+| -------------- | -------------------- | --------- | ------- | ------- | ---------------------- |
+| **Mock Tests** | `tests/integration/` | ❌ Mocked | 🆓 Free | ⚡ Fast | Development, CI/CD     |
+| **Real Tests** | `tests/e2e/`         | ✅ Actual | 💰 Paid | 🐌 Slow | Pre-release, debugging |
 
 ## 🚀 Running Tests
 
 ### Using Test Runner (Recommended)
 
 **Mock Tests (Free):**
+
 ```bash
 # All mock integration tests
 python tests/test_runner.py --pattern frameworks
@@ -38,11 +39,12 @@ python tests/test_runner.py --pattern frameworks
 # AutoGen mock tests only
 python tests/test_runner.py --pattern autogen
 
-# CrewAI mock tests only  
+# CrewAI mock tests only
 python tests/test_runner.py --pattern crewai
 ```
 
 **Real Tests (Costly!):**
+
 ```bash
 # All real tests (will prompt for confirmation)
 python tests/test_runner.py --pattern real
@@ -55,11 +57,12 @@ python tests/test_runner.py --pattern real-crewai
 ```
 
 **Full Execution Tests (Very Costly!):**
+
 ```bash
 # AutoGen with actual praisonai.run() execution
 python tests/test_runner.py --pattern full-autogen
 
-# CrewAI with actual praisonai.run() execution  
+# CrewAI with actual praisonai.run() execution
 python tests/test_runner.py --pattern full-crewai
 
 # Both frameworks with full execution
@@ -69,6 +72,7 @@ python tests/test_runner.py --pattern full-frameworks
 ### Using pytest Directly
 
 **Mock Tests:**
+
 ```bash
 # All integration tests
 python -m pytest tests/integration/ -v
@@ -79,6 +83,7 @@ python -m pytest tests/integration/crewai/ -v
 ```
 
 **Real Tests (Setup Only):**
+
 ```bash
 # All real tests (requires API keys)
 python -m pytest tests/e2e/ -v -m real
@@ -89,6 +94,7 @@ python -m pytest tests/e2e/crewai/ -v -m real
 ```
 
 **Full Execution Tests:**
+
 ```bash
 # Enable full execution and run with real-time output
 export PRAISONAI_RUN_FULL_TESTS=true
@@ -115,18 +121,21 @@ export PRAISONAI_RUN_FULL_TESTS=true
 ## 🚨 Safety Features
 
 ### Mock Tests Safety
+
 - ✅ No API calls made
 - ✅ Always free to run
 - ✅ Fast and reliable
 - ✅ Safe for CI/CD
 
 ### Real Tests Safety
+
 - ⚠️ **Cost warnings** before execution
 - ⚠️ **User confirmation** required
 - ⚠️ **Automatic skipping** without API keys
 - ⚠️ **Minimal test design** to reduce costs
 
 ### Full Execution Tests Safety
+
 - 🚨 **Double cost warnings** before execution
 - 🚨 **"EXECUTE" confirmation** required
 - 🚨 **Environment variable** protection
@@ -136,18 +145,21 @@ export PRAISONAI_RUN_FULL_TESTS=true
 ## 📋 Test Categories
 
 ### Unit Tests (`tests/unit/`)
+
 - Core agent functionality
 - Task management
 - LLM integrations
 - Configuration handling
 
 ### Mock Integration Tests (`tests/integration/`)
+
 - Framework integration logic
 - Agent/crew creation workflows
 - Configuration validation
 - Error handling
 
 ### Real E2E Tests (`tests/e2e/`)
+
 - **Setup Tests**: Actual API setup validation
 - **Full Execution Tests**: Complete workflow with praisonai.run()
 - Environment verification
@@ -156,6 +168,7 @@ export PRAISONAI_RUN_FULL_TESTS=true
 ## 🎯 When to Use Each Test Type
 
 ### Use Mock Tests When:
+
 - ✅ Developing new features
 - ✅ Testing integration logic
 - ✅ Running CI/CD pipelines
@@ -163,12 +176,14 @@ export PRAISONAI_RUN_FULL_TESTS=true
 - ✅ Daily development work
 
 ### Use Real Tests (Setup Only) When:
+
 - ⚠️ Verifying API connectivity
 - ⚠️ Testing configuration parsing
 - ⚠️ Validating framework imports
 - ⚠️ Quick integration checks
 
 ### Use Full Execution Tests When:
+
 - 🚨 Preparing for major releases
 - 🚨 Testing complete workflows
 - 🚨 Debugging actual agent behavior
@@ -177,10 +192,10 @@ export PRAISONAI_RUN_FULL_TESTS=true
 
 ## 📊 Test Commands Quick Reference
 
-| Purpose | Command | Cost | Speed | Output |
-|---------|---------|------|-------|--------|
-| **Development Testing** | `python tests/test_runner.py --pattern fast` | Free | Fast | Basic |
-| **Framework Integration** | `python tests/test_runner.py --pattern frameworks` | Free | Medium | Mock |
-| **Real Setup Validation** | `python tests/test_runner.py --pattern real-autogen` | Low | Medium | Setup Only |
-| **Full Execution** | `python tests/test_runner.py --pattern full-autogen` | High | Slow | Complete Logs |
-| **Production Validation** | `python tests/test_runner.py --pattern full-frameworks` | High | Slow | Complete Logs | 
+| Purpose                   | Command                                                 | Cost | Speed  | Output        |
+| ------------------------- | ------------------------------------------------------- | ---- | ------ | ------------- |
+| **Development Testing**   | `python tests/test_runner.py --pattern fast`            | Free | Fast   | Basic         |
+| **Framework Integration** | `python tests/test_runner.py --pattern frameworks`      | Free | Medium | Mock          |
+| **Real Setup Validation** | `python tests/test_runner.py --pattern real-autogen`    | Low  | Medium | Setup Only    |
+| **Full Execution**        | `python tests/test_runner.py --pattern full-autogen`    | High | Slow   | Complete Logs |
+| **Production Validation** | `python tests/test_runner.py --pattern full-frameworks` | High | Slow   | Complete Logs |

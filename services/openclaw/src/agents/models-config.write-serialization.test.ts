@@ -20,8 +20,7 @@ import {
 const planOpenClawModelsJsonMock = vi.fn();
 const writePrivateStoreTextWriteMock = vi.fn();
 let actualPrivateFileStore:
-  | typeof import("../infra/private-file-store.js").privateFileStore
-  | undefined;
+  typeof import("../infra/private-file-store.js").privateFileStore | undefined;
 
 installModelsConfigTestHooks();
 

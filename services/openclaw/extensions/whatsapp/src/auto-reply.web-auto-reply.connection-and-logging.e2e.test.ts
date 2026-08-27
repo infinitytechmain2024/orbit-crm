@@ -106,8 +106,9 @@ async function startWatchdogScenario(params: {
 }
 
 function expectErrorContaining(errorFn: unknown, text: string): void {
-  const messages = ((errorFn as { mock?: { calls?: unknown[][] } }).mock?.calls ?? []).map((call) =>
-    typeof call[0] === "string" ? call[0] : call[0] instanceof Error ? call[0].message : "",
+  const messages = ((errorFn as { mock?: { calls?: unknown[][] } }).mock?.calls ?? []).map(
+    (call) =>
+      typeof call[0] === "string" ? call[0] : call[0] instanceof Error ? call[0].message : "",
   );
   expect(messages.join("\n")).toContain(text);
 }
@@ -387,8 +388,7 @@ describe("web auto-reply connection", () => {
       });
 
       const periodicCall = deliveryQueueMocks.drainPendingDeliveries.mock.calls.at(-1)?.[0] as
-        | DrainPendingDeliveriesCall
-        | undefined;
+        DrainPendingDeliveriesCall | undefined;
       expect(periodicCall).toBeDefined();
       if (!periodicCall) {
         throw new Error("Expected WhatsApp periodic drain call");

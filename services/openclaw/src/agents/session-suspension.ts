@@ -31,8 +31,7 @@ const deferredSessionSuspension = new AsyncLocalStorage<{
 
 export type SessionSuspensionReason = "quota_exhausted" | "manual" | "circuit_open";
 type SessionSuspensionTarget =
-  | { mode: "defer"; defer: (params: SessionSuspensionParams) => void }
-  | { mode: "suspend" };
+  { mode: "defer"; defer: (params: SessionSuspensionParams) => void } | { mode: "suspend" };
 export type SessionSuspensionParams = {
   cfg: OpenClawConfig | undefined;
   agentDir?: string;

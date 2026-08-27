@@ -95,8 +95,7 @@ export function registerStreamingCommands(registry: SlashCommandRegistry): void 
         const configApi = runtime.config;
         const currentCfg = structuredClone(configApi.current() as Record<string, unknown>);
         const qqbot = ((currentCfg.channels ?? {}) as Record<string, unknown>).qqbot as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
 
         if (!qqbot) {
           return `❌ 配置文件中未找到 qqbot 通道配置`;

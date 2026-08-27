@@ -253,9 +253,7 @@ type PromptReleasedOpaqueEntry = {
 };
 
 type PromptReleasedSessionEntry =
-  | SessionMessageEntry
-  | PromptReleasedSessionMetadataEntry
-  | PromptReleasedOpaqueEntry;
+  SessionMessageEntry | PromptReleasedSessionMetadataEntry | PromptReleasedOpaqueEntry;
 
 type PromptReleasedSessionMergeResult = {
   sessionFileSnapshot: OwnedSessionTranscriptCacheSnapshot;

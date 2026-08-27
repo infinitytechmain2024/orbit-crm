@@ -1,18 +1,20 @@
 const mockChatCompletion = {
-  choices: [{
-    message: {
-      content: 'Mock response',
-      role: 'assistant'
-    }
-  }]
+  choices: [
+    {
+      message: {
+        content: "Mock response",
+        role: "assistant",
+      },
+    },
+  ],
 };
 
 const mockStreamResponse = {
   [Symbol.asyncIterator]: () => {
     const chunks = [
-      { choices: [{ delta: { content: 'Mock ' } }] },
-      { choices: [{ delta: { content: 'stream ' } }] },
-      { choices: [{ delta: { content: 'response' } }] }
+      { choices: [{ delta: { content: "Mock " } }] },
+      { choices: [{ delta: { content: "stream " } }] },
+      { choices: [{ delta: { content: "response" } }] },
     ];
     let index = 0;
     return {
@@ -21,9 +23,9 @@ const mockStreamResponse = {
           return { value: chunks[index++], done: false };
         }
         return { value: undefined, done: true };
-      }
+      },
     };
-  }
+  },
 };
 
 export default class OpenAI {
@@ -38,15 +40,17 @@ export default class OpenAI {
           return mockStreamResponse;
         }
         return Promise.resolve(mockChatCompletion);
-      })
-    }
+      }),
+    },
   };
 
   completions = {
     create: jest.fn().mockResolvedValue({
-      choices: [{
-        text: 'Mock response'
-      }]
-    })
+      choices: [
+        {
+          text: "Mock response",
+        },
+      ],
+    }),
   };
 }

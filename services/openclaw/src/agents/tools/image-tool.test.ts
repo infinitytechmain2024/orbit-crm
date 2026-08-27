@@ -2047,8 +2047,7 @@ describe("image tool implicit imageModel config", () => {
       };
       const imageSchema = schema.properties?.image as { type?: unknown } | undefined;
       const imagesSchema = schema.properties?.images as
-        | { type?: unknown; items?: unknown }
-        | undefined;
+        { type?: unknown; items?: unknown } | undefined;
       const imageItems = imagesSchema?.items as { type?: unknown } | undefined;
 
       expect(imageSchema?.type).toBe("string");

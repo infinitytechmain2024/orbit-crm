@@ -117,8 +117,7 @@ export function resolveAccount(
   const merged = resolveMergedAccountConfig<Record<string, unknown> & SynologyChatChannelConfig>({
     channelConfig: channelCfg as Record<string, unknown> & SynologyChatChannelConfig,
     accounts: channelCfg.accounts as
-      | Record<string, Partial<Record<string, unknown> & SynologyChatChannelConfig>>
-      | undefined,
+      Record<string, Partial<Record<string, unknown> & SynologyChatChannelConfig>> | undefined,
     accountId: id,
   });
 

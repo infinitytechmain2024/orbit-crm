@@ -4,8 +4,7 @@ import { listRegisteredAgentHarnesses } from "./registry.js";
 import type { AgentHarness, AgentHarnessSupport, AgentHarnessSupportContext } from "./types.js";
 
 type HarnessProviderOwnership =
-  | { status: "unowned" }
-  | { status: "owned" | "ambiguous"; pluginIds: readonly string[] };
+  { status: "unowned" } | { status: "owned" | "ambiguous"; pluginIds: readonly string[] };
 
 /** Builds the provider/model facts passed to registered harness support probes. */
 export function buildAgentHarnessSupportContext(params: {

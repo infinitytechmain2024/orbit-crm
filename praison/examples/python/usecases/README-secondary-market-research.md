@@ -28,7 +28,7 @@ import asyncio
 # Configure research parameters
 config = MarketResearchConfig(
     company="Tesla",
-    geography="North America", 
+    geography="North America",
     industry="Electric Vehicles",
     sections=["market_overview", "competitive_analysis", "financial_performance"]
 )
@@ -55,7 +55,7 @@ topic: "Secondary Market Research Analysis"
 
 variables:
   company: "Tesla"
-  geography: "North America" 
+  geography: "North America"
   industry: "Electric Vehicles"
 
 roles:
@@ -69,7 +69,7 @@ roles:
 Choose from the following research sections:
 
 - **market_overview**: Market size, trends, and growth drivers
-- **competitive_analysis**: Competitor analysis and market positioning  
+- **competitive_analysis**: Competitor analysis and market positioning
 - **financial_performance**: Financial metrics and benchmarking
 - **growth_opportunities**: Strategic growth vectors and opportunities
 - **risk_assessment**: Risk factors and mitigation strategies
@@ -77,6 +77,7 @@ Choose from the following research sections:
 ## 🌍 Use Cases
 
 ### Technology Companies
+
 ```python
 config = MarketResearchConfig(
     company="OpenAI",
@@ -87,21 +88,23 @@ config = MarketResearchConfig(
 ```
 
 ### Automotive Industry
+
 ```python
 config = MarketResearchConfig(
     company="BMW",
-    geography="Europe", 
+    geography="Europe",
     industry="Luxury Automobiles",
     sections=["market_overview", "competitive_analysis", "financial_performance", "risk_assessment"]
 )
 ```
 
 ### Healthcare/Pharmaceuticals
+
 ```python
 config = MarketResearchConfig(
     company="Pfizer",
     geography="Global",
-    industry="Pharmaceuticals", 
+    industry="Pharmaceuticals",
     sections=["market_overview", "competitive_analysis", "growth_opportunities", "risk_assessment"]
 )
 ```
@@ -109,6 +112,7 @@ config = MarketResearchConfig(
 ## 🔧 API Endpoints
 
 ### Generate Research Report
+
 ```http
 POST /research/generate
 Content-Type: application/json
@@ -116,23 +120,26 @@ Content-Type: application/json
 {
   "company": "Tesla",
   "geography": "North America",
-  "industry": "Electric Vehicles", 
+  "industry": "Electric Vehicles",
   "sections": ["market_overview", "competitive_analysis"],
   "format": "json"
 }
 ```
 
 ### Check Job Status
+
 ```http
 GET /research/status/{job_id}
 ```
 
 ### Download Report
+
 ```http
 GET /research/reports/{job_id}
 ```
 
 ### Get Templates
+
 ```http
 GET /research/templates
 ```
@@ -157,7 +164,7 @@ The system generates comprehensive reports with the following structure:
       "agent": "Market Overview Specialist"
     },
     "competitive_analysis": {
-      "content": "Competitive intelligence...", 
+      "content": "Competitive intelligence...",
       "agent": "Competitive Intelligence Analyst"
     }
   }
@@ -191,8 +198,9 @@ export OPENAI_MODEL_NAME="gpt-4o-mini"
 ### Geographic Regions
 
 Supported regions include:
+
 - North America
-- Europe  
+- Europe
 - Asia Pacific
 - Global
 - Custom regions
@@ -200,6 +208,7 @@ Supported regions include:
 ### Industries
 
 The system works across industries:
+
 - Technology
 - Automotive
 - Healthcare/Pharmaceuticals

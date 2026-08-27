@@ -990,8 +990,7 @@ describe("registerTelegramNativeCommands — session metadata", () => {
       label: "fast menu",
     });
     const replyMarkup = options.reply_markup as
-      | { inline_keyboard?: Array<Array<{ text?: string }>> }
-      | undefined;
+      { inline_keyboard?: Array<Array<{ text?: string }>> } | undefined;
     const labels = (replyMarkup?.inline_keyboard ?? []).flatMap((row) =>
       row.map((button) => button.text),
     );
@@ -1193,8 +1192,7 @@ describe("registerTelegramNativeCommands — session metadata", () => {
     await handler(createTelegramPrivateCommandContext());
 
     const deliveredCall = firstMockArg(deliveryMocks.deliverReplies, "deliverReplies") as
-      | DeliverRepliesParams
-      | undefined;
+      DeliverRepliesParams | undefined;
     const deliveredPayload = deliveredCall?.replies?.[0];
     if (!deliveredPayload) {
       throw new Error("expected approval reply payload to be delivered");
@@ -1262,8 +1260,7 @@ describe("registerTelegramNativeCommands — session metadata", () => {
     await handler(createTelegramPrivateCommandContext());
 
     const deliveredCall = firstMockArg(deliveryMocks.deliverReplies, "deliverReplies") as
-      | DeliverRepliesParams
-      | undefined;
+      DeliverRepliesParams | undefined;
     const deliveryParams = requireValue(deliveredCall, "silent error delivery params");
     expect(deliveryParams.silent).toBe(true);
     expect(deliveryParams.replies).toHaveLength(1);
@@ -1962,8 +1959,7 @@ describe("registerTelegramNativeCommands — session metadata", () => {
 
     const deliveryCall = requireValue(
       firstMockArg(deliveryMocks.deliverReplies, "deliverReplies") as
-        | DeliverRepliesParams
-        | undefined,
+        DeliverRepliesParams | undefined,
       "empty response delivery params",
     );
     expect(deliveryCall.replies).toEqual([{ text: "No response generated. Please try again." }]);

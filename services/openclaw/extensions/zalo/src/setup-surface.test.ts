@@ -128,8 +128,7 @@ describe("zalo setup wizard", () => {
     }
     expect(zaloConfig.dmPolicy).toBe("disabled");
     const workAccount = next.channels?.zalo?.accounts?.work as
-      | { dmPolicy?: string; allowFrom?: Array<string | number> }
-      | undefined;
+      { dmPolicy?: string; allowFrom?: Array<string | number> } | undefined;
     if (!workAccount) {
       throw new Error("expected Zalo work account");
     }
@@ -160,8 +159,7 @@ describe("zalo setup wizard", () => {
     }
     expect(zaloConfig.dmPolicy).toBeUndefined();
     const workAccount = next.channels?.zalo?.accounts?.work as
-      | { dmPolicy?: string; allowFrom?: Array<string | number> }
-      | undefined;
+      { dmPolicy?: string; allowFrom?: Array<string | number> } | undefined;
     if (!workAccount) {
       throw new Error("expected Zalo work account");
     }

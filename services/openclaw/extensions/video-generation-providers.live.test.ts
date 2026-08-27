@@ -91,9 +91,7 @@ type LiveProviderCase = {
 type LiveGeneratedVideo = GeneratedVideoAsset;
 
 type LiveVideoAttemptStatus =
-  | { status: "success"; video: LiveGeneratedVideo }
-  | { status: "skip" }
-  | { status: "failure" };
+  { status: "success"; video: LiveGeneratedVideo } | { status: "skip" } | { status: "failure" };
 
 const CASES: LiveProviderCase[] = [
   {

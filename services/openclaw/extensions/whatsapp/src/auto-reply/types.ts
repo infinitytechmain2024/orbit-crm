@@ -5,13 +5,7 @@ import type { ReconnectPolicy } from "../reconnect.js";
 import type { WhatsAppSocketTimingOptions } from "../socket-timing.js";
 
 export type WebChannelHealthState =
-  | "starting"
-  | "healthy"
-  | "stale"
-  | "reconnecting"
-  | "conflict"
-  | "logged-out"
-  | "stopped";
+  "starting" | "healthy" | "stale" | "reconnecting" | "conflict" | "logged-out" | "stopped";
 
 /** @deprecated Use `WebInboundMessage`. */
 export type WebInboundMsg = WebInboundMessage;

@@ -348,8 +348,7 @@ describe("thread binding lifecycle", () => {
       expect(hoisted.sendWebhookMessageDiscord).not.toHaveBeenCalled();
       expect(hoisted.sendMessageDiscord).toHaveBeenCalledTimes(1);
       const farewell = mockCallArg(hoisted.sendMessageDiscord, 0, 1, "sendMessageDiscord") as
-        | string
-        | undefined;
+        string | undefined;
       expect(farewell).toContain("after 1m of inactivity");
     } finally {
       vi.useRealTimers();
@@ -389,8 +388,7 @@ describe("thread binding lifecycle", () => {
       expect(manager.getByThreadId("thread-1")).toBeUndefined();
       expect(hoisted.sendMessageDiscord).toHaveBeenCalledTimes(1);
       const farewell = mockCallArg(hoisted.sendMessageDiscord, 0, 1, "sendMessageDiscord") as
-        | string
-        | undefined;
+        string | undefined;
       expect(farewell).toContain("max age of 1m");
     } finally {
       vi.useRealTimers();

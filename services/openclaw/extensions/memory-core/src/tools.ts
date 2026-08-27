@@ -43,8 +43,7 @@ import {
 } from "./tools.shared.js";
 
 type MemorySearchToolResult =
-  | (MemorySearchResult & { corpus: MemorySource })
-  | MemoryCorpusSearchResult;
+  (MemorySearchResult & { corpus: MemorySource }) | MemoryCorpusSearchResult;
 type MemoryManagerContext = Awaited<ReturnType<typeof getMemoryManagerContextWithPurpose>>;
 type ActiveMemoryManagerContext = Extract<MemoryManagerContext, { manager: unknown }>;
 type QmdRuntimeDebug = NonNullable<MemorySearchRuntimeDebug["qmd"]>;
@@ -430,11 +429,7 @@ export function createMemorySearchTool(options: {
         const maxResults = readPositiveIntegerParam(rawParams, "maxResults");
         const minScore = readFiniteNumberParam(rawParams, "minScore");
         const requestedCorpus = readStringParam(rawParams, "corpus") as
-          | "memory"
-          | "wiki"
-          | "all"
-          | "sessions"
-          | undefined;
+          "memory" | "wiki" | "all" | "sessions" | undefined;
         const cooldownKey = resolveMemorySearchToolCooldownKey({
           agentId,
           agentSessionKey: options.agentSessionKey,
@@ -749,10 +744,7 @@ export function createMemoryGetTool(options: {
         const from = readPositiveIntegerParam(rawParams, "from");
         const lines = readPositiveIntegerParam(rawParams, "lines");
         const requestedCorpus = readStringParam(rawParams, "corpus") as
-          | "memory"
-          | "wiki"
-          | "all"
-          | undefined;
+          "memory" | "wiki" | "all" | undefined;
         const { readAgentMemoryFile, resolveMemoryBackendConfig } = await loadMemoryToolRuntime();
         if (requestedCorpus === "wiki") {
           const supplement = await getSupplementMemoryReadResult({

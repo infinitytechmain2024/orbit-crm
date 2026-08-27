@@ -24,8 +24,7 @@ export type AcceptedInboundAccessControlResult = {
 };
 
 export type InboundAccessControlResult =
-  | BlockedInboundAccessControlResult
-  | AcceptedInboundAccessControlResult;
+  BlockedInboundAccessControlResult | AcceptedInboundAccessControlResult;
 
 const PAIRING_REPLY_HISTORY_GRACE_MS = 30_000;
 

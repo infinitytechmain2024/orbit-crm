@@ -50,8 +50,7 @@ export const FIRECRAWL_WEB_FETCH_PROVIDER_SHARED = {
   getConfiguredCredentialFallback: (config) => {
     const apiKey = (
       config?.plugins?.entries?.firecrawl?.config as
-        | { webSearch?: { apiKey?: unknown } }
-        | undefined
+        { webSearch?: { apiKey?: unknown } } | undefined
     )?.webSearch?.apiKey;
     return apiKey === undefined
       ? undefined

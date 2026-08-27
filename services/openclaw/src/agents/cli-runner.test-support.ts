@@ -103,12 +103,7 @@ setCliRunnerPrepareTestDeps({
 
 type MockRunExit = {
   reason:
-    | "manual-cancel"
-    | "overall-timeout"
-    | "no-output-timeout"
-    | "spawn-error"
-    | "signal"
-    | "exit";
+    "manual-cancel" | "overall-timeout" | "no-output-timeout" | "spawn-error" | "signal" | "exit";
   exitCode: number | null;
   exitSignal: NodeJS.Signals | number | null;
   durationMs: number;

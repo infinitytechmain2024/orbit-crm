@@ -276,8 +276,7 @@ describe("handleFeishuCommentEvent", () => {
 
     expect(finalizeInboundContext).toHaveBeenCalledTimes(1);
     const finalizedContext = mockCallArg(finalizeInboundContext, "finalizeInboundContext") as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect({
       from: finalizedContext?.From,
       to: finalizedContext?.To,
@@ -297,8 +296,7 @@ describe("handleFeishuCommentEvent", () => {
     });
     expect(recordInboundSession).toHaveBeenCalledTimes(1);
     const recordArgs = mockCallArg(recordInboundSession, "recordInboundSession") as
-      | { sessionKey?: string }
-      | undefined;
+      { sessionKey?: string } | undefined;
     expect(recordArgs?.sessionKey).toBe("agent:main:feishu:direct:comment-doc:docx:doc_token_1");
     expect(dispatchReplyFromConfig).toHaveBeenCalledTimes(1);
   });
@@ -366,8 +364,7 @@ describe("handleFeishuCommentEvent", () => {
 
     expect(maybeCreateDynamicAgentMock).toHaveBeenCalledTimes(1);
     const dynamicAgentArgs = mockCallArg(maybeCreateDynamicAgentMock, "maybeCreateDynamicAgent") as
-      | { accountId?: string; senderOpenId?: string }
-      | undefined;
+      { accountId?: string; senderOpenId?: string } | undefined;
     expect(dynamicAgentArgs?.senderOpenId).toBe("ou_sender");
     expect(dynamicAgentArgs?.accountId).toBe("default");
     const dispatchReplyFromConfig = runtime.channel.reply.dispatchReplyFromConfig as ReturnType<

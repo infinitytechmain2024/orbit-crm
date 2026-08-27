@@ -98,8 +98,7 @@ describe("resolveMatrixPreflightAudioTranscript", () => {
     });
 
     const callCfg = transcribeFirstAudioMock.mock.calls[0]?.[0]?.cfg as
-      | { tools?: { media?: { audio?: { echoTranscript?: unknown } } } }
-      | undefined;
+      { tools?: { media?: { audio?: { echoTranscript?: unknown } } } } | undefined;
     expect(callCfg?.tools?.media?.audio?.echoTranscript).toBe(false);
   });
 

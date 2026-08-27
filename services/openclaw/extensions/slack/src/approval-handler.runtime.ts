@@ -44,9 +44,7 @@ type SlackMetadataItem = {
   value: string;
 };
 type SlackPluginApprovalView =
-  | PluginApprovalPendingView
-  | PluginApprovalResolvedView
-  | PluginApprovalExpiredView;
+  PluginApprovalPendingView | PluginApprovalResolvedView | PluginApprovalExpiredView;
 
 const SLACK_CONTEXT_ELEMENTS_MAX = 10;
 const SLACK_CHAT_UPDATE_TEXT_LIMIT = 4000;

@@ -109,8 +109,7 @@ describe("discord doctor", () => {
       "Moved channels.discord.accounts.main.voice.tts.edge → channels.discord.accounts.main.voice.tts.providers.microsoft.",
     );
     const mainTts = result.config.channels?.discord?.accounts?.main?.voice?.tts as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(mainTts?.providers).toEqual({
       microsoft: {
         voice: "en-US-JennyNeural",

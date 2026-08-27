@@ -158,7 +158,10 @@ export function AppShell({
       </aside>
 
       <div
-        className={cn("relative h-full overflow-y-auto transition-all duration-200", collapsed ? "lg:pl-16" : "lg:pl-64")}
+        className={cn(
+          "relative h-full overflow-y-auto transition-all duration-200",
+          collapsed ? "lg:pl-16" : "lg:pl-64",
+        )}
       >
         <header className="sticky top-0 z-20 glass">
           <div className="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-8">

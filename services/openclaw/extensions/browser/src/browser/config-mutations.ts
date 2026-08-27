@@ -82,8 +82,7 @@ export async function createBrowserProfileConfig(params: {
     afterWrite: { mode: "auto" },
     mutate: async (draft) => {
       const rawDraftBrowser = draft.browser as
-        | (NonNullable<typeof draft.browser> & { cdpPortRangeEnd?: unknown })
-        | undefined;
+        (NonNullable<typeof draft.browser> & { cdpPortRangeEnd?: unknown }) | undefined;
       const draftCdpPortRangeEnd =
         typeof rawDraftBrowser?.cdpPortRangeEnd === "number"
           ? rawDraftBrowser.cdpPortRangeEnd

@@ -61,8 +61,7 @@ export function installMaybePersistResolvedTelegramTargetTests(params?: {
 
     function requireWriteConfigCall(index = 0): [TelegramConfigWrite, Record<string, unknown>] {
       const call = writeConfigFile.mock.calls[index] as
-        | [TelegramConfigWrite, Record<string, unknown>]
-        | undefined;
+        [TelegramConfigWrite, Record<string, unknown>] | undefined;
       if (!call) {
         throw new Error(`expected writeConfigFile call #${index + 1}`);
       }

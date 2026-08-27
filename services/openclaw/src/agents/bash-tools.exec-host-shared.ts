@@ -79,9 +79,7 @@ const EXPIRED_EXEC_APPROVAL_EXPIRES_AT_MS = 0;
 
 /** Why an approval request cannot be delivered interactively. */
 export type ExecApprovalUnavailableReason =
-  | "no-approval-route"
-  | "initiating-platform-disabled"
-  | "initiating-platform-unsupported";
+  "no-approval-route" | "initiating-platform-disabled" | "initiating-platform-unsupported";
 
 function isHeadlessExecTrigger(trigger?: string): boolean {
   return trigger === "cron";

@@ -43,6 +43,9 @@ import {
   type TaskPatch,
   type TaskStatus,
   type Tx,
+  type StripeTransaction,
+  type StripeSubscription,
+  type StripeCustomer,
 } from "./crm-data";
 
 type Store = {
@@ -53,6 +56,9 @@ type Store = {
   emails: Email[];
   txs: Tx[];
   projects: Project[];
+  stripeTransactions: StripeTransaction[];
+  stripeSubscriptions: StripeSubscription[];
+  stripeCustomer: StripeCustomer | null;
   isLoading: boolean;
   isMutating: boolean;
   error: string | null;
@@ -108,6 +114,15 @@ export function CrmProvider({
   const [emails, setEmails] = useState<Email[]>([]);
   const [txs, setTxs] = useState<Tx[]>(previewSnapshot?.txs ?? []);
   const [projects, setProjects] = useState<Project[]>(previewSnapshot?.projects ?? []);
+  const [stripeTransactions, setStripeTransactions] = useState<StripeTransaction[]>(
+    previewSnapshot?.stripeTransactions ?? [],
+  );
+  const [stripeSubscriptions, setStripeSubscriptions] = useState<StripeSubscription[]>(
+    previewSnapshot?.stripeSubscriptions ?? [],
+  );
+  const [stripeCustomer, setStripeCustomer] = useState<StripeCustomer | null>(
+    previewSnapshot?.stripeCustomer ?? null,
+  );
   const [isLoading, setIsLoading] = useState(!previewSnapshot);
   const [pendingMutations, setPendingMutations] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +147,9 @@ export function CrmProvider({
     setTasks(snapshot.tasks);
     setTaskLabels(snapshot.taskLabels);
     setTxs(snapshot.txs);
+    setStripeTransactions(snapshot.stripeTransactions);
+    setStripeSubscriptions(snapshot.stripeSubscriptions);
+    setStripeCustomer(snapshot.stripeCustomer);
   }, []);
 
   const replaceTask = useCallback((task: Task) => {
@@ -158,6 +176,9 @@ export function CrmProvider({
       setTasks([]);
       setTaskLabels([]);
       setTxs([]);
+      setStripeTransactions([]);
+      setStripeSubscriptions([]);
+      setStripeCustomer(null);
     } finally {
       setIsLoading(false);
     }
@@ -184,6 +205,9 @@ export function CrmProvider({
         setTasks([]);
         setTaskLabels([]);
         setTxs([]);
+        setStripeTransactions([]);
+        setStripeSubscriptions([]);
+        setStripeCustomer(null);
       })
       .finally(() => {
         if (alive) setIsLoading(false);
@@ -240,6 +264,9 @@ export function CrmProvider({
       emails,
       txs,
       projects,
+      stripeTransactions,
+      stripeSubscriptions,
+      stripeCustomer,
       isLoading,
       isMutating: pendingMutations > 0,
       error,
@@ -435,6 +462,9 @@ export function CrmProvider({
       emails,
       txs,
       projects,
+      stripeTransactions,
+      stripeSubscriptions,
+      stripeCustomer,
       isLoading,
       pendingMutations,
       error,

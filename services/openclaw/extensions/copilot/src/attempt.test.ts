@@ -717,8 +717,7 @@ describe("runCopilotAttempt", () => {
     );
 
     const sendOptions = sdk.sessions[0]?.sendAndWait.mock.calls[0]?.[0] as
-      | { attachments?: unknown[]; prompt?: string }
-      | undefined;
+      { attachments?: unknown[]; prompt?: string } | undefined;
     expect(sendOptions?.prompt).toBe("hello");
     expect(sendOptions?.attachments).toEqual([
       {
@@ -757,8 +756,7 @@ describe("runCopilotAttempt", () => {
       );
 
       const sendOptions = sdk.sessions[0]?.sendAndWait.mock.calls[0]?.[0] as
-        | { attachments?: unknown[] }
-        | undefined;
+        { attachments?: unknown[] } | undefined;
       expect(sendOptions?.attachments).toEqual([
         {
           type: "blob",
@@ -801,8 +799,7 @@ describe("runCopilotAttempt", () => {
       );
 
       const sendOptions = sdk.sessions[0]?.sendAndWait.mock.calls[0]?.[0] as
-        | { attachments?: unknown[] }
-        | undefined;
+        { attachments?: unknown[] } | undefined;
       expect(sendOptions?.attachments).toBeUndefined();
     } finally {
       await fsp.rm(stateDir, { recursive: true, force: true });
@@ -835,8 +832,7 @@ describe("runCopilotAttempt", () => {
       );
 
       const sendOptions = sdk.sessions[0]?.sendAndWait.mock.calls[0]?.[0] as
-        | { attachments?: unknown[] }
-        | undefined;
+        { attachments?: unknown[] } | undefined;
       expect(sendOptions?.attachments).toEqual([
         {
           type: "blob",
@@ -878,8 +874,7 @@ describe("runCopilotAttempt", () => {
       );
 
       const sendOptions = sdk.sessions[0]?.sendAndWait.mock.calls[0]?.[0] as
-        | { attachments?: unknown[] }
-        | undefined;
+        { attachments?: unknown[] } | undefined;
       expect(sendOptions?.attachments).toEqual([
         {
           type: "blob",
@@ -3203,8 +3198,7 @@ describe("runCopilotAttempt", () => {
         );
 
         const sendOptions = sdk.sessions[0]?.sendAndWait.mock.calls[0]?.[0] as
-          | { attachments?: unknown[] }
-          | undefined;
+          { attachments?: unknown[] } | undefined;
         expect(sendOptions?.attachments).toBeUndefined();
         expect(fsBridge.resolvePath).toHaveBeenCalled();
         expect(fsBridge.readFile).not.toHaveBeenCalled();

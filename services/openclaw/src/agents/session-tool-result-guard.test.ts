@@ -586,8 +586,7 @@ describe("installSessionToolResultGuard", () => {
     );
 
     const persisted = sm.getEntries().find((e) => e.type === "message") as
-      | { message?: Record<string, unknown> }
-      | undefined;
+      { message?: Record<string, unknown> } | undefined;
     expect(persisted?.message?.role).toBe("user");
     expect(persisted?.message?.provenance).toEqual({
       kind: "inter_session",

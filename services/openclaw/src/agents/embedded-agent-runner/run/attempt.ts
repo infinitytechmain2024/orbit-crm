@@ -2638,8 +2638,7 @@ export async function runEmbeddedAttempt(
       const includeBoundaryTimestamp =
         !isRawModelRun && params.config?.agents?.defaults?.envelopeTimestamp !== "off";
       let currentUserTimestampOverride:
-        | { timestamp: number; text: string; alternateText?: string }
-        | undefined;
+        { timestamp: number; text: string; alternateText?: string } | undefined;
       const buildBoundaryOptions = () => {
         if (isRawModelRun) {
           return undefined;
@@ -4551,8 +4550,7 @@ export async function runEmbeddedAttempt(
           if (hookRunner?.hasHooks("before_agent_run")) {
             const beforeRunMessages = cloneHookMessages(hookMessagesForCurrentPrompt);
             let beforeRunResult:
-              | Awaited<ReturnType<NonNullable<typeof hookRunner>["runBeforeAgentRun"]>>
-              | undefined;
+              Awaited<ReturnType<NonNullable<typeof hookRunner>["runBeforeAgentRun"]>> | undefined;
             try {
               beforeRunResult = await hookRunner.runBeforeAgentRun(
                 {

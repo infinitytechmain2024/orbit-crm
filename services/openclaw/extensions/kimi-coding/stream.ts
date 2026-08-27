@@ -31,14 +31,7 @@ type KimiThinkingConfig = {
   budget_tokens?: number;
 };
 type KimiThinkingLevel =
-  | "off"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh"
-  | "adaptive"
-  | "max";
+  "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "max";
 
 const KIMI_ANTHROPIC_THINKING_BUDGETS: Record<Exclude<KimiThinkingLevel, "off">, number> = {
   minimal: 1024,

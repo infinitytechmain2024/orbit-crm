@@ -51,8 +51,10 @@ describe("cron tool", () => {
   function readGatewayCall(index = 0): { method?: string; params?: Record<string, unknown> } {
     return (
       (callGatewayMock.mock.calls[index]?.[0] as
-        | { method?: string; params?: Record<string, unknown> }
-        | undefined) ?? { method: undefined, params: undefined }
+        { method?: string; params?: Record<string, unknown> } | undefined) ?? {
+        method: undefined,
+        params: undefined,
+      }
     );
   }
 
@@ -1041,8 +1043,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { failureAlert?: unknown }
-      | undefined;
+      { failureAlert?: unknown } | undefined;
     expect(params?.failureAlert).toBe(false);
   });
 
@@ -1164,8 +1165,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { payload?: { toolsAllow?: string[] } }
-      | undefined;
+      { payload?: { toolsAllow?: string[] } } | undefined;
     expect(params?.payload?.toolsAllow).toEqual(["read"]);
   });
 
@@ -1181,8 +1181,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { payload?: { toolsAllow?: string[] } }
-      | undefined;
+      { payload?: { toolsAllow?: string[] } } | undefined;
     expect(params?.payload?.toolsAllow).toEqual(["read", "cron"]);
   });
 
@@ -1205,8 +1204,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { payload?: { toolsAllow?: string[] } }
-      | undefined;
+      { payload?: { toolsAllow?: string[] } } | undefined;
     expect(params?.payload?.toolsAllow).toEqual([]);
   });
 
@@ -1233,8 +1231,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { payload?: { toolsAllow?: string[] } }
-      | undefined;
+      { payload?: { toolsAllow?: string[] } } | undefined;
     expect(params?.payload?.toolsAllow).toEqual([
       "active_memory_search",
       "active_memory_store",
@@ -1264,8 +1261,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { payload?: { toolsAllow?: string[] } }
-      | undefined;
+      { payload?: { toolsAllow?: string[] } } | undefined;
     expect(params?.payload?.toolsAllow).toEqual(["active_memory_search"]);
   });
 
@@ -1774,8 +1770,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { name?: string; sessionTarget?: string; payload?: { kind?: string } }
-      | undefined;
+      { name?: string; sessionTarget?: string; payload?: { kind?: string } } | undefined;
     expect(params?.name).toBe("flat-job");
     expect(params?.sessionTarget).toBe("isolated");
     expect(params?.payload?.kind).toBe("agentTurn");
@@ -1795,8 +1790,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { name?: string; sessionTarget?: string; payload?: { text?: string } }
-      | undefined;
+      { name?: string; sessionTarget?: string; payload?: { text?: string } } | undefined;
     expect(params?.name).toBe("empty-job");
     expect(params?.sessionTarget).toBe("main");
     expect(params?.payload?.text).toBe("wake up");
@@ -1813,8 +1807,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.add") as
-      | { payload?: { kind?: string; message?: string }; sessionTarget?: string }
-      | undefined;
+      { payload?: { kind?: string; message?: string }; sessionTarget?: string } | undefined;
     // normalizeCronJobCreate infers agentTurn from message and isolated from agentTurn
     expect(params?.payload?.kind).toBe("agentTurn");
     expect(params?.payload?.message).toBe("do stuff");
@@ -1930,8 +1923,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.update") as
-      | { id?: string; patch?: { name?: string; enabled?: boolean } }
-      | undefined;
+      { id?: string; patch?: { name?: string; enabled?: boolean } } | undefined;
     expect(params?.id).toBe("job-1");
     expect(params?.patch?.name).toBe("new-name");
     expect(params?.patch?.enabled).toBe(false);
@@ -1971,8 +1963,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.update") as
-      | { id?: string; patch?: { delivery?: unknown } }
-      | undefined;
+      { id?: string; patch?: { delivery?: unknown } } | undefined;
     expect(params).toEqual({
       id: "job-clear-delivery",
       patch: {
@@ -2012,8 +2003,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.update") as
-      | { id?: string; patch?: { agentId?: string } }
-      | undefined;
+      { id?: string; patch?: { agentId?: string } } | undefined;
     expect(params).toEqual({
       id: "job-1",
       patch: { agentId: "worker" },
@@ -2070,8 +2060,7 @@ describe("cron tool", () => {
     });
 
     const params = expectSingleGatewayCallMethod("cron.update") as
-      | { id?: string; patch?: { failureAlert?: unknown } }
-      | undefined;
+      { id?: string; patch?: { failureAlert?: unknown } } | undefined;
     expect(params?.id).toBe("job-4");
     expect(params?.patch?.failureAlert).toBe(false);
   });

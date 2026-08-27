@@ -332,8 +332,7 @@ describe("buildOpenAIRealtimeVoiceProvider", () => {
 
     const socket = FakeWebSocket.instances[0];
     const options = socket?.args[1] as
-      | { headers?: Record<string, string>; maxPayload?: number }
-      | undefined;
+      { headers?: Record<string, string>; maxPayload?: number } | undefined;
     expectRecordFields(options?.headers, "websocket headers", {
       originator: "openclaw",
       version: "2026.3.22",

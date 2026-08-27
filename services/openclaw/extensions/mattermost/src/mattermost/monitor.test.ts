@@ -27,8 +27,7 @@ function resolveRequireMentionForTest(params: MattermostRequireMentionResolverIn
   const root = params.cfg.channels?.mattermost;
   const accountGroups = (
     root?.accounts?.[params.accountId] as
-      | { groups?: Record<string, { requireMention?: boolean }> }
-      | undefined
+      { groups?: Record<string, { requireMention?: boolean }> } | undefined
   )?.groups;
   const groups = accountGroups ?? root?.groups;
   const typedGroups = groups as Record<string, { requireMention?: boolean }> | undefined;

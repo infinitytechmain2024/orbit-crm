@@ -76,8 +76,7 @@ describe("spawnLspServerProcess Windows .cmd shim handling", () => {
 
     // Must use structured params so config.env entries are not dropped
     const sanitizeParams = firstMockCall(sanitizeHostExecEnvMock, "host env sanitization")[0] as
-      | { baseEnv?: NodeJS.ProcessEnv; overrides?: Record<string, string> }
-      | undefined;
+      { baseEnv?: NodeJS.ProcessEnv; overrides?: Record<string, string> } | undefined;
     expect(sanitizeParams?.baseEnv).toBe(process.env);
     expect(sanitizeParams?.overrides).toBe(configEnv);
   });
@@ -122,8 +121,7 @@ describe("spawnLspServerProcess Windows .cmd shim handling", () => {
     expect(spawnCall?.[0]).toBe("cmd.exe");
     expect(spawnCall?.[1]).toEqual(["/c", "typescript-language-server.cmd", "--stdio"]);
     const spawnOptions = spawnCall?.[2] as
-      | { env?: Record<string, string>; shell?: boolean; windowsHide?: boolean }
-      | undefined;
+      { env?: Record<string, string>; shell?: boolean; windowsHide?: boolean } | undefined;
     expect(spawnOptions?.env).toBe(sanitizedEnv);
     expect(spawnOptions?.shell).toBe(true);
     expect(spawnOptions?.windowsHide).toBe(true);

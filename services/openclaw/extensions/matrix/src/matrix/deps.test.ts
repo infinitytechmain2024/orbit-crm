@@ -89,8 +89,7 @@ function resolveTestNativeBindingFilename(): string | null {
           : null;
     case "linux": {
       const report = process.report?.getReport?.() as
-        | { header?: { glibcVersionRuntime?: string } }
-        | undefined;
+        { header?: { glibcVersionRuntime?: string } } | undefined;
       const isMusl = !report?.header?.glibcVersionRuntime;
       if (process.arch === "x64") {
         return isMusl

@@ -234,7 +234,9 @@ function Dashboard() {
   const resolveProjectId = (hint: string | null): string | null => {
     if (!hint) return null;
     const lower = hint.toLowerCase().trim();
-    const found = projects.find((p) => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase()));
+    const found = projects.find(
+      (p) => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase()),
+    );
     return found?.id ?? null;
   };
 
@@ -305,7 +307,10 @@ function Dashboard() {
 
     const sourceNote = draft.trim();
 
-    const created: Array<{ crmTask: { id: string; title: string; description: string | null }; meta: ParsedTask }> = [];
+    const created: Array<{
+      crmTask: { id: string; title: string; description: string | null };
+      meta: ParsedTask;
+    }> = [];
     let allOk = true;
 
     for (const p of selected) {
@@ -329,7 +334,10 @@ function Dashboard() {
         allOk = false;
         continue;
       }
-      created.push({ crmTask: { id: crmTask.id, title: crmTask.title, description: crmTask.description }, meta: p });
+      created.push({
+        crmTask: { id: crmTask.id, title: crmTask.title, description: crmTask.description },
+        meta: p,
+      });
     }
 
     // 3.В: публикация события TaskCreatedFromBrainDump → C-level (Orbit Commander)
@@ -474,7 +482,8 @@ function Dashboard() {
               {/* Dispatch hint */}
               {parsed.some((t) => t.dispatchToWorkflow) && (
                 <p className="text-center text-[11px] leading-4 text-muted-foreground">
-                  {parsed.filter((t) => t.dispatchToWorkflow).length} задач будут отправлены C-level агенту (Orbit Commander) в AI Workflow для декомпозиции и маршрутизации
+                  {parsed.filter((t) => t.dispatchToWorkflow).length} задач будут отправлены C-level
+                  агенту (Orbit Commander) в AI Workflow для декомпозиции и маршрутизации
                 </p>
               )}
               {dispatchStatus && (
@@ -783,7 +792,9 @@ function TaskPreviewCard({
                   <span
                     className={cn(
                       "grid size-3.5 place-items-center rounded border",
-                      task.dispatchToWorkflow ? "border-primary bg-primary text-white" : "border-border bg-surface-1",
+                      task.dispatchToWorkflow
+                        ? "border-primary bg-primary text-white"
+                        : "border-border bg-surface-1",
                     )}
                   >
                     {task.dispatchToWorkflow && <Check className="size-2.5" />}

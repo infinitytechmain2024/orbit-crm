@@ -70,14 +70,7 @@ export const INWORLD_TTS_MODELS = [
 ] as const;
 
 export type InworldAudioEncoding =
-  | "MP3"
-  | "OGG_OPUS"
-  | "LINEAR16"
-  | "PCM"
-  | "WAV"
-  | "ALAW"
-  | "MULAW"
-  | "FLAC";
+  "MP3" | "OGG_OPUS" | "LINEAR16" | "PCM" | "WAV" | "ALAW" | "MULAW" | "FLAC";
 
 export function normalizeInworldBaseUrl(baseUrl?: string): string {
   const trimmed = baseUrl?.trim();

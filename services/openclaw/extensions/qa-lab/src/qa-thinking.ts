@@ -1,13 +1,6 @@
 // Qa Lab plugin module implements qa thinking behavior.
 export type QaThinkingLevel =
-  | "off"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh"
-  | "adaptive"
-  | "max";
+  "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "max";
 
 export function normalizeQaThinkingLevel(input: unknown): QaThinkingLevel | undefined {
   const value = typeof input === "string" ? input.trim().toLowerCase() : "";

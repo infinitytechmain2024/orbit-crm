@@ -36,8 +36,7 @@ import { createOpenClawCodingTools } from "./agent-tools.js";
 
 function firstOpenClawToolsOptions(): { cronSelfRemoveOnlyJobId?: string } | undefined {
   return mocks.createOpenClawToolsOptions.mock.calls[0]?.[0] as
-    | { cronSelfRemoveOnlyJobId?: string }
-    | undefined;
+    { cronSelfRemoveOnlyJobId?: string } | undefined;
 }
 
 describe("createOpenClawCodingTools cron scope", () => {

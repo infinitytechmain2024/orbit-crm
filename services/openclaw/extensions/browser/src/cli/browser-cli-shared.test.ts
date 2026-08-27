@@ -27,8 +27,7 @@ describe("callBrowserRequest", () => {
     );
 
     const call = gatewayMocks.callGatewayFromCli.mock.calls[0] as unknown as
-      | CallGatewayFromCliArgs
-      | undefined;
+      CallGatewayFromCliArgs | undefined;
     const extra = call?.[3];
     expect(extra).toEqual({ progress: true, scopes: ["operator.admin"] });
   });
@@ -48,8 +47,7 @@ describe("callBrowserRequest", () => {
     );
 
     const call = gatewayMocks.callGatewayFromCli.mock.calls[0] as unknown as
-      | CallGatewayFromCliArgs
-      | undefined;
+      CallGatewayFromCliArgs | undefined;
     expect(call?.[1]).toMatchObject({ timeout: "2147483647" });
     expect(call?.[2]).toMatchObject({ timeoutMs: 2_147_483_647 });
   });
@@ -61,8 +59,7 @@ describe("callBrowserRequest", () => {
     );
 
     const call = gatewayMocks.callGatewayFromCli.mock.calls[0] as unknown as
-      | CallGatewayFromCliArgs
-      | undefined;
+      CallGatewayFromCliArgs | undefined;
     expect(call?.[1]).toMatchObject({ timeout: "2147483647" });
     expect(call?.[2]).toMatchObject({ timeoutMs: 2_147_483_647 });
   });
@@ -74,8 +71,7 @@ describe("callBrowserRequest", () => {
     );
 
     const call = gatewayMocks.callGatewayFromCli.mock.calls[0] as unknown as
-      | CallGatewayFromCliArgs
-      | undefined;
+      CallGatewayFromCliArgs | undefined;
     expect(call?.[1]).toMatchObject({ timeout: "60000" });
     expect(call?.[2]).toMatchObject({ timeoutMs: 60_000 });
   });

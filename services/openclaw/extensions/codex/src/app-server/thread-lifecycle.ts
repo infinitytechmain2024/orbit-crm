@@ -102,8 +102,7 @@ class CodexThreadBindingConflictError extends Error {
 }
 
 export type CodexThreadFinalConfigPatchDecision =
-  | { action: "resume"; binding: CodexAppServerThreadBinding }
-  | { action: "start" };
+  { action: "resume"; binding: CodexAppServerThreadBinding } | { action: "start" };
 
 export type CodexThreadFinalConfigPatchResult = {
   configPatch?: JsonObject;

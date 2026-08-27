@@ -27,8 +27,7 @@ function getDeliveredInternalEvents(): Array<Record<string, unknown>> {
   // Completion agents receive internal events; tests inspect them to keep the
   // visible-reply media contract explicit.
   const params = announceDeliveryMocks.deliverSubagentAnnouncement.mock.calls.at(0)?.[0] as
-    | { internalEvents?: unknown }
-    | undefined;
+    { internalEvents?: unknown } | undefined;
   if (!Array.isArray(params?.internalEvents)) {
     throw new Error("Expected delivered internal events");
   }

@@ -408,8 +408,7 @@ describe("runCodexAppServerAttempt hooks and model diagnostics", () => {
       await flushDiagnosticEvents();
 
       const errorEvent = diagnosticEvents.find((event) => event.type === "model.call.error") as
-        | ({ failureKind?: string; errorCategory?: string } & DiagnosticEventPayload)
-        | undefined;
+        ({ failureKind?: string; errorCategory?: string } & DiagnosticEventPayload) | undefined;
       expect(result.timedOut).toBe(true);
       expect(errorEvent?.failureKind).toBe("timeout");
       expect(errorEvent?.errorCategory).toBe("timeout");

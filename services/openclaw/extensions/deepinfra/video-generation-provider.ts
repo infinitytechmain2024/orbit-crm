@@ -51,8 +51,7 @@ function encodeDeepInfraModelPath(model: string): string {
 
 function resolveDeepInfraNativeBaseUrl(req: VideoGenerationRequest): string {
   const providerConfig = req.cfg?.models?.providers?.deepinfra as
-    | (Record<string, unknown> & { baseUrl?: unknown })
-    | undefined;
+    (Record<string, unknown> & { baseUrl?: unknown }) | undefined;
   const nativeBaseUrl = normalizeOptionalString(providerConfig?.nativeBaseUrl);
   if (nativeBaseUrl) {
     return normalizeDeepInfraBaseUrl(nativeBaseUrl, DEEPINFRA_NATIVE_BASE_URL);

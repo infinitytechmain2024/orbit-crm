@@ -4,8 +4,7 @@ import { readQaScenarioExecutionConfig } from "./scenario-catalog.js";
 
 function readRequiredDiscoveryRefs() {
   const config = readQaScenarioExecutionConfig("source-docs-discovery-report") as
-    | { requiredFiles?: string[] }
-    | undefined;
+    { requiredFiles?: string[] } | undefined;
   return (
     config?.requiredFiles ?? [
       "repo/qa/scenarios/index.yaml",

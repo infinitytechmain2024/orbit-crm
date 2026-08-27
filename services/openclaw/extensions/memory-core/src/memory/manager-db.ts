@@ -71,8 +71,7 @@ function readTableSql(db: DatabaseSync, schema: string, tableName: string): stri
 function hasSqliteVecExtension(db: DatabaseSync): boolean {
   try {
     const row = db.prepare("SELECT vec_version() AS version").get() as
-      | { version?: unknown }
-      | undefined;
+      { version?: unknown } | undefined;
     return typeof row?.version === "string" && row.version.trim().length > 0;
   } catch {
     return false;

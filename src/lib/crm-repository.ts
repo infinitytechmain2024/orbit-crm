@@ -30,6 +30,9 @@ import {
   type TaskStatus,
   type TaskView,
   type Tx,
+  type StripeTransaction,
+  type StripeSubscription,
+  type StripeCustomer,
 } from "./crm-data";
 
 type OrganizationRow = Tables<"organizations">;
@@ -48,6 +51,9 @@ type TaskCommentRow = Tables<"task_comments">;
 type TaskFileRow = Tables<"files">;
 type TaskViewPreferenceRow = Tables<"task_view_preferences">;
 type FinanceTransactionRow = Tables<"finance_transactions">;
+type StripeCustomerRow = Tables<"stripe_customers">;
+type StripeTransactionRow = Tables<"stripe_transactions">;
+type StripeSubscriptionRow = Tables<"stripe_subscriptions">;
 
 type MembershipWithOrganization = OrganizationMemberRow & {
   organizations: OrganizationRow | null;
@@ -70,6 +76,9 @@ export type CrmSnapshot = {
   tasks: Task[];
   taskLabels: TaskLabel[];
   txs: Tx[];
+  stripeTransactions: StripeTransaction[];
+  stripeSubscriptions: StripeSubscription[];
+  stripeCustomer: StripeCustomer | null;
 };
 
 export type TaskPage = {
@@ -454,7 +463,10 @@ function mapTask(row: TaskRow, relations: TaskRelationMaps = emptyTaskRelations(
   const tags = [...new Set([...(row.tags ?? []), ...labels.map((label) => label.name)])];
   const estimatedMinutes = row.estimated_minutes === null ? null : Number(row.estimated_minutes);
   const actualMinutes = Number(row.actual_minutes);
-  const progress = Math.min(100, Math.max(0, Number((row as unknown as Record<string, unknown>)["progress"] ?? 0)));
+  const progress = Math.min(
+    100,
+    Math.max(0, Number((row as unknown as Record<string, unknown>)["progress"] ?? 0)),
+  );
   const estimatedTimeRemaining =
     estimatedMinutes !== null && estimatedMinutes > 0
       ? Math.max(0, Math.round(estimatedMinutes * (1 - progress / 100)))
@@ -495,11 +507,17 @@ function mapTask(row: TaskRow, relations: TaskRelationMaps = emptyTaskRelations(
     financeOperationsCount: relations.financeCountByTask.get(row.id) ?? 0,
     progress,
     estimatedTimeRemaining,
-    source: (row as unknown as Record<string, unknown>)["source"] as string ?? "manual",
-    workflowStatus: ((row as unknown as Record<string, unknown>)["workflow_status"] as Task["workflowStatus"]) ?? "manual",
-    targetRole: ((row as unknown as Record<string, unknown>)["target_role"] as string | null) ?? null,
-    dispatchToWorkflow: Boolean((row as unknown as Record<string, unknown>)["dispatch_to_workflow"]),
-    aiWorkflowTaskId: ((row as unknown as Record<string, unknown>)["ai_workflow_task_id"] as string | null) ?? null,
+    source: ((row as unknown as Record<string, unknown>)["source"] as string) ?? "manual",
+    workflowStatus:
+      ((row as unknown as Record<string, unknown>)["workflow_status"] as Task["workflowStatus"]) ??
+      "manual",
+    targetRole:
+      ((row as unknown as Record<string, unknown>)["target_role"] as string | null) ?? null,
+    dispatchToWorkflow: Boolean(
+      (row as unknown as Record<string, unknown>)["dispatch_to_workflow"],
+    ),
+    aiWorkflowTaskId:
+      ((row as unknown as Record<string, unknown>)["ai_workflow_task_id"] as string | null) ?? null,
   };
 }
 
@@ -513,6 +531,50 @@ function mapTx(row: FinanceTransactionRow): Tx {
     date: dateLabelFormatter.format(new Date(`${row.occurred_on}T00:00:00`)),
     dateIso: row.occurred_on,
     taskId: row.task_id,
+  };
+}
+
+function mapStripeCustomer(row: StripeCustomerRow): StripeCustomer {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    stripeCustomerId: row.stripe_customer_id,
+    email: row.email,
+  };
+}
+
+function mapStripeTransaction(row: StripeTransactionRow): StripeTransaction {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    stripePaymentIntentId: row.stripe_payment_intent_id,
+    stripeCustomerId: row.stripe_customer_id,
+    amount: Number(row.amount),
+    currency: row.currency,
+    status: row.status as StripeTransaction["status"],
+    paymentMethodType: row.payment_method_type,
+    description: row.description,
+    metadata: row.metadata as Record<string, unknown>,
+    date: dateLabelFormatter.format(new Date(`${row.occurred_on}T00:00:00`)),
+    dateIso: row.occurred_on,
+  };
+}
+
+function mapStripeSubscription(row: StripeSubscriptionRow): StripeSubscription {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    stripeSubscriptionId: row.stripe_subscription_id,
+    stripeCustomerId: row.stripe_customer_id,
+    stripePriceId: row.stripe_price_id,
+    status: row.status as StripeSubscription["status"],
+    currentPeriodStart: row.current_period_start,
+    currentPeriodEnd: row.current_period_end,
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    amount: Number(row.amount),
+    currency: row.currency,
+    interval: row.interval as StripeSubscription["interval"],
+    metadata: row.metadata as Record<string, unknown>,
   };
 }
 
@@ -857,6 +919,46 @@ async function fetchTransactions(organizationId: string): Promise<Tx[]> {
   return (data ?? []).map(mapTx);
 }
 
+export async function fetchStripeTransactions(
+  organizationId: string,
+): Promise<StripeTransaction[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("stripe_transactions")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .order("occurred_on", { ascending: false });
+
+  if (error) throw toMessage("Не удалось загрузить Stripe транзакции", error.message);
+  return (data ?? []).map(mapStripeTransaction);
+}
+
+export async function fetchStripeSubscriptions(
+  organizationId: string,
+): Promise<StripeSubscription[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("stripe_subscriptions")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw toMessage("Не удалось загрузить Stripe подписки", error.message);
+  return (data ?? []).map(mapStripeSubscription);
+}
+
+export async function fetchStripeCustomer(organizationId: string): Promise<StripeCustomer | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("stripe_customers")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw toMessage("Не удалось загрузить Stripe клиента", error.message);
+  return data ? mapStripeCustomer(data) : null;
+}
+
 export async function fetchTaskPreferences(
   organizationId: string,
   userId: string,
@@ -1033,13 +1135,26 @@ export async function fetchTasksPage(
 export async function loadCrmWorkspace(user: User): Promise<CrmSnapshot> {
   const organization = await ensureWorkspace(user);
   const projectRows = await fetchProjectRows(user.id, organization.id);
-  const [projectLinks, projectMembers, members, tasks, taskLabels, txs] = await Promise.all([
+  const [
+    projectLinks,
+    projectMembers,
+    members,
+    tasks,
+    taskLabels,
+    txs,
+    stripeTransactions,
+    stripeSubscriptions,
+    stripeCustomer,
+  ] = await Promise.all([
     fetchProjectLinks(organization.id),
     fetchProjectMembers(organization.id),
     fetchOrganizationMembers(organization.id),
     fetchTasks(organization.id),
     fetchTaskLabels(organization.id),
     fetchTransactions(organization.id),
+    fetchStripeTransactions(organization.id),
+    fetchStripeSubscriptions(organization.id),
+    fetchStripeCustomer(organization.id),
   ]);
   const linksByProject = new Map<string, string[]>();
   const membersByProject = new Map<string, string[]>();
@@ -1067,6 +1182,9 @@ export async function loadCrmWorkspace(user: User): Promise<CrmSnapshot> {
     tasks,
     taskLabels,
     txs,
+    stripeTransactions,
+    stripeSubscriptions,
+    stripeCustomer,
   };
 }
 
@@ -1364,19 +1482,18 @@ function normalizeTaskInput(input: Partial<TaskInput>, fallback?: Task): Normali
     : (fallback?.source ?? "manual");
   const workflowStatus = hasOwn(input, "workflowStatus")
     ? String((input as Record<string, unknown>)["workflowStatus"] ?? "manual")
-    : hasOwn(input, "dispatchToWorkflow") && (input as Record<string, unknown>)["dispatchToWorkflow"]
+    : hasOwn(input, "dispatchToWorkflow") &&
+        (input as Record<string, unknown>)["dispatchToWorkflow"]
       ? "pending_dispatch"
       : (fallback?.workflowStatus ?? "manual");
   const targetRole = hasOwn(input, "targetRole")
-    ? ((input as Record<string, unknown>)["targetRole"] as string | null) ?? null
+    ? (((input as Record<string, unknown>)["targetRole"] as string | null) ?? null)
     : (fallback?.targetRole ?? null);
   const dispatchToWorkflow = hasOwn(input, "dispatchToWorkflow")
     ? Boolean((input as Record<string, unknown>)["dispatchToWorkflow"])
     : (fallback?.dispatchToWorkflow ?? false);
 
-  const rawProgress = hasOwn(input, "progress")
-    ? (input.progress ?? 0)
-    : (fallback?.progress ?? 0);
+  const rawProgress = hasOwn(input, "progress") ? (input.progress ?? 0) : (fallback?.progress ?? 0);
   const progress = Math.min(100, Math.max(0, Math.round(Number(rawProgress) || 0)));
 
   return {
@@ -1670,7 +1787,9 @@ async function createInitialSubtasks(
 }
 
 function extractMissingColumn(message: string): string | null {
-  const m = message.match(/Could not find the '([^']+)' column/i) || message.match(/column "([^"]+)" of relation "tasks" does not exist/i);
+  const m =
+    message.match(/Could not find the '([^']+)' column/i) ||
+    message.match(/column "([^"]+)" of relation "tasks" does not exist/i);
   return m?.[1] ?? null;
 }
 
@@ -1694,10 +1813,11 @@ async function insertTaskWithFallback(
   supabase: ReturnType<typeof getSupabaseClient>,
   initialPayload: Record<string, unknown>,
 ): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }> {
-  let payload: Record<string, unknown> = { ...initialPayload };
+  const payload: Record<string, unknown> = { ...initialPayload };
   // Adapt common mismatches for qavf hostel schema
   if (payload["due_date"] && !payload["due_at"]) payload["due_at"] = payload["due_date"];
-  if (payload["assignee_id"] && !payload["assigned_user_id"]) payload["assigned_user_id"] = payload["assignee_id"];
+  if (payload["assignee_id"] && !payload["assigned_user_id"])
+    payload["assigned_user_id"] = payload["assignee_id"];
   if (payload["author_id"] && !payload["created_by"]) payload["created_by"] = payload["author_id"];
   if (payload["priority"]) payload["priority"] = mapPriorityForQavf(String(payload["priority"]));
   if (payload["status"]) payload["status"] = mapStatusForQavf(String(payload["status"]));
@@ -1728,41 +1848,89 @@ async function insertTaskWithFallback(
       continue;
     }
     // Handle enum/check-constraint violations — on check constraint, drop column to use DB default (most robust)
-    if (error.message.includes("invalid input value for enum") || error.message.includes("violates check constraint")) {
+    if (
+      error.message.includes("invalid input value for enum") ||
+      error.message.includes("violates check constraint")
+    ) {
       const em = error.message;
       const isCheck = em.includes("violates check constraint");
       // For check constraints, immediately drop the offending column to use DB default — avoids infinite toggle between dialects
       if (isCheck) {
         if (em.includes("tasks_status_allowed_check") || em.includes("status")) {
-          if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+          if (payload["status"] !== undefined) {
+            delete payload["status"];
+            continue;
+          }
         }
         if (em.includes("priority") || em.includes("task_priority")) {
-          if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+          if (payload["priority"] !== undefined) {
+            delete payload["priority"];
+            continue;
+          }
         }
         // Generic check: drop both if we can't tell
-        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
-        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+        if (payload["status"] !== undefined) {
+          delete payload["status"];
+          continue;
+        }
+        if (payload["priority"] !== undefined) {
+          delete payload["priority"];
+          continue;
+        }
       }
       if (em.includes("task_priority") || (isCheck && em.includes("priority"))) {
-        if (String(payload["priority"]) === "med") { payload["priority"] = "normal"; continue; }
-        if (String(payload["priority"]) === "normal") { payload["priority"] = "med"; continue; }
-        if (String(payload["priority"]) === "urgent") { payload["priority"] = "high"; continue; }
-        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+        if (String(payload["priority"]) === "med") {
+          payload["priority"] = "normal";
+          continue;
+        }
+        if (String(payload["priority"]) === "normal") {
+          payload["priority"] = "med";
+          continue;
+        }
+        if (String(payload["priority"]) === "urgent") {
+          payload["priority"] = "high";
+          continue;
+        }
+        if (payload["priority"] !== undefined) {
+          delete payload["priority"];
+          continue;
+        }
       }
       if (em.includes("task_status") || em.includes("tasks_status") || em.includes("status")) {
-        if (String(payload["status"]) === "backlog") { payload["status"] = "todo"; continue; }
-        if (String(payload["status"]) === "todo") { payload["status"] = "backlog"; continue; }
-        if (String(payload["status"]) === "review") { payload["status"] = "in_progress"; continue; }
-        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+        if (String(payload["status"]) === "backlog") {
+          payload["status"] = "todo";
+          continue;
+        }
+        if (String(payload["status"]) === "todo") {
+          payload["status"] = "backlog";
+          continue;
+        }
+        if (String(payload["status"]) === "review") {
+          payload["status"] = "in_progress";
+          continue;
+        }
+        if (payload["status"] !== undefined) {
+          delete payload["status"];
+          continue;
+        }
       }
       const enumCol = em.match(/for enum (\w+):/)?.[1];
-      if (enumCol === "task_priority" && payload["priority"] !== undefined) { delete payload["priority"]; continue; }
-      if (enumCol === "task_status" && payload["status"] !== undefined) { delete payload["status"]; continue; }
+      if (enumCol === "task_priority" && payload["priority"] !== undefined) {
+        delete payload["priority"];
+        continue;
+      }
+      if (enumCol === "task_status" && payload["status"] !== undefined) {
+        delete payload["status"];
+        continue;
+      }
     }
     return { data: null, error };
   }
   const { data, error } = await supabase.from("tasks").insert(payload).select().single();
-  return { data: data as Record<string, unknown> | null, error: error as { message: string } | null };
+  return {
+    data: data as Record<string, unknown> | null,
+    error: error as { message: string } | null,
+  };
 }
 
 export async function createTask(
@@ -1772,16 +1940,33 @@ export async function createTask(
 ): Promise<Task> {
   const supabase = getSupabaseClient();
   const normalized = normalizeTaskInput(input);
-  const fullPayload = taskPayload(userId, organizationId, normalized) as unknown as Record<string, unknown>;
+  const fullPayload = taskPayload(userId, organizationId, normalized) as unknown as Record<
+    string,
+    unknown
+  >;
   const { data, error } = await insertTaskWithFallback(supabase, fullPayload);
 
   if (error) throw toMessage("Не удалось создать задачу", error.message);
-  const created = ensureData(data as unknown as TaskRow, "Supabase не вернул созданную задачу.") as unknown as TaskRow;
+  const created = ensureData(
+    data as unknown as TaskRow,
+    "Supabase не вернул созданную задачу.",
+  ) as unknown as TaskRow;
 
   // Relations may not exist in qavf schema — ignore those errors gracefully
-  try { await persistTaskRelations(userId, organizationId, created.id, normalized); } catch {}
-  try { await createInitialChecklistItems(userId, organizationId, created.id, normalized.checklistTitles); } catch {}
-  try { await createInitialSubtasks(userId, organizationId, created.id, normalized); } catch {}
+  try {
+    await persistTaskRelations(userId, organizationId, created.id, normalized);
+  } catch {}
+  try {
+    await createInitialChecklistItems(
+      userId,
+      organizationId,
+      created.id,
+      normalized.checklistTitles,
+    );
+  } catch {}
+  try {
+    await createInitialSubtasks(userId, organizationId, created.id, normalized);
+  } catch {}
 
   try {
     return await fetchTaskById(organizationId, created.id);
@@ -1799,11 +1984,18 @@ export async function updateTask(
 ): Promise<Task> {
   const supabase = getSupabaseClient();
   let current: Task | null = null;
-  try { current = await fetchTaskById(organizationId, id); } catch { current = null; }
+  try {
+    current = await fetchTaskById(organizationId, id);
+  } catch {
+    current = null;
+  }
   const normalized = normalizeTaskInput(patch, current ?? undefined);
   if (normalized.parentTaskId === id) throw new Error("Задача не может быть родителем самой себя.");
 
-  let payload: Record<string, unknown> = taskUpdatePayload(normalized) as unknown as Record<string, unknown>;
+  const payload: Record<string, unknown> = taskUpdatePayload(normalized) as unknown as Record<
+    string,
+    unknown
+  >;
   if (payload["priority"]) payload["priority"] = mapPriorityForQavf(String(payload["priority"]));
   if (payload["status"]) payload["status"] = mapStatusForQavf(String(payload["status"]));
   if (payload["due_date"] && !payload["due_at"]) payload["due_at"] = payload["due_date"];
@@ -1812,51 +2004,117 @@ export async function updateTask(
   for (let attempt = 0; attempt < 12; attempt++) {
     let query = supabase.from("tasks").update(payload).eq("id", id);
     // Only add org filter if column exists (try and strip on error)
-    if (attempt === 0) query = query.eq("organization_id" as never, organizationId as never) as typeof query;
+    if (attempt === 0)
+      query = query.eq("organization_id" as never, organizationId as never) as typeof query;
     const { data, error } = await query.select().single();
     if (!error) {
       ensureData(data as unknown as TaskRow, "Supabase не вернул обновлённую задачу.");
-      try { await persistTaskRelations(userId, organizationId, id, normalized); } catch {}
-      try { return await fetchTaskById(organizationId, id); } catch { return mapTask(data as unknown as TaskRow); }
+      try {
+        await persistTaskRelations(userId, organizationId, id, normalized);
+      } catch {}
+      try {
+        return await fetchTaskById(organizationId, id);
+      } catch {
+        return mapTask(data as unknown as TaskRow);
+      }
     }
     const missing = extractMissingColumn(error.message);
-    if (missing && payload[missing] !== undefined) { delete payload[missing]; continue; }
-    if (error.message.includes("invalid input value for enum") || error.message.includes("violates check constraint")) {
+    if (missing && payload[missing] !== undefined) {
+      delete payload[missing];
+      continue;
+    }
+    if (
+      error.message.includes("invalid input value for enum") ||
+      error.message.includes("violates check constraint")
+    ) {
       const em = error.message;
       const isCheck = em.includes("violates check constraint");
       // For check constraints, drop column immediately to use DB default (avoids dialect toggling)
       if (isCheck) {
         if (em.includes("tasks_status_allowed_check") || em.includes("status")) {
-          if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+          if (payload["status"] !== undefined) {
+            delete payload["status"];
+            continue;
+          }
         }
         if (em.includes("priority") || em.includes("task_priority")) {
-          if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+          if (payload["priority"] !== undefined) {
+            delete payload["priority"];
+            continue;
+          }
         }
-        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
-        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+        if (payload["status"] !== undefined) {
+          delete payload["status"];
+          continue;
+        }
+        if (payload["priority"] !== undefined) {
+          delete payload["priority"];
+          continue;
+        }
       }
       if (em.includes("task_priority") || (isCheck && em.includes("priority"))) {
-        if (String(payload["priority"]) === "med") { payload["priority"] = "normal"; continue; }
-        if (String(payload["priority"]) === "normal") { payload["priority"] = "med"; continue; }
-        if (String(payload["priority"]) === "urgent") { payload["priority"] = "high"; continue; }
-        if (payload["priority"] !== undefined) { delete payload["priority"]; continue; }
+        if (String(payload["priority"]) === "med") {
+          payload["priority"] = "normal";
+          continue;
+        }
+        if (String(payload["priority"]) === "normal") {
+          payload["priority"] = "med";
+          continue;
+        }
+        if (String(payload["priority"]) === "urgent") {
+          payload["priority"] = "high";
+          continue;
+        }
+        if (payload["priority"] !== undefined) {
+          delete payload["priority"];
+          continue;
+        }
       }
       if (em.includes("task_status") || em.includes("tasks_status") || em.includes("status")) {
-        if (String(payload["status"]) === "backlog") { payload["status"] = "todo"; continue; }
-        if (String(payload["status"]) === "todo") { payload["status"] = "backlog"; continue; }
-        if (String(payload["status"]) === "review") { payload["status"] = "in_progress"; continue; }
-        if (String(payload["status"]) === "planned") { payload["status"] = "todo"; continue; }
-        if (String(payload["status"]) === "blocked") { payload["status"] = "in_progress"; continue; }
-        if (payload["status"] !== undefined) { delete payload["status"]; continue; }
+        if (String(payload["status"]) === "backlog") {
+          payload["status"] = "todo";
+          continue;
+        }
+        if (String(payload["status"]) === "todo") {
+          payload["status"] = "backlog";
+          continue;
+        }
+        if (String(payload["status"]) === "review") {
+          payload["status"] = "in_progress";
+          continue;
+        }
+        if (String(payload["status"]) === "planned") {
+          payload["status"] = "todo";
+          continue;
+        }
+        if (String(payload["status"]) === "blocked") {
+          payload["status"] = "in_progress";
+          continue;
+        }
+        if (payload["status"] !== undefined) {
+          delete payload["status"];
+          continue;
+        }
       }
     }
     if (error.message.includes("column") && error.message.includes("organization_id")) {
       // Retry without org filter
-      const { data: d2, error: e2 } = await supabase.from("tasks").update(payload).eq("id", id).select().single();
+      const { data: d2, error: e2 } = await supabase
+        .from("tasks")
+        .update(payload)
+        .eq("id", id)
+        .select()
+        .single();
       if (!e2) {
         ensureData(d2 as unknown as TaskRow, "Supabase не вернул обновлённую задачу.");
-        try { await persistTaskRelations(userId, organizationId, id, normalized); } catch {}
-        try { return await fetchTaskById(organizationId, id); } catch { return mapTask(d2 as unknown as TaskRow); }
+        try {
+          await persistTaskRelations(userId, organizationId, id, normalized);
+        } catch {}
+        try {
+          return await fetchTaskById(organizationId, id);
+        } catch {
+          return mapTask(d2 as unknown as TaskRow);
+        }
       }
       throw toMessage("Не удалось обновить задачу", e2.message);
     }

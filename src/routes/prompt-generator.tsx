@@ -1,15 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, useRef } from "react";
-import {
-  Sparkles,
-  Copy,
-  Check,
-  Plus,
-  Trash2,
-  Wand2,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { Sparkles, Copy, Check, Plus, Trash2, Wand2, ChevronDown, ChevronUp } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
 
@@ -50,9 +41,21 @@ interface PromptForm {
 }
 
 const PRIORITY_OPTIONS: { value: Priority; label: string; color: string }[] = [
-  { value: "critical", label: "Критический", color: "bg-red-500/15 text-red-400 border-red-500/30" },
-  { value: "high", label: "Высокий", color: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
-  { value: "medium", label: "Средний", color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+  {
+    value: "critical",
+    label: "Критический",
+    color: "bg-red-500/15 text-red-400 border-red-500/30",
+  },
+  {
+    value: "high",
+    label: "Высокий",
+    color: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  },
+  {
+    value: "medium",
+    label: "Средний",
+    color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  },
   { value: "low", label: "Низкий", color: "bg-green-500/15 text-green-400 border-green-500/30" },
 ];
 
@@ -125,12 +128,9 @@ function PromptGeneratorPage() {
 
   const prompt = generatePrompt(form);
 
-  const updateField = useCallback(
-    <K extends keyof PromptForm>(key: K, value: PromptForm[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
-    },
-    [],
-  );
+  const updateField = useCallback(<K extends keyof PromptForm>(key: K, value: PromptForm[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const addStep = useCallback(() => {
     setForm((prev) => ({

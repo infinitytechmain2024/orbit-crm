@@ -66,16 +66,14 @@ const createExecApprovalDecisionStateMock = vi.hoisted(() =>
   ),
 );
 const evaluateShellAllowlistWithAuthorizationMock = vi.hoisted(() =>
-  vi.fn(
-    (): MockAllowlistResult => ({
-      allowlistMatches: [],
-      analysisOk: true,
-      allowlistSatisfied: true,
-      segments: [{ resolution: null, argv: ["echo", "ok"] }],
-      segmentAllowlistEntries: [{ pattern: "/usr/bin/echo", source: "allow-always" }],
-      segmentSatisfiedBy: [],
-    }),
-  ),
+  vi.fn((): MockAllowlistResult => ({
+    allowlistMatches: [],
+    analysisOk: true,
+    allowlistSatisfied: true,
+    segments: [{ resolution: null, argv: ["echo", "ok"] }],
+    segmentAllowlistEntries: [{ pattern: "/usr/bin/echo", source: "allow-always" }],
+    segmentSatisfiedBy: [],
+  })),
 );
 const hasDurableExecApprovalMock = vi.hoisted(() => vi.fn(() => true));
 const hasExactCommandDurableExecApprovalMock = vi.hoisted(() => vi.fn(() => false));

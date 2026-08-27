@@ -3,7 +3,7 @@ import type { VoiceIntent } from "../types/voice";
 import type { LiamCommand, LiamResponse } from "../types/agent";
 
 const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434/v1";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "https://orbit-crm-backend.onrender.com";
 
 const COMMON_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",

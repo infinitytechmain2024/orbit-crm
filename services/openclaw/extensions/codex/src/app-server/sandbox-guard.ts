@@ -10,9 +10,7 @@ import {
 } from "./native-execution-policy.js";
 
 type DirectMethodPolicy =
-  | "allowed-control-plane"
-  | "blocked-native-bypass"
-  | "requires-openclaw-environment";
+  "allowed-control-plane" | "blocked-native-bypass" | "requires-openclaw-environment";
 
 const DIRECT_METHOD_POLICIES = new Map<string, DirectMethodPolicy>([
   ["account/rateLimits/read", "allowed-control-plane"],

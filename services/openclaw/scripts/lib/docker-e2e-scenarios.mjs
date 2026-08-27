@@ -262,15 +262,11 @@ function kitchenSinkRpcLane() {
 }
 
 export const mainLanes = [
-  serviceLane(
-    "compose-setup",
-    "OPENCLAW_SKIP_DOCKER_BUILD=1 pnpm test:docker:compose-setup",
-    {
-      stateScenario: "empty",
-      timeoutMs: 20 * 60 * 1000,
-      weight: 3,
-    },
-  ),
+  serviceLane("compose-setup", "OPENCLAW_SKIP_DOCKER_BUILD=1 pnpm test:docker:compose-setup", {
+    stateScenario: "empty",
+    timeoutMs: 20 * 60 * 1000,
+    weight: 3,
+  }),
   npmLane(
     "docker-package-install",
     "OPENCLAW_SKIP_DOCKER_BUILD=1 pnpm test:docker:package-install",
@@ -933,11 +929,10 @@ export function releasePathChunkLanes(chunk, options = {}) {
 
 export function allReleasePathLanes(options = {}) {
   const releaseProfile = normalizeReleaseProfile(options.releaseProfile);
-  return Object.keys(primaryReleasePathChunks)
-    .flatMap((chunk) =>
-      releasePathChunkLanes(chunk, {
-        includeOpenWebUI: options.includeOpenWebUI,
-        releaseProfile,
-      }),
-    );
+  return Object.keys(primaryReleasePathChunks).flatMap((chunk) =>
+    releasePathChunkLanes(chunk, {
+      includeOpenWebUI: options.includeOpenWebUI,
+      releaseProfile,
+    }),
+  );
 }

@@ -1087,8 +1087,7 @@ class WorkboardSqliteCardStore implements WorkboardKeyedStore {
 
   async lookup(key: string): Promise<PersistedWorkboardCard | undefined> {
     const row = this.db.prepare("SELECT * FROM workboard_cards WHERE id = ?").get(key) as
-      | Row
-      | undefined;
+      Row | undefined;
     return row ? { version: 1, card: readCard(this.db, row) } : undefined;
   }
 
@@ -1164,17 +1163,14 @@ class WorkboardSqliteBoardStore implements WorkboardKeyedStore<PersistedWorkboar
 
   async lookup(key: string): Promise<PersistedWorkboardBoard | undefined> {
     const row = this.db.prepare("SELECT * FROM workboard_boards WHERE id = ?").get(key) as
-      | Row
-      | undefined;
+      Row | undefined;
     if (!row) {
       return undefined;
     }
     const defaultWorkspace = parseJson(row.default_workspace_json) as
-      | PersistedWorkboardBoard["board"]["defaultWorkspace"]
-      | undefined;
+      PersistedWorkboardBoard["board"]["defaultWorkspace"] | undefined;
     const orchestration = parseJson(row.orchestration_json) as
-      | PersistedWorkboardBoard["board"]["orchestration"]
-      | undefined;
+      PersistedWorkboardBoard["board"]["orchestration"] | undefined;
     return {
       version: 1,
       board: {
@@ -1271,11 +1267,9 @@ class WorkboardSqliteSubscriptionStore implements WorkboardKeyedStore<PersistedW
       return undefined;
     }
     const eventKinds = parseJson(row.event_kinds_json) as
-      | PersistedWorkboardNotificationSubscription["subscription"]["eventKinds"]
-      | undefined;
+      PersistedWorkboardNotificationSubscription["subscription"]["eventKinds"] | undefined;
     const deliveredEventIds = parseJson(row.delivered_event_ids_json) as
-      | PersistedWorkboardNotificationSubscription["subscription"]["deliveredEventIds"]
-      | undefined;
+      PersistedWorkboardNotificationSubscription["subscription"]["deliveredEventIds"] | undefined;
     return {
       version: 1,
       subscription: {

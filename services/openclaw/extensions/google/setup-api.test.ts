@@ -374,9 +374,7 @@ describe("google gemini cli backend auth bridge", () => {
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-workspace-"));
     const originalSystemSettingsPath = process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH;
     let prepared:
-      | Awaited<ReturnType<NonNullable<typeof backend.prepareExecution>>>
-      | null
-      | undefined;
+      Awaited<ReturnType<NonNullable<typeof backend.prepareExecution>>> | null | undefined;
 
     try {
       const inheritedSettingsPath = path.join(workspaceDir, "ambient-system-settings.json");
@@ -496,9 +494,7 @@ describe("google gemini cli backend auth bridge", () => {
     const originalGoogleApiKey = process.env.GOOGLE_API_KEY;
     const originalQuotaProject = process.env.GOOGLE_CLOUD_QUOTA_PROJECT;
     let prepared:
-      | Awaited<ReturnType<NonNullable<typeof backend.prepareExecution>>>
-      | null
-      | undefined;
+      Awaited<ReturnType<NonNullable<typeof backend.prepareExecution>>> | null | undefined;
 
     process.env.GOOGLE_GENAI_USE_GCA = "true";
     process.env.GOOGLE_CLOUD_ACCESS_TOKEN = "ambient-cloud-token";

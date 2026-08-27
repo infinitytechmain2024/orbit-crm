@@ -272,8 +272,7 @@ export function registerSlashCommandRoute(api: OpenClawPluginApi) {
   };
 
   const commandsRaw = mmConfig?.commands as
-    | Partial<import("./slash-commands.js").MattermostSlashCommandConfig>
-    | undefined;
+    Partial<import("./slash-commands.js").MattermostSlashCommandConfig> | undefined;
   addCallbackPaths(commandsRaw);
 
   const accountsRaw = mmConfig?.accounts ?? {};

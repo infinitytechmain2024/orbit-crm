@@ -69,8 +69,7 @@ function resolveMergedTlonAccountConfig(
   return resolveMergedAccountConfig<Record<string, unknown> & TlonAccountConfig>({
     channelConfig: (channel ?? {}) as Record<string, unknown> & TlonAccountConfig,
     accounts: channel?.accounts as
-      | Record<string, Partial<Record<string, unknown> & TlonAccountConfig>>
-      | undefined,
+      Record<string, Partial<Record<string, unknown> & TlonAccountConfig>> | undefined,
     accountId,
     normalizeAccountId,
   });

@@ -83,8 +83,7 @@ describe("volcengine plugin", () => {
     } as never);
 
     const normalizedCompat = normalized?.compat as
-      | { unsupportedToolSchemaKeywords?: string[] }
-      | undefined;
+      { unsupportedToolSchemaKeywords?: string[] } | undefined;
     expect(normalizedCompat?.unsupportedToolSchemaKeywords).toEqual([
       "not",
       ...VOLCENGINE_UNSUPPORTED_TOOL_SCHEMA_KEYWORDS,

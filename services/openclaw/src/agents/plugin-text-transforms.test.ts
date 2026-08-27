@@ -122,13 +122,11 @@ describe("plugin text transforms", () => {
 
     expect(context.systemPrompt).toBe("Use pine mailbox inside north tower");
     const textContent = context.messages[0]?.content[0] as
-      | { type?: string; text?: string }
-      | undefined;
+      { type?: string; text?: string } | undefined;
     expect(textContent?.type).toBe("text");
     expect(textContent?.text).toBe("Please use the blue basket");
     const imageContent = context.messages[0]?.content[1] as
-      | { type?: string; url?: string }
-      | undefined;
+      { type?: string; url?: string } | undefined;
     expect(imageContent?.type).toBe("image");
     expect(imageContent?.url).toBe("data:image/png;base64,abc");
   });
@@ -244,8 +242,7 @@ describe("plugin text transforms", () => {
     }
 
     const deltaEvent = events.find((event) => event.type === "toolcall_delta") as
-      | { delta?: string; partial?: AssistantMessage }
-      | undefined;
+      { delta?: string; partial?: AssistantMessage } | undefined;
     // Raw JSON fragments are provider bytes and may split a replacement token.
     // Structured arguments are the safe, canonical transform surface.
     expect(deltaEvent?.delta).toBe('{"query":"[MASKED]"}');
@@ -259,8 +256,7 @@ describe("plugin text transforms", () => {
     });
 
     const endEvent = events.find((event) => event.type === "toolcall_end") as
-      | { toolCall?: { name?: string; arguments?: Record<string, unknown> } }
-      | undefined;
+      { toolCall?: { name?: string; arguments?: Record<string, unknown> } } | undefined;
     // Tool name is preserved — only arguments are transformed to avoid
     // breaking tool routing by renaming a registered tool identifier.
     expect(endEvent?.toolCall?.name).toBe("search");

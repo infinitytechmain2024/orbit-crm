@@ -326,8 +326,7 @@ describe("harness context engine lifecycle", () => {
 
     const afterTurnCalls = (afterTurn as unknown as { mock: { calls: unknown[][] } }).mock.calls;
     const afterTurnParams = afterTurnCalls[0]?.[0] as
-      | { messages?: AgentMessage[]; prePromptMessageCount?: number }
-      | undefined;
+      { messages?: AgentMessage[]; prePromptMessageCount?: number } | undefined;
     expect(afterTurnParams?.messages).toEqual([
       beforePromptUser,
       beforePromptAssistant,
@@ -436,8 +435,7 @@ describe("harness context engine lifecycle", () => {
     const ingestBatchCalls = (ingestBatch as unknown as { mock: { calls: unknown[][] } }).mock
       .calls;
     const ingestBatchParams = ingestBatchCalls[0]?.[0] as
-      | { isHeartbeat?: boolean; messages?: AgentMessage[] }
-      | undefined;
+      { isHeartbeat?: boolean; messages?: AgentMessage[] } | undefined;
     expect(ingestBatchParams?.messages).toEqual([turnUser, turnAssistant]);
     expect(ingestBatchParams?.isHeartbeat).toBe(true);
   });

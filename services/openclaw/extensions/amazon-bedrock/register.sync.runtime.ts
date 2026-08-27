@@ -457,8 +457,7 @@ export function registerAmazonBedrockPlugin(api: OpenClawPluginApi): void {
     options: TOptions,
   ): TOptions & { onPayload: (payload: unknown, payloadModel: unknown) => Promise<unknown> } {
     const originalOnPayload = (options as { onPayload?: unknown }).onPayload as
-      | ((payload: unknown, model: unknown) => unknown)
-      | undefined;
+      ((payload: unknown, model: unknown) => unknown) | undefined;
     return {
       ...options,
       onPayload: async (payload: unknown, payloadModel: unknown) => {
@@ -608,8 +607,7 @@ export function registerAmazonBedrockPlugin(api: OpenClawPluginApi): void {
         );
 
         const originalOnPayload = merged.onPayload as
-          | ((payload: unknown, model: unknown) => unknown)
-          | undefined;
+          ((payload: unknown, model: unknown) => unknown) | undefined;
 
         if (!mayNeedCacheInjection) {
           return underlying(

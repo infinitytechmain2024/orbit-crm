@@ -40,8 +40,7 @@ export interface ResolvedNostrAccount {
 
 function resolveConfiguredDefaultNostrAccountId(cfg: OpenClawConfig): string | undefined {
   const nostrCfg = (cfg.channels as Record<string, unknown> | undefined)?.nostr as
-    | NostrAccountConfig
-    | undefined;
+    NostrAccountConfig | undefined;
   return normalizeOptionalAccountId(nostrCfg?.defaultAccount);
 }
 
@@ -50,8 +49,7 @@ function resolveConfiguredDefaultNostrAccountId(cfg: OpenClawConfig): string | u
  */
 export function listNostrAccountIds(cfg: OpenClawConfig): string[] {
   const nostrCfg = (cfg.channels as Record<string, unknown> | undefined)?.nostr as
-    | NostrAccountConfig
-    | undefined;
+    NostrAccountConfig | undefined;
   const privateKey = normalizeSecretInputString(nostrCfg?.privateKey);
   return listCombinedAccountIds({
     configuredAccountIds: [],
@@ -80,8 +78,7 @@ export function resolveNostrAccount(opts: {
 }): ResolvedNostrAccount {
   const accountId = normalizeAccountId(opts.accountId ?? resolveDefaultNostrAccountId(opts.cfg));
   const nostrCfg = (opts.cfg.channels as Record<string, unknown> | undefined)?.nostr as
-    | NostrAccountConfig
-    | undefined;
+    NostrAccountConfig | undefined;
 
   const baseEnabled = nostrCfg?.enabled !== false;
   const privateKey = normalizeSecretInputString(nostrCfg?.privateKey) ?? "";

@@ -4652,8 +4652,7 @@ describe("qa mock openai server", () => {
     expect(body.model).toBe("claude-opus-4-8");
     expect(body.stop_reason).toBe("tool_use");
     const toolUseBlock = body.content.find((block) => block.type === "tool_use") as
-      | { name: string; input: Record<string, unknown> }
-      | undefined;
+      { name: string; input: Record<string, unknown> } | undefined;
     expect(toolUseBlock?.name).toBe("read");
     expect(toolUseBlock?.input).toEqual({ path: "repo/docs/help/testing.md" });
 
@@ -4699,8 +4698,7 @@ describe("qa mock openai server", () => {
     };
     expect(body.stop_reason).toBe("tool_use");
     const toolUseBlock = body.content.find((block) => block.type === "tool_use") as
-      | { name: string; input: Record<string, unknown> }
-      | undefined;
+      { name: string; input: Record<string, unknown> } | undefined;
     expect(toolUseBlock?.name).toBe("sessions_spawn");
     expect(toolUseBlock?.input.task).toBe(threadSubagentTask("QA_SUBAGENT_CHILD_ANTHROPIC"));
     expect(toolUseBlock?.input.label).toBe("qa-thread-subagent");
@@ -4778,8 +4776,7 @@ describe("qa mock openai server", () => {
     };
     expect(body.stop_reason).toBe("end_turn");
     const textBlock = body.content.find((block) => block.type === "text") as
-      | { text: string }
-      | undefined;
+      { text: string } | undefined;
     // The mock's subagent-handoff branch echoes "Delegated task", a
     // tool-output evidence line, and a folded-back "Evidence" marker.
     expect(textBlock?.text).toContain("Delegated task");

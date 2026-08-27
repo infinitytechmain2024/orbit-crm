@@ -222,8 +222,7 @@ export function rewriteTranscriptEntriesInSessionManager(params: {
   }
 
   const firstMatchedEntry = branch[matchedIndices[0]] as
-    | Extract<SessionBranchEntry, { type: "message" }>
-    | undefined;
+    Extract<SessionBranchEntry, { type: "message" }> | undefined;
   // matchedIndices only contains indices of branch "message" entries.
   if (!firstMatchedEntry) {
     return {
@@ -361,8 +360,7 @@ export function rewriteTranscriptEntriesInState(params: {
   }
 
   const firstMatchedEntry = branch[matchedIndices[0]] as
-    | Extract<SessionBranchEntry, { type: "message" }>
-    | undefined;
+    Extract<SessionBranchEntry, { type: "message" }> | undefined;
   if (!firstMatchedEntry) {
     return {
       changed: false,

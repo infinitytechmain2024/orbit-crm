@@ -1,6 +1,7 @@
 # ТЕХНИЧЕСКИЙ ПРОМПТ И ПЛАН РАБОТ ДЛЯ ИИ-АГЕНТА И РАЗРАБОТЧИКОВ
 
 ## Цель проекта
+
 Перевести интерфейс из статического макета (mockup) в полноценно функционирующую систему управления ИИ-воркфлоу. Обеспечить интерактивность всех элементов управления, интеграцию с реальным бэкендом, мультишлюзом ИИ-моделей и динамическим выполнением задач агентами.
 
 ---
@@ -10,32 +11,35 @@
 ### 1.1 Удаление верхнего баннера о демо-режиме
 
 **Текущее состояние:**
+
 - Плашка "Backend пока недоступен — AI Workflow автоматически переключён на рабочий demo-режим"
 - Жестко закодированный статус
 
 **Требуемое поведение:**
+
 - Убрать постоянную плашку
 - Заменить на реальный опрос эндпоинта `/api/health`
 - При недоступности бэкенда: кастомный тост-модалок с кнопкой "Повторить подключение"
 
 **Реализация:**
+
 ```typescript
 // src/features/ai-workflow/use-backend-status.ts
 export function useBackendStatus() {
-  const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [status, setStatus] = useState<"checking" | "online" | "offline">("checking");
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
 
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch('/api/health', { 
-          method: 'GET',
-          signal: AbortSignal.timeout(5000) 
+        const response = await fetch("/api/health", {
+          method: "GET",
+          signal: AbortSignal.timeout(5000),
         });
-        setStatus(response.ok ? 'online' : 'offline');
+        setStatus(response.ok ? "online" : "offline");
         setLastCheck(new Date());
       } catch {
-        setStatus('offline');
+        setStatus("offline");
       }
     };
 
@@ -49,11 +53,12 @@ export function useBackendStatus() {
 ```
 
 **Компонент тоста:**
+
 ```typescript
 // src/components/BackendStatusToast.tsx
 export function BackendStatusToast({ status, onRetry }: Props) {
   if (status === 'online') return null;
-  
+
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right">
       <div className="bg-card border border-border rounded-lg p-4 shadow-lg max-w-sm">
@@ -78,30 +83,33 @@ export function BackendStatusToast({ status, onRetry }: Props) {
 ### 1.2 Интеграция кнопок управления
 
 **Кнопка "Проверить бэкенд":**
+
 - Отправляет `GET /api/health`
 - Обновляет индикатор статуса соединения
 - Показывает анимацию загрузки во время проверки
 
 **Кнопка "Demo mode":**
+
 - Переключает стейт приложения в режим песочницы
 - Сохраняет состояние в `localStorage`
 - Визуально подсвечивается при активности
 
 **Реализация:**
+
 ```typescript
 // src/features/ai-workflow/use-demo-mode.ts
 export function useDemoMode() {
   const [isDemo, setIsDemo] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('ai-workflow-demo') === 'true';
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ai-workflow-demo") === "true";
     }
     return false;
   });
 
   const toggleDemo = useCallback(() => {
-    setIsDemo(prev => {
+    setIsDemo((prev) => {
       const next = !prev;
-      localStorage.setItem('ai-workflow-demo', String(next));
+      localStorage.setItem("ai-workflow-demo", String(next));
       return next;
     });
   }, []);
@@ -117,81 +125,86 @@ export function useDemoMode() {
 ### 2.1 Верхняя панель статуса воркфлоу
 
 **Текущее состояние:**
+
 - Статический прогресс 5%
 - Кнопки без привязки к API
 
 **Требуемое поведение:**
+
 - Прогресс: `(Completed Tasks / Total Tasks) * 100`
 - Кнопки Pause/Cancel отправляют запросы на бэкенд
 - Динамическое обновление статуса
 
 **Реализация прогресса:**
+
 ```typescript
 // src/features/ai-workflow/use-workflow-progress.ts
 export function useWorkflowProgress(tasks: WorkflowTask[]) {
   return useMemo(() => {
     const total = tasks.length;
-    const completed = tasks.filter(t => t.status === 'done').length;
-    const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-    const queued = tasks.filter(t => t.status === 'queued').length;
-    
+    const completed = tasks.filter((t) => t.status === "done").length;
+    const inProgress = tasks.filter((t) => t.status === "in_progress").length;
+    const queued = tasks.filter((t) => t.status === "queued").length;
+
     const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
+
     return {
       progress,
       total,
       completed,
       inProgress,
       queued,
-      isComplete: progress === 100
+      isComplete: progress === 100,
     };
   }, [tasks]);
 }
 ```
 
 **Кнопки управления:**
+
 ```typescript
 // src/features/ai-workflow/api.ts
 export async function pauseWorkflow(
-  token: string, 
-  taskId: string, 
-  organizationId: string
+  token: string,
+  taskId: string,
+  organizationId: string,
 ): Promise<void> {
   await fetch(`/api/ai-workflow/tasks/${taskId}/pause`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${INTERNAL_API_TOKEN}`,
-      'X-Supabase-Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${INTERNAL_API_TOKEN}`,
+      "X-Supabase-Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ organization_id: organizationId })
+    body: JSON.stringify({ organization_id: organizationId }),
   });
 }
 
 export async function cancelWorkflow(
-  token: string, 
-  taskId: string, 
-  organizationId: string
+  token: string,
+  taskId: string,
+  organizationId: string,
 ): Promise<void> {
   await fetch(`/api/ai-workflow/tasks/${taskId}/cancel`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${INTERNAL_API_TOKEN}`,
-      'X-Supabase-Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${INTERNAL_API_TOKEN}`,
+      "X-Supabase-Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ organization_id: organizationId })
+    body: JSON.stringify({ organization_id: organizationId }),
   });
 }
 ```
 
 **Модальное окно подтверждения Cancel:**
+
 ```typescript
 // src/components/ai-workflow/CancelConfirmDialog.tsx
-export function CancelConfirmDialog({ 
-  open, 
-  onConfirm, 
-  onCancel 
+export function CancelConfirmDialog({
+  open,
+  onConfirm,
+  onCancel
 }: CancelConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onCancel}>
@@ -199,13 +212,13 @@ export function CancelConfirmDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Отменить выполнение?</AlertDialogTitle>
           <AlertDialogDescription>
-            Это остановит все активные процессы агентов. 
+            Это остановит все активные процессы агентов.
             Текущий прогресс будет сохранён.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Отмена</AlertDialogCancel>
-          <AlertDialogAction 
+          <AlertDialogAction
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground"
           >
@@ -221,14 +234,17 @@ export function CancelConfirmDialog({
 ### 2.2 Лента выполнения (WebSocket)
 
 **Текущее состояние:**
+
 - Статический список событий
 
 **Требуемое поведение:**
+
 - WebSocket-канал `/ws/activity` для логов в реальном времени
 - Кликабельность элементов
 - Детальный лог по клику
 
 **Реализация WebSocket:**
+
 ```typescript
 // src/features/ai-workflow/use-activity-stream.ts
 export function useActivityStream(organizationId: string) {
@@ -238,16 +254,14 @@ export function useActivityStream(organizationId: string) {
   useEffect(() => {
     if (!organizationId) return;
 
-    const ws = new WebSocket(
-      `${WS_URL}/ws/activity?org=${organizationId}`
-    );
+    const ws = new WebSocket(`${WS_URL}/ws/activity?org=${organizationId}`);
 
     ws.onopen = () => setIsConnected(true);
     ws.onclose = () => setIsConnected(false);
-    
+
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      setEvents(prev => [data, ...prev].slice(0, 100)); // последние 100
+      setEvents((prev) => [data, ...prev].slice(0, 100)); // последние 100
     };
 
     return () => ws.close();
@@ -258,6 +272,7 @@ export function useActivityStream(organizationId: string) {
 ```
 
 **Компонент ленты:**
+
 ```typescript
 // src/components/ai-workflow/ActivityFeed.tsx
 export function ActivityFeed({ events, onEventClick }: ActivityFeedProps) {
@@ -266,7 +281,7 @@ export function ActivityFeed({ events, onEventClick }: ActivityFeedProps) {
       <h3 className="text-sm font-medium">Лента выполнения</h3>
       <ScrollArea className="h-[400px]">
         {events.map(event => (
-          <div 
+          <div
             key={event.id}
             className="p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
             onClick={() => onEventClick(event)}
@@ -296,46 +311,42 @@ export function ActivityFeed({ events, onEventClick }: ActivityFeedProps) {
 ### 3.1 Глобальный узел (CEO)
 
 **Текущее состояние:**
+
 - Статические цифры 5 в очереди, 5 в работе, 4 готово
 
 **Требуемое поведение:**
+
 - Динамические данные из БД
 - Кнопка принятия решений CEO
 - Подсветка задач, требующих подтверждения
 
 **Реализация агрегации:**
+
 ```typescript
 // src/features/ai-workflow/use-ceo-stats.ts
 export function useCEOStats(tasks: WorkflowTask[]) {
   return useMemo(() => {
-    const queued = tasks.filter(t => 
-      ['queued', 'planning'].includes(t.status)
-    ).length;
-    
-    const inProgress = tasks.filter(t => 
-      t.status === 'in_progress'
-    ).length;
-    
-    const done = tasks.filter(t => 
-      t.status === 'done'
-    ).length;
-    
-    const pendingApproval = tasks.filter(t => 
-      t.status === 'approval_required'
-    );
-    
+    const queued = tasks.filter((t) => ["queued", "planning"].includes(t.status)).length;
+
+    const inProgress = tasks.filter((t) => t.status === "in_progress").length;
+
+    const done = tasks.filter((t) => t.status === "done").length;
+
+    const pendingApproval = tasks.filter((t) => t.status === "approval_required");
+
     return {
       queued,
       inProgress,
       done,
       pendingApproval,
-      total: tasks.length
+      total: tasks.length,
     };
   }, [tasks]);
 }
 ```
 
 **Компонент CEO Node:**
+
 ```typescript
 // src/components/ai-workflow/CEONode.tsx
 export function CEONode({ stats, onApprove }: CEONodeProps) {
@@ -345,26 +356,26 @@ export function CEONode({ stats, onApprove }: CEONodeProps) {
         <Crown className="h-5 w-5 text-primary" />
         <h3 className="font-medium">CEO</h3>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-2 text-center">
         <StatCard label="В очереди" value={stats.queued} />
         <StatCard label="В работе" value={stats.inProgress} />
         <StatCard label="Готово" value={stats.done} />
       </div>
-      
+
       {stats.pendingApproval.length > 0 && (
         <div className="mt-3 p-2 bg-amber-500/10 rounded-lg">
           <p className="text-xs text-amber-500 font-medium mb-2">
             Ожидает решения CEO ({stats.pendingApproval.length})
           </p>
           {stats.pendingApproval.map(task => (
-            <div 
+            <div
               key={task.id}
               className="flex items-center justify-between p-2 bg-background rounded"
             >
               <span className="text-sm truncate">{task.title}</span>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => onApprove(task)}
               >
                 Решить
@@ -381,20 +392,23 @@ export function CEONode({ stats, onApprove }: CEONodeProps) {
 ### 3.2 Департаменты
 
 **Текущее состояние:**
+
 - Статические карточки без интерактивности
 
 **Требуемое поведение:**
+
 - Кликабельность карточек
 - Открытие канбан-борда департамента
 - Статус и счетчик задач
 
 **Реализация:**
+
 ```typescript
 // src/components/ai-workflow/DepartmentCard.tsx
-export function DepartmentCard({ 
-  department, 
-  tasks, 
-  onClick 
+export function DepartmentCard({
+  department,
+  tasks,
+  onClick
 }: DepartmentCardProps) {
   const stats = useMemo(() => ({
     total: tasks.length,
@@ -406,19 +420,19 @@ export function DepartmentCard({
   const hasActiveWork = stats.active > 0;
 
   return (
-    <div 
+    <div
       className={cn(
         "rounded-xl border p-4 cursor-pointer transition-all hover:shadow-lg",
-        hasActiveWork 
-          ? "border-green-500/30 bg-green-500/5" 
+        hasActiveWork
+          ? "border-green-500/30 bg-green-500/5"
           : "border-border bg-card"
       )}
       onClick={onClick}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div 
-            className="h-3 w-3 rounded-full" 
+          <div
+            className="h-3 w-3 rounded-full"
             style={{ backgroundColor: department.color }}
           />
           <h3 className="font-medium text-sm">{department.name}</h3>
@@ -430,7 +444,7 @@ export function DepartmentCard({
           </Badge>
         )}
       </div>
-      
+
       <div className="grid grid-cols-3 gap-1 text-center text-xs">
         <div>
           <div className="font-medium">{stats.queued}</div>
@@ -453,29 +467,32 @@ export function DepartmentCard({
 ### 3.3 Внутренние модули агентов
 
 **Текущее состояние:**
+
 - Список агентов без статусов
 
 **Требуемое поведение:**
+
 - Статус (idle, working) для каждого агента
 - Текущая активная задача
 - Переключатель AI/Manual режима
 
 **Реализация:**
+
 ```typescript
 // src/components/ai-workflow/AgentModule.tsx
-export function AgentModule({ 
-  agent, 
-  currentTask, 
+export function AgentModule({
+  agent,
+  currentTask,
   onModeToggle,
-  onReassign 
+  onReassign
 }: AgentModuleProps) {
   const isWorking = agent.status === 'working';
 
   return (
     <div className={cn(
       "p-3 rounded-lg border",
-      isWorking 
-        ? "border-green-500/30 bg-green-500/5" 
+      isWorking
+        ? "border-green-500/30 bg-green-500/5"
         : "border-border bg-muted/30"
     )}>
       <div className="flex items-center justify-between">
@@ -486,20 +503,20 @@ export function AgentModule({
           )} />
           <span className="text-sm font-medium">{agent.name}</span>
         </div>
-        
-        <Switch 
+
+        <Switch
           checked={agent.mode === 'ai'}
           onCheckedChange={(checked) => onModeToggle(agent.id, checked)}
         />
       </div>
-      
+
       {currentTask && (
         <div className="mt-2 p-2 bg-background rounded text-xs">
           <div className="text-muted-foreground">Текущая задача:</div>
           <div className="truncate">{currentTask.title}</div>
         </div>
       )}
-      
+
       {!currentTask && (
         <p className="mt-2 text-xs text-muted-foreground">
           Нет активных задач
@@ -517,16 +534,18 @@ export function AgentModule({
 ### 4.1 AI Router (Маршрутизатор)
 
 **Требуемое поведение:**
+
 - Единый сервис маршрутизации задач
 - Распределение по моделям в зависимости от типа задачи
 - Автоматический выбор лучшей модели
 
 **Реализация:**
+
 ```typescript
 // backend/services/ai_router.py
 class AIRouter:
     """Маршрутизатор задач между ИИ-моделями"""
-    
+
     MODEL_CAPABILITIES = {
         "openai/gpt-4o": {
             "strengths": ["coding", "reasoning", "complex_analysis"],
@@ -554,7 +573,7 @@ class AIRouter:
             "speed": "medium"
         }
     }
-    
+
     TASK_TYPE_MAPPING = {
         "coding": ["openai/gpt-4o", "anthropic/claude-3.5-sonnet", "deepseek/deepseek-coder"],
         "writing": ["anthropic/claude-3.5-sonnet", "yandex/yandexgpt"],
@@ -562,22 +581,22 @@ class AIRouter:
         "analysis": ["openai/gpt-4o", "nvidia/llama-3.3-70b"],
         "reasoning": ["nvidia/llama-3.3-70b", "openai/gpt-4o"]
     }
-    
+
     async def route_task(self, task: WorkflowTask) -> str:
         """Выбор оптимальной модели для задачи"""
         task_type = self._classify_task_type(task)
         available_models = self.TASK_TYPE_MAPPING.get(task_type, [])
-        
+
         for model in available_models:
             if await self._check_model_availability(model):
                 return model
-        
+
         return "nvidia/llama-3.3-70b"  # fallback
-    
+
     def _classify_task_type(self, task: WorkflowTask) -> str:
         """Классификация типа задачи"""
         text = f"{task.title} {task.description}".lower()
-        
+
         if any(kw in text for kw in ["код", "code", "api", "backend", "frontend"]):
             return "coding"
         if any(kw in text for kw in ["текст", "статья", "copywriting"]):
@@ -586,18 +605,20 @@ class AIRouter:
             return "seo"
         if any(kw in text for kw in ["анализ", "отчет", "метрики"]):
             return "analysis"
-        
+
         return "reasoning"
 ```
 
 ### 4.2 Системные промпты для агентов
 
 **Требуемое поведение:**
+
 - Уникальный промпт для каждого типа агента
 - Генерация валидных артефактов
 - Автоматическое сохранение результатов
 
 **Реализация:**
+
 ```typescript
 // backend/services/agent_prompts.ts
 export const AGENT_PROMPTS = {
@@ -606,93 +627,95 @@ export const AGENT_PROMPTS = {
 Твоя задача - писать чистый, безопасный и масштабируемый код на Python/FastAPI.
 Всегда добавляй type hints, docstrings и обработку ошибок.
 Генерируй код в формате, готовом к деплою.`,
-    artifacts: ["python", "sql", "api_endpoint"]
+    artifacts: ["python", "sql", "api_endpoint"],
   },
-  
-  "Frontend": {
+
+  Frontend: {
     system: `Ты Frontend разработчик в компании Orbit.
 Используй React + TypeScript + Tailwind CSS.
 Создавай переиспользуемые компоненты с правильной типизацией.
 Следуй принципам atomic design.`,
-    artifacts: ["tsx", "css", "component"]
+    artifacts: ["tsx", "css", "component"],
   },
-  
-  "SEO": {
+
+  SEO: {
     system: `Ты SEO-специалист в компании Orbit.
 Создавай семантические ядра, оптимизируй мета-теги.
 Генерируй отчёты с конкретными рекомендациями.
 Используй данные из Google Search Console.`,
-    artifacts: ["md", "xlsx", "seo_report"]
+    artifacts: ["md", "xlsx", "seo_report"],
   },
-  
-  "CMO": {
+
+  CMO: {
     system: `Ты маркетинговый директор в компании Orbit.
 Разрабатывай стратегии роста, анализируй воронки.
 Создавай планы контента и рекламных кампаний.`,
-    artifacts: ["md", "xlsx", "marketing_plan"]
+    artifacts: ["md", "xlsx", "marketing_plan"],
   },
-  
-  "HR": {
+
+  HR: {
     system: `Ты HR-менеджер в компании Orbit.
 Создавай вакансии, проводи оценку кандидатов.
 Разрабатывай программы онбординга.`,
-    artifacts: ["md", "doc", "hr_process"]
-  }
+    artifacts: ["md", "doc", "hr_process"],
+  },
 };
 ```
 
 ### 4.3 Генерация артефактов
 
 **Требуемое поведение:**
+
 - Автоматическое сохранение результатов в блок "Последние артефакты"
 - Поддержка форматов: .md, .xlsx, .pdf, .py, .tsx
 
 **Реализация:**
-```typescript
+
+````typescript
 // backend/services/artifact_generator.ts
 export class ArtifactGenerator {
   async generateAndSave(
     task: WorkflowTask,
     result: string,
-    agent: WorkflowAgent
+    agent: WorkflowAgent,
   ): Promise<WorkflowArtifact> {
     const artifactType = this.determineArtifactType(result, agent);
     const filename = this.generateFilename(task.title, artifactType);
-    
+
     // Сохранение в Supabase Storage
     const { data, error } = await supabase.storage
-      .from('artifacts')
+      .from("artifacts")
       .upload(`${task.id}/${filename}`, result, {
-        contentType: this.getContentType(artifactType)
+        contentType: this.getContentType(artifactType),
       });
-    
+
     // Создание записи в БД
-    const artifact = await ai_workflow_store.insert('artifacts', {
+    const artifact = await ai_workflow_store.insert("artifacts", {
       task_id: task.id,
       project_id: task.project_id,
       agent_id: agent.id,
       name: filename,
       type: artifactType,
-      url: data?.path || '',
+      url: data?.path || "",
       metadata: {
         generated_by: agent.role,
         model_used: task.current_model,
-        word_count: result.split(/\s+/).length
-      }
+        word_count: result.split(/\s+/).length,
+      },
     });
-    
+
     return artifact;
   }
-  
+
   private determineArtifactType(content: string, agent: WorkflowAgent): string {
-    if (content.includes('```python')) return 'python';
-    if (content.includes('```tsx') || content.includes('```jsx')) return 'tsx';
-    if (content.includes('|') && content.includes('---')) return 'xlsx';
-    if (agent.role === 'SEO') return 'seo_report';
-    return 'markdown';
+    if (content.includes("```python")) return "python";
+    if (content.includes("```tsx") || content.includes("```jsx")) return "tsx";
+    if (content.includes("|") && content.includes("---")) return "xlsx";
+    if (agent.role === "SEO") return "seo_report";
+    return "markdown";
   }
 }
-```
+````
 
 ---
 
@@ -701,12 +724,15 @@ export class ArtifactGenerator {
 ### 5.1 Удаление блока "AI-сводка"
 
 **Текущее состояние:**
+
 - Блок с ненужной информацией
 
 **Требуемое поведение:**
+
 - Удалить блок или заменить на критически важные метрики
 
 **Реализация:**
+
 ```typescript
 // Удалить или закомментировать блок AI-сводки в RightRail.tsx
 // Было:
@@ -719,13 +745,16 @@ export class ArtifactGenerator {
 ### 5.2 Расширение блоков маркетинга
 
 **Текущее состояние:**
+
 - Карточки обрезают длинные названия
 
 **Требуемое поведение:**
+
 - Визуально расширить карточки
 - Гармоничное отображение длинных тегов
 
 **Реализация:**
+
 ```css
 /* Добавить в globals.css */
 .department-card-marketing {
@@ -745,13 +774,14 @@ export class ArtifactGenerator {
 ```
 
 **Компонент:**
+
 ```typescript
 // src/components/ai-workflow/MarketingDepartment.tsx
 export function MarketingDepartment({ department, tasks }: Props) {
   return (
     <div className="min-w-[280px] lg:min-w-[320px]">
-      <DepartmentCard 
-        department={department} 
+      <DepartmentCard
+        department={department}
         tasks={tasks}
         className="w-full"
       />
@@ -765,6 +795,7 @@ export function MarketingDepartment({ department, tasks }: Props) {
 ## ЧЕК-ЛИСТ ДЛЯ ПРОВЕРКИ РЕАЛИЗАЦИИ
 
 ### Блок 1: Демо-режим
+
 - [ ] Убран нерабочий баннер демо-режима
 - [ ] Добавлен индикатор живого соединения
 - [ ] Тост-модалок при недоступности бэкенда
@@ -772,12 +803,14 @@ export function MarketingDepartment({ department, tasks }: Props) {
 - [ ] Кнопка "Demo mode" переключает режим
 
 ### Блок 2: Orbit Commander
+
 - [ ] Прогресс-бар отражает реальное выполнение
 - [ ] Кнопки Pause/Cancel отправляют запросы
 - [ ] Лента выполнения обновляется через WebSocket
 - [ ] Элементы ленты кликабельны
 
 ### Блок 3: Роли и департаменты
+
 - [ ] Цифры CEO динамические
 - [ ] Задачи на подтверждении кликабельны
 - [ ] Карточки департаментов кликабельны
@@ -786,12 +819,14 @@ export function MarketingDepartment({ department, tasks }: Props) {
 - [ ] Переключатель AI/Manual работает
 
 ### Блок 4: Мультишлюз
+
 - [ ] AI Router маршрутизирует по моделям
 - [ ] Системные промпты настроены
 - [ ] Артефакты генерируются и сохраняются
 - [ ] Поддержка .md, .xlsx, .pdf, .py, .tsx
 
 ### Блок 5: UI/UX
+
 - [ ] Блок "AI-сводка" удален/оптимизирован
 - [ ] Блоки маркетинга расширены
 - [ ] Длинные тексты не обрезаются
@@ -802,6 +837,7 @@ export function MarketingDepartment({ department, tasks }: Props) {
 ## API ENDPOINTS ДЛЯ РЕАЛИЗАЦИИ
 
 ### Backend (FastAPI)
+
 ```
 GET  /api/health                    - Health check
 GET  /api/ai-workflow/overview      - Dashboard data
@@ -813,6 +849,7 @@ WS   /ws/activity                   - Activity stream
 ```
 
 ### Frontend (React)
+
 ```
 useBackendStatus()      - Hook для проверки бэкенда
 useDemoMode()           - Hook для демо-режима
@@ -826,26 +863,31 @@ useActivityStream()     - Hook для WebSocket ленты
 ## ПОРЯДОК РЕАЛИЗАЦИИ
 
 ### Фаза 1: Инфраструктура (1-2 дня)
+
 1. Создать хуки для работы с бэкендом
 2. Настроить WebSocket подключение
 3. Реализовать health check
 
 ### Фаза 2: UI компоненты (2-3 дня)
+
 1. Обновить CEO Node
 2. Сделать карточки департаментов кликабельными
 3. Добавить переключатели агентов
 
 ### Фаза 3: Интеграция (2-3 дня)
+
 1. Подключить кнопки Pause/Cancel к API
 2. Реализовать ленту активности
 3. Настроить генерацию артефактов
 
 ### Фаза 4: AI Router (1-2 дня)
+
 1. Создать маршрутизатор моделей
 2. Настроить системные промпты
 3. Протестировать генерацию
 
 ### Фаза 5: Полировка (1 день)
+
 1. Убрать заглушки
 2. Оптимизировать UI
 3. Финальное тестирование
@@ -855,6 +897,7 @@ useActivityStream()     - Hook для WebSocket ленты
 ## ТЕХНИЧЕСКИЕ ТРЕБОВАНИЯ
 
 ### Стек технологий
+
 - **Frontend:** React 19, TypeScript, Tailwind CSS, TanStack Router
 - **Backend:** FastAPI, Python 3.12
 - **База данных:** Supabase (PostgreSQL)
@@ -862,12 +905,14 @@ useActivityStream()     - Hook для WebSocket ленты
 - **AI Models:** OpenAI, Anthropic, DeepSeek, YandexGPT, NVIDIA
 
 ### Производительность
+
 - Time to Interactive: < 2s
 - WebSocket latency: < 100ms
 - API response time: < 500ms
 - Bundle size: < 500KB
 
 ### Безопасность
+
 - JWT аутентификация через Supabase
 - RLS политики для всех таблиц
 - Валидация входных данных

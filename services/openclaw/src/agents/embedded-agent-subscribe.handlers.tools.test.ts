@@ -2526,8 +2526,7 @@ describe("handleToolExecutionEnd derived tool events", () => {
     );
     expect(updateEvents).toHaveLength(1);
     const partialResult = updateEvents[0]?.data?.partialResult as
-      | { details?: { aggregated?: string } }
-      | undefined;
+      { details?: { aggregated?: string } } | undefined;
     expect(partialResult?.details?.aggregated).toContain("...(live output truncated)...");
     expect(partialResult?.details?.aggregated?.length).toBeLessThan(largeOutput.length);
 

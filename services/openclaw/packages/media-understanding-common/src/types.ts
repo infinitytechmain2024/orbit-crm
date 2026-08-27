@@ -2,9 +2,7 @@
 
 /** Kind of media-understanding output produced for an attachment. */
 export type MediaUnderstandingKind =
-  | "audio.transcription"
-  | "video.description"
-  | "image.description";
+  "audio.transcription" | "video.description" | "image.description";
 
 /** Capability exposed by a media-understanding provider. */
 export type MediaUnderstandingCapability = "image" | "audio" | "video";

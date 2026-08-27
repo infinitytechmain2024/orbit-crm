@@ -104,12 +104,7 @@ interface OpenAICodexResponsesOptions extends StreamOptions {
 }
 
 type CodexResponseStatus =
-  | "completed"
-  | "incomplete"
-  | "failed"
-  | "cancelled"
-  | "queued"
-  | "in_progress";
+  "completed" | "incomplete" | "failed" | "cancelled" | "queued" | "in_progress";
 
 interface RequestBody {
   model: string;

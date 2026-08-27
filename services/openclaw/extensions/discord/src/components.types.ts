@@ -7,12 +7,7 @@ export type DiscordComponentSelectType = "string" | "user" | "role" | "mentionab
 export type DiscordComponentCallbackDataKind = "command" | "callback";
 
 export type DiscordComponentModalFieldType =
-  | "text"
-  | "checkbox"
-  | "radio"
-  | "select"
-  | "role-select"
-  | "user-select";
+  "text" | "checkbox" | "radio" | "select" | "role-select" | "user-select";
 
 export type DiscordComponentButtonSpec = {
   label: string;

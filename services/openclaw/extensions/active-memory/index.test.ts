@@ -209,8 +209,7 @@ describe("active-memory plugin", () => {
   };
   const getActiveMemoryLines = (sessionKey: string): string[] => {
     const entries = hoisted.sessionStore[sessionKey]?.pluginDebugEntries as
-      | Array<{ pluginId?: string; lines?: string[] }>
-      | undefined;
+      Array<{ pluginId?: string; lines?: string[] }> | undefined;
     return entries?.find((entry) => entry.pluginId === "active-memory")?.lines ?? [];
   };
   const expectLinesToContain = (lines: string[], text: string) => {
@@ -337,8 +336,7 @@ describe("active-memory plugin", () => {
   const lastSessionStoreUpdater = () => {
     const calls = hoisted.updateSessionStore.mock.calls;
     const updater = calls[calls.length - 1]?.[1] as
-      | ((store: Record<string, Record<string, unknown>>) => void)
-      | undefined;
+      ((store: Record<string, Record<string, unknown>>) => void) | undefined;
     if (!updater) {
       throw new Error("expected updateSessionStore updater");
     }
@@ -2207,8 +2205,7 @@ describe("active-memory plugin", () => {
     } as Record<string, Record<string, unknown>>;
     updater(store);
     const entries = store[sessionKey]?.pluginDebugEntries as
-      | Array<{ pluginId?: string; lines?: string[] }>
-      | undefined;
+      Array<{ pluginId?: string; lines?: string[] }> | undefined;
     expect(entries).toHaveLength(1);
     expect(entries?.[0]?.pluginId).toBe("active-memory");
     expectLinesToContain(entries?.[0]?.lines ?? [], "🧩 Active Memory: status=ok");
@@ -2256,8 +2253,7 @@ describe("active-memory plugin", () => {
     } as Record<string, Record<string, unknown>>;
     updater(store);
     const entries = store[sessionKey]?.pluginDebugEntries as
-      | { pluginId: string; lines: string[] }[]
-      | undefined;
+      { pluginId: string; lines: string[] }[] | undefined;
     const debugLine = entries?.[0]?.lines.find((line) =>
       line.startsWith("🔎 Active Memory Debug:"),
     );
@@ -2675,8 +2671,7 @@ describe("active-memory plugin", () => {
     updater(store);
 
     const pluginDebugEntries = store[sessionKey]?.pluginDebugEntries as
-      | Array<{ pluginId?: string; lines?: string[] }>
-      | undefined;
+      Array<{ pluginId?: string; lines?: string[] }> | undefined;
     expect(pluginDebugEntries).toHaveLength(2);
     expect(pluginDebugEntries?.[0]).toEqual({
       pluginId: "other-plugin",
@@ -4861,8 +4856,7 @@ describe("active-memory plugin", () => {
     );
     expectEmbeddedChannel("telegram");
     const entries = hoisted.sessionStore["agent:main:telegram:direct:12345"]?.pluginDebugEntries as
-      | Array<{ pluginId?: string; lines?: string[] }>
-      | undefined;
+      Array<{ pluginId?: string; lines?: string[] }> | undefined;
     expect(entries).toHaveLength(1);
     expect(entries?.[0]?.pluginId).toBe("active-memory");
     expectLinesToContain(entries?.[0]?.lines ?? [], "🧩 Active Memory: status=ok");
@@ -4926,8 +4920,7 @@ describe("active-memory plugin", () => {
     );
 
     const entries = hoisted.sessionStore[sessionKey]?.pluginDebugEntries as
-      | Array<{ pluginId?: string; lines?: string[] }>
-      | undefined;
+      Array<{ pluginId?: string; lines?: string[] }> | undefined;
     expect(entries).toHaveLength(1);
     expect(entries?.[0]?.pluginId).toBe("active-memory");
     const lines = entries?.[0]?.lines ?? [];

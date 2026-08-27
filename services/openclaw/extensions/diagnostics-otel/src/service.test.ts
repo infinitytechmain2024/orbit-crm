@@ -426,8 +426,7 @@ function firstCounterAddCall(name: string): [unknown, Record<string, unknown>?] 
 
 function lastHistogramRecord(name: string) {
   return telemetryState.histograms.get(name)?.record.mock.calls.at(-1) as
-    | [unknown, Record<string, unknown>?]
-    | undefined;
+    [unknown, Record<string, unknown>?] | undefined;
 }
 
 function histogramCreateOptions(name: string) {
@@ -436,8 +435,7 @@ function histogramCreateOptions(name: string) {
   >;
   const call = calls.find(([histogramName]) => histogramName === name);
   return call?.[1] as
-    | { unit?: unknown; advice?: { explicitBucketBoundaries?: unknown[] } }
-    | undefined;
+    { unit?: unknown; advice?: { explicitBucketBoundaries?: unknown[] } } | undefined;
 }
 
 type StdoutDiagnosticLogLine = {
@@ -4649,16 +4647,14 @@ describe("diagnostics-otel service", () => {
     );
     expect(deliverySpanCalls).toHaveLength(2);
     const firstDeliveryOptions = deliverySpanCalls[0]?.[1] as
-      | { attributes?: Record<string, unknown>; startTime?: unknown }
-      | undefined;
+      { attributes?: Record<string, unknown>; startTime?: unknown } | undefined;
     expect(firstDeliveryOptions?.attributes?.["openclaw.channel"]).toBe("matrix");
     expect(firstDeliveryOptions?.attributes?.["openclaw.delivery.kind"]).toBe("text");
     expect(firstDeliveryOptions?.attributes?.["openclaw.outcome"]).toBe("completed");
     expect(firstDeliveryOptions?.attributes?.["openclaw.delivery.result_count"]).toBe(1);
     expect(firstDeliveryOptions?.startTime).toBeTypeOf("number");
     const secondDeliveryOptions = deliverySpanCalls[1]?.[1] as
-      | { attributes?: Record<string, unknown>; startTime?: unknown }
-      | undefined;
+      { attributes?: Record<string, unknown>; startTime?: unknown } | undefined;
     expect(secondDeliveryOptions?.attributes?.["openclaw.channel"]).toBe("discord");
     expect(secondDeliveryOptions?.attributes?.["openclaw.delivery.kind"]).toBe("media");
     expect(secondDeliveryOptions?.attributes?.["openclaw.outcome"]).toBe("error");

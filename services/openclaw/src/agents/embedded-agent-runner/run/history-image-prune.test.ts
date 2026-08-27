@@ -179,8 +179,7 @@ describe("pruneProcessedHistoryImages", () => {
     const toolResult = pruned[0] as Extract<AgentMessage, { role: "toolResult" }> | undefined;
     expect(toolResult?.content).toBe(`previous ${PRUNED_HISTORY_MEDIA_REFERENCE_MARKER} result`);
     const originalToolResult = messages[0] as
-      | Extract<AgentMessage, { role: "toolResult" }>
-      | undefined;
+      Extract<AgentMessage, { role: "toolResult" }> | undefined;
     expect(originalToolResult?.content).toBe(
       "previous media://inbound/stale-screenshot.png result",
     );

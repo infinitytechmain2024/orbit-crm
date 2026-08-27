@@ -603,8 +603,7 @@ type ExecutedToolCallBatch = {
 };
 
 type ResolvedToolCallOutcome =
-  | { kind: "resolved"; tool?: AgentTool }
-  | { kind: "error"; error: unknown };
+  { kind: "resolved"; tool?: AgentTool } | { kind: "error"; error: unknown };
 
 function hidesToolCallFromChannelProgress(
   context: AgentContext,

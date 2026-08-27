@@ -811,8 +811,7 @@ describe("brave web search provider", () => {
       ([message]) => message === "brave http response",
     );
     const responsePayload = responseLog?.[1] as
-      | { durationMs?: unknown; mode?: unknown; ok?: unknown; status?: unknown }
-      | undefined;
+      { durationMs?: unknown; mode?: unknown; ok?: unknown; status?: unknown } | undefined;
     expect(responsePayload?.mode).toBe("web");
     expect(responsePayload?.status).toBe(200);
     expect(responsePayload?.ok).toBe(true);

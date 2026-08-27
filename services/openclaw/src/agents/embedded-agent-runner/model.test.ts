@@ -251,8 +251,7 @@ function resolveModelAsyncForTest(
 }
 
 type ResolveModelForTestResult =
-  | ReturnType<typeof resolveModelForTest>
-  | Awaited<ReturnType<typeof resolveModelAsyncForTest>>;
+  ReturnType<typeof resolveModelForTest> | Awaited<ReturnType<typeof resolveModelAsyncForTest>>;
 
 function expectResolvedModel(result: ResolveModelForTestResult) {
   if (result.error !== undefined) {

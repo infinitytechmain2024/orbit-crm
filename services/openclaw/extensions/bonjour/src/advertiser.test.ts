@@ -434,11 +434,9 @@ describe("gateway bonjour advertiser", () => {
     });
 
     const handler = mockCall(registerUnhandledRejectionHandler).at(0) as
-      | ((reason: unknown) => boolean)
-      | undefined;
+      ((reason: unknown) => boolean) | undefined;
     const exceptionHandler = mockCall(registerUncaughtExceptionHandler).at(0) as
-      | ((reason: unknown) => boolean)
-      | undefined;
+      ((reason: unknown) => boolean) | undefined;
     expect(handler).toBeTypeOf("function");
     expect(exceptionHandler).toBeTypeOf("function");
 
@@ -490,8 +488,7 @@ describe("gateway bonjour advertiser", () => {
     });
 
     const handler = mockCall(registerUnhandledRejectionHandler).at(0) as
-      | ((reason: unknown) => boolean)
-      | undefined;
+      ((reason: unknown) => boolean) | undefined;
     expect(handler?.(new Error("CIAO ANNOUNCEMENT CANCELLED"))).toBe(true);
 
     await vi.waitFor(() => {

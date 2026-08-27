@@ -269,9 +269,7 @@ function mergeCompat(
   const base = baseCompat;
   const override = overrideCompat;
   const merged = { ...base, ...override } as
-    | OpenAICompletionsCompat
-    | OpenAIResponsesCompat
-    | AnthropicMessagesCompat;
+    OpenAICompletionsCompat | OpenAIResponsesCompat | AnthropicMessagesCompat;
 
   const baseCompletions = base as OpenAICompletionsCompat | undefined;
   const overrideCompletions = override as OpenAICompletionsCompat;

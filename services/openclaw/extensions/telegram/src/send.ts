@@ -1009,9 +1009,7 @@ export async function sendMessageTelegram(
     let lastMessageId = "";
     let lastChatId = chatId;
     let lastAcceptedParams:
-      | TelegramThreadScopedParams
-      | TelegramRichMessageContextParams
-      | undefined;
+      TelegramThreadScopedParams | TelegramRichMessageContextParams | undefined;
     let acceptedReplyToMessageId: number | undefined;
     const messageIds: string[] = [];
     let sentChunkCount = 0;

@@ -32,8 +32,7 @@ export type RuntimeParityUsage = {
 };
 
 export type RuntimeParityUsagePolicy =
-  | { expectation: "assistant-message-required" }
-  | { expectation: "not-applicable"; reason: string };
+  { expectation: "assistant-message-required" } | { expectation: "not-applicable"; reason: string };
 
 export type RuntimeParityCell = {
   runtime: RuntimeId;
@@ -49,12 +48,7 @@ export type RuntimeParityCell = {
 };
 
 export type RuntimeParityDrift =
-  | "none"
-  | "text-only"
-  | "tool-call-shape"
-  | "tool-result-shape"
-  | "structural"
-  | "failure-mode";
+  "none" | "text-only" | "tool-call-shape" | "tool-result-shape" | "structural" | "failure-mode";
 
 export type RuntimeParityResult = {
   scenarioId: string;
@@ -1066,15 +1060,15 @@ async function loadRuntimeParityMockToolCalls(
     if (!Array.isArray(payload)) {
       return null;
     }
-    const requests = payload.filter(isMessageRecord).map(
-      (entry): RuntimeParityMockRequestSnapshot => ({
+    const requests = payload
+      .filter(isMessageRecord)
+      .map((entry): RuntimeParityMockRequestSnapshot => ({
         prompt: readNonEmptyString(entry.prompt),
         allInputText: readNonEmptyString(entry.allInputText),
         plannedToolName: readNonEmptyString(entry.plannedToolName),
         plannedToolArgs: entry.plannedToolArgs ?? null,
         toolOutput: readNonEmptyString(entry.toolOutput) ?? "",
-      }),
-    );
+      }));
     return resolveToolCallOrderFromMockRequests(
       filterMockRequestsForParentPrompt(requests, parentPrompt, parentPrompts),
     );

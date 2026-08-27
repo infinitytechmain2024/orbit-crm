@@ -3986,8 +3986,7 @@ function extractGoogleThoughtSignature(toolCall: unknown): string | undefined {
     return undefined;
   }
   const extra = (tc.extra_content as Record<string, unknown> | undefined)?.google as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const fromExtra = extra?.thought_signature;
   if (typeof fromExtra === "string" && fromExtra.length > 0) {
     return fromExtra;

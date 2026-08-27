@@ -365,8 +365,7 @@ describe("createDiscordGatewayPlugin", () => {
 
     expect(globalFetchMock).toHaveBeenCalledTimes(1);
     const fetchInit = firstMockArg(globalFetchMock, "globalFetchMock", 1) as
-      | { headers?: Record<string, string>; signal?: unknown }
-      | undefined;
+      { headers?: Record<string, string>; signal?: unknown } | undefined;
     expect(firstMockArg(globalFetchMock, "globalFetchMock")).toBe(
       "https://discord.com/api/v10/gateway/bot",
     );
@@ -388,8 +387,7 @@ describe("createDiscordGatewayPlugin", () => {
 
     expect(httpsAgentSpy).toHaveBeenCalledTimes(1);
     const httpsAgentOptions = firstMockArg(httpsAgentSpy, "httpsAgentSpy") as
-      | { lookup?: unknown }
-      | undefined;
+      { lookup?: unknown } | undefined;
     expect(Object.keys(httpsAgentOptions ?? {})).toEqual(["lookup"]);
     expect(typeof httpsAgentOptions?.lookup).toBe("function");
     expect(webSocketSpy).toHaveBeenCalledWith("wss://gateway.discord.gg", {

@@ -1,4 +1,4 @@
-import { Agent, PraisonAIAgents } from 'praisonai';
+import { Agent, PraisonAIAgents } from "praisonai";
 
 // Create research agent
 const researchAgent = new Agent({
@@ -12,7 +12,7 @@ focusing on:
 
 Format your response in markdown with clear sections and bullet points.`,
   name: "ResearchAgent",
-  verbose: true
+  verbose: true,
 });
 
 // Create summarize agent
@@ -27,25 +27,26 @@ The summary should:
 Here is the research to summarize:
 {previous_result}`,
   name: "SummarizeAgent",
-  verbose: true
+  verbose: true,
 });
 
 // Create PraisonAIAgents instance
 const agents = new PraisonAIAgents({
   agents: [researchAgent, summarizeAgent],
   tasks: ["Research current state and future of AI", "Create executive summary"],
-  verbose: true
+  verbose: true,
 });
 
 // Chat with agents
-agents.chat()
-  .then(results => {
-    console.log('\nFinal Results:');
+agents
+  .chat()
+  .then((results) => {
+    console.log("\nFinal Results:");
     results.forEach((result, index) => {
       console.log(`\nAgent ${index + 1} Result:`);
       console.log(result);
     });
   })
-  .catch(error => {
-    console.error('Error:', error);
+  .catch((error) => {
+    console.error("Error:", error);
   });

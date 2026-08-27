@@ -307,9 +307,7 @@ describe("buildQaGatewayConfig", () => {
       baseUrl: "http://127.0.0.1:44080/v1",
       apiKey: "test",
     });
-    expect(cfg.models?.providers?.openai?.models.map((model) => model.id)).toContain(
-      "gpt-5.5-alt",
-    );
+    expect(cfg.models?.providers?.openai?.models.map((model) => model.id)).toContain("gpt-5.5-alt");
     expect(cfg.plugins?.allow).toEqual([
       "acpx",
       "memory-core",

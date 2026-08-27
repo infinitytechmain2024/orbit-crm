@@ -191,8 +191,7 @@ function resolveAction(args: Record<string, unknown>): "generate" | "list" | "st
 
 function normalizeOutputFormat(raw: string | undefined): MusicGenerationOutputFormat | undefined {
   const normalized = normalizeOptionalLowercaseString(raw) as
-    | MusicGenerationOutputFormat
-    | undefined;
+    MusicGenerationOutputFormat | undefined;
   if (!normalized) {
     return undefined;
   }

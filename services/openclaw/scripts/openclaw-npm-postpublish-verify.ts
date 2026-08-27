@@ -681,8 +681,7 @@ function listInstalledRootDistJavaScriptFiles(packageRoot: string): DistJavaScri
 }
 
 type ParsedImportSpecifiersResult =
-  | { ok: true; specifiers: Set<string> }
-  | { ok: false; error: string };
+  { ok: true; specifiers: Set<string> } | { ok: false; error: string };
 
 function extractLiteralSpecifier(node: unknown): string | null {
   if (!node || typeof node !== "object") {

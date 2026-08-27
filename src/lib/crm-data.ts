@@ -248,6 +248,44 @@ export type Tx = {
   taskId: string | null;
 };
 
+export type StripeTransaction = {
+  id: string;
+  organizationId: string;
+  stripePaymentIntentId: string;
+  stripeCustomerId: string | null;
+  amount: number;
+  currency: string;
+  status: "succeeded" | "failed" | "canceled" | "requires_action";
+  paymentMethodType: string | null;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  date: string;
+  dateIso: string;
+};
+
+export type StripeSubscription = {
+  id: string;
+  organizationId: string;
+  stripeSubscriptionId: string;
+  stripeCustomerId: string;
+  stripePriceId: string;
+  status: "active" | "trialing" | "past_due" | "canceled" | "incomplete";
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  amount: number;
+  currency: string;
+  interval: "month" | "year";
+  metadata: Record<string, unknown>;
+};
+
+export type StripeCustomer = {
+  id: string;
+  organizationId: string;
+  stripeCustomerId: string;
+  email: string | null;
+};
+
 export type Organization = {
   id: string;
   name: string;

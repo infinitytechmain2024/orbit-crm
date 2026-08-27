@@ -1,9 +1,6 @@
 // Qqbot plugin module implements message gating behavior.
 type GroupMessageGateAction =
-  | "drop_other_mention"
-  | "block_unauthorized_command"
-  | "skip_no_mention"
-  | "pass";
+  "drop_other_mention" | "block_unauthorized_command" | "skip_no_mention" | "pass";
 
 export interface GroupMessageGateResult {
   action: GroupMessageGateAction;

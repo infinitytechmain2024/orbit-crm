@@ -764,8 +764,7 @@ export class ExtensionRunner {
         try {
           const currentEvent: MessageEndEvent = { ...event, message: currentMessage };
           const handlerResult = (await handler(currentEvent, ctx)) as
-            | MessageEndEventResult
-            | undefined;
+            MessageEndEventResult | undefined;
           if (!handlerResult?.message) {
             continue;
           }
@@ -811,8 +810,7 @@ export class ExtensionRunner {
       for (const handler of handlers) {
         try {
           const handlerResult = (await handler(currentEvent, ctx)) as
-            | ToolResultEventResult
-            | undefined;
+            ToolResultEventResult | undefined;
           if (!handlerResult) {
             continue;
           }

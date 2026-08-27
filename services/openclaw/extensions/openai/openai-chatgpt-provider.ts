@@ -237,8 +237,7 @@ function resolveCodexForwardCompatModel(ctx: ProviderResolveDynamicModelContext)
 
   if (OPENAI_CODEX_GPT_56_MODEL_IDS.some((modelId) => modelId === lower)) {
     const model = ctx.modelRegistry.find(PROVIDER_ID, trimmedModelId) as
-      | ProviderRuntimeModel
-      | undefined;
+      ProviderRuntimeModel | undefined;
     const registeredModel = withDefaultCodexContextMetadata({
       model: withCodexTransport(model, synthBaseUrl),
       contextWindow: OPENAI_CODEX_GPT_56_CONTEXT_TOKENS,
@@ -271,8 +270,7 @@ function resolveCodexForwardCompatModel(ctx: ProviderResolveDynamicModelContext)
 
   if (lower === OPENAI_CODEX_GPT_55_MODEL_ID) {
     const model = ctx.modelRegistry.find(PROVIDER_ID, trimmedModelId) as
-      | ProviderRuntimeModel
-      | undefined;
+      ProviderRuntimeModel | undefined;
     return (
       withDefaultCodexContextMetadata({
         model: withCodexTransport(model, synthBaseUrl),

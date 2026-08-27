@@ -6,15 +6,11 @@
   },
   "providerCatalogEntry": "./provider-discovery.ts",
   "enabledByDefault": true,
-  "providers": [
-    "opencode"
-  ],
+  "providers": ["opencode"],
   "providerEndpoints": [
     {
       "endpointClass": "opencode-native",
-      "hostSuffixes": [
-        "opencode.ai"
-      ]
+      "hostSuffixes": ["opencode.ai"]
     }
   ],
   "providerRequest": {
@@ -37,10 +33,7 @@
             "provider": "opencode",
             "baseUrl": "https://opencode.ai/zen",
             "reasoning": true,
-            "input": [
-              "text",
-              "image"
-            ],
+            "input": ["text", "image"],
             "cost": {
               "input": 5,
               "output": 25,
@@ -62,10 +55,7 @@
             "provider": "opencode",
             "baseUrl": "https://opencode.ai/zen/v1",
             "reasoning": true,
-            "input": [
-              "text",
-              "image"
-            ],
+            "input": ["text", "image"],
             "cost": {
               "input": 5,
               "output": 30,
@@ -77,19 +67,14 @@
                   "output": 30,
                   "cacheRead": 0.5,
                   "cacheWrite": 0,
-                  "range": [
-                    0,
-                    272000
-                  ]
+                  "range": [0, 272000]
                 },
                 {
                   "input": 10,
                   "output": 45,
                   "cacheRead": 1,
                   "cacheWrite": 0,
-                  "range": [
-                    272000
-                  ]
+                  "range": [272000]
                 }
               ]
             },
@@ -108,10 +93,7 @@
             "provider": "opencode",
             "baseUrl": "https://opencode.ai/zen/v1",
             "reasoning": true,
-            "input": [
-              "text",
-              "image"
-            ],
+            "input": ["text", "image"],
             "cost": {
               "input": 2,
               "output": 12,
@@ -123,19 +105,14 @@
                   "output": 12,
                   "cacheRead": 0.2,
                   "cacheWrite": 0,
-                  "range": [
-                    0,
-                    200000
-                  ]
+                  "range": [0, 200000]
                 },
                 {
                   "input": 4,
                   "output": 18,
                   "cacheRead": 0.4,
                   "cacheWrite": 0,
-                  "range": [
-                    200000
-                  ]
+                  "range": [200000]
                 }
               ]
             },
@@ -154,9 +131,7 @@
             "provider": "opencode",
             "baseUrl": "https://opencode.ai/zen/v1",
             "reasoning": true,
-            "input": [
-              "text"
-            ],
+            "input": ["text"],
             "cost": {
               "input": 0.3,
               "output": 1.2,
@@ -184,10 +159,7 @@
     "providers": [
       {
         "id": "opencode",
-        "envVars": [
-          "OPENCODE_API_KEY",
-          "OPENCODE_ZEN_API_KEY"
-        ]
+        "envVars": ["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"]
       }
     ]
   },
@@ -208,15 +180,11 @@
     }
   ],
   "contracts": {
-    "mediaUnderstandingProviders": [
-      "opencode"
-    ]
+    "mediaUnderstandingProviders": ["opencode"]
   },
   "mediaUnderstandingProviderMetadata": {
     "opencode": {
-      "capabilities": [
-        "image"
-      ],
+      "capabilities": ["image"],
       "defaultModels": {
         "image": "gpt-5-nano"
       }

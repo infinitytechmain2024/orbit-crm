@@ -2314,8 +2314,7 @@ describe("compactEmbeddedAgentSession hooks (ownsCompaction engine)", () => {
       { nativeCompactionRequest: "after_context_engine" },
     );
     const details = result.result?.details as
-      | { codexNativeCompaction?: Record<string, unknown> }
-      | undefined;
+      { codexNativeCompaction?: Record<string, unknown> } | undefined;
     expect(details?.codexNativeCompaction).toMatchObject({
       ok: false,
       compacted: false,
@@ -2387,8 +2386,7 @@ describe("compactEmbeddedAgentSession hooks (ownsCompaction engine)", () => {
       maybeCompactAgentHarnessSessionMock.mock.invocationCallOrder[0],
     );
     const details = result.result?.details as
-      | { codexNativeCompaction?: Record<string, unknown> }
-      | undefined;
+      { codexNativeCompaction?: Record<string, unknown> } | undefined;
     expect(details?.codexNativeCompaction).toMatchObject({
       ok: true,
       compacted: true,
@@ -2489,8 +2487,7 @@ describe("compactEmbeddedAgentSession hooks (ownsCompaction engine)", () => {
       { nativeCompactionRequest: "after_context_engine" },
     );
     const details = result.result?.details as
-      | { codexNativeCompaction?: Record<string, unknown> }
-      | undefined;
+      { codexNativeCompaction?: Record<string, unknown> } | undefined;
     expect(details?.codexNativeCompaction).toMatchObject({
       ok: false,
       compacted: false,

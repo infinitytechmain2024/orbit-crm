@@ -161,8 +161,7 @@ function hasLegacyVectorTable(db: DatabaseSync, schema = "main"): boolean {
 
 function tableRowCount(db: DatabaseSync, schema: string, tableName: string): number {
   const row = db.prepare(`SELECT COUNT(*) AS count FROM ${schema}.${tableName}`).get() as
-    | { count?: unknown }
-    | undefined;
+    { count?: unknown } | undefined;
   return Number(row?.count ?? 0);
 }
 

@@ -97,8 +97,7 @@ describe("xai x_search tool", () => {
     });
 
     const parameters = tool?.parameters as
-      | { properties?: { query?: { description?: string } } }
-      | undefined;
+      { properties?: { query?: { description?: string } } } | undefined;
     const queryDescription = parameters?.properties?.query?.description;
 
     expect(queryDescription).toContain("Natural-language instruction");

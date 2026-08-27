@@ -92,11 +92,9 @@ function getAcpSessionKysely(db: DatabaseSync) {
 
 function rowToAcpSessionMeta(row: AcpSessionRow): SessionAcpMeta {
   const identity = asOptionalRecord(safeParseJson(row.identity_json ?? "")) as
-    | SessionAcpIdentity
-    | undefined;
+    SessionAcpIdentity | undefined;
   const runtimeOptions = asOptionalRecord(safeParseJson(row.runtime_options_json ?? "")) as
-    | AcpSessionRuntimeOptions
-    | undefined;
+    AcpSessionRuntimeOptions | undefined;
   return {
     backend: row.backend,
     agent: row.agent,

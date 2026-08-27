@@ -27,8 +27,7 @@ export type ManifestModelIdNormalizationRecord = {
 };
 
 let currentManifestModelIdNormalizationPolicies:
-  | ReadonlyMap<string, ManifestModelIdNormalizationProvider>
-  | undefined;
+  ReadonlyMap<string, ManifestModelIdNormalizationProvider> | undefined;
 
 /** Collect provider model-id normalization policies from plugin manifests. */
 export function collectManifestModelIdNormalizationPolicies(
@@ -54,8 +53,7 @@ export function setCurrentManifestModelIdNormalizationRecords(
 
 /** Return the current process-local manifest normalization policy snapshot. */
 export function getCurrentManifestModelIdNormalizationPolicies():
-  | ReadonlyMap<string, ManifestModelIdNormalizationProvider>
-  | undefined {
+  ReadonlyMap<string, ManifestModelIdNormalizationProvider> | undefined {
   return currentManifestModelIdNormalizationPolicies;
 }
 

@@ -201,8 +201,7 @@ const feishuDmPolicy: ChannelSetupDmPolicy = {
     const resolvedAccountId = accountId ?? resolveDefaultFeishuAccountId(cfg);
     if (resolvedAccountId !== DEFAULT_ACCOUNT_ID) {
       const account = feishuCfg?.accounts?.[resolvedAccountId] as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (account?.dmPolicy) {
         return account.dmPolicy as DmPolicy;
       }

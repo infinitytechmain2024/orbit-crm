@@ -67,8 +67,7 @@ describe("OpenAI transport schema normalization runtime contract", () => {
     }) as never;
     const model = createNativeOpenAIResponsesModel() as never;
     let payload:
-      | { context_management?: unknown; tools?: Array<{ parameters?: unknown }> }
-      | undefined;
+      { context_management?: unknown; tools?: Array<{ parameters?: unknown }> } | undefined;
     const baseStreamFn: StreamFn = (modelArg, contextArg, optionsArg) => {
       payload = buildOpenAIResponsesParams(
         modelArg,

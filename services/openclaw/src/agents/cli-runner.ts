@@ -1149,8 +1149,7 @@ export async function runPreparedCliAgent(
 
     if (hasBeforeAgentRunHooks && hookRunner) {
       let beforeRunResult:
-        | Awaited<ReturnType<NonNullable<typeof hookRunner>["runBeforeAgentRun"]>>
-        | undefined;
+        Awaited<ReturnType<NonNullable<typeof hookRunner>["runBeforeAgentRun"]>> | undefined;
       try {
         beforeRunResult = await hookRunner.runBeforeAgentRun(
           {

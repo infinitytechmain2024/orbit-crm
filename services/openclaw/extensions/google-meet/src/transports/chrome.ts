@@ -103,8 +103,7 @@ export async function launchChromeMeet(params: {
 }): Promise<{
   launched: boolean;
   audioBridge?:
-    | { type: "external-command" }
-    | ({ type: "command-pair" } & ChromeRealtimeAudioBridgeHandle);
+    { type: "external-command" } | ({ type: "command-pair" } & ChromeRealtimeAudioBridgeHandle);
   browser?: GoogleMeetChromeHealth;
 }> {
   const checkRealtimeAudioPrerequisites = async () => {

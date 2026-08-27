@@ -30,8 +30,7 @@ export function resolveTelegramPromptContextTimestampMs(
   payload: Pick<ReplyPayload, "channelData">,
 ): number | undefined {
   const telegramData = payload.channelData?.telegram as
-    | TelegramPromptContextChannelData
-    | undefined;
+    TelegramPromptContextChannelData | undefined;
   const timestamp = telegramData?.promptContextTimestampMs;
   return typeof timestamp === "number" && Number.isFinite(timestamp) ? timestamp : undefined;
 }
@@ -44,8 +43,7 @@ export function withTelegramPromptContextTimestampMs(
     return payload;
   }
   const telegramData = payload.channelData?.telegram as
-    | TelegramPromptContextChannelData
-    | undefined;
+    TelegramPromptContextChannelData | undefined;
   return {
     ...payload,
     channelData: {

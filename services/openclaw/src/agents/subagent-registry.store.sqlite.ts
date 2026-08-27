@@ -67,8 +67,7 @@ function createDeliveryFromTypedColumns(
   // payload_json keeps compatibility with older fields during migration.
   const delivery = fallback ? { ...fallback } : undefined;
   const payload = parseJson(row.pending_final_delivery_payload_json) as
-    | PendingFinalDeliveryPayload
-    | undefined;
+    PendingFinalDeliveryPayload | undefined;
   const status =
     row.expects_completion_message === 0
       ? "not_required"

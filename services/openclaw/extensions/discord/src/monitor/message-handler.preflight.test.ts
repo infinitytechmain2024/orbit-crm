@@ -558,8 +558,7 @@ describe("preflightDiscordMessage", () => {
 
     expect(transcribeFirstAudioMock).toHaveBeenCalledTimes(1);
     const dmAudioCall = firstMockArg(transcribeFirstAudioMock, "transcribeFirstAudio") as
-      | { ctx?: { MediaUrls?: unknown; MediaTypes?: unknown } }
-      | undefined;
+      { ctx?: { MediaUrls?: unknown; MediaTypes?: unknown } } | undefined;
     expect(dmAudioCall?.ctx?.MediaUrls).toEqual([
       "https://cdn.discordapp.com/attachments/voice.ogg",
     ]);
@@ -688,8 +687,7 @@ describe("preflightDiscordMessage", () => {
     expect(
       (
         firstMockArg(resolveDiscordDmCommandAccessMock, "resolveDiscordDmCommandAccess") as
-          | { accountId?: unknown }
-          | undefined
+          { accountId?: unknown } | undefined
       )?.accountId,
     ).toBe("default");
   });
@@ -2117,8 +2115,7 @@ describe("preflightDiscordMessage", () => {
 
     expect(transcribeFirstAudioMock).toHaveBeenCalledTimes(1);
     const guildAudioCall = firstMockArg(transcribeFirstAudioMock, "transcribeFirstAudio") as
-      | { ctx?: { MediaUrls?: unknown; MediaTypes?: unknown } }
-      | undefined;
+      { ctx?: { MediaUrls?: unknown; MediaTypes?: unknown } } | undefined;
     expect(guildAudioCall?.ctx?.MediaUrls).toEqual([
       "https://cdn.discordapp.com/attachments/voice.ogg",
     ]);

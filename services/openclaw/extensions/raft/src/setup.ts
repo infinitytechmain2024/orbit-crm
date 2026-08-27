@@ -68,7 +68,8 @@ export const raftSetupPlugin: ChannelPlugin<ResolvedRaftAccount> = {
         accountId
           ? resolveRaftAccount({ cfg, accountId }).configured
           : listRaftAccountIds(cfg).some(
-              (resolvedAccountId) => resolveRaftAccount({ cfg, accountId: resolvedAccountId }).configured,
+              (resolvedAccountId) =>
+                resolveRaftAccount({ cfg, accountId: resolvedAccountId }).configured,
             ),
       resolveBinaryPath: () => "raft",
       detectBinary,

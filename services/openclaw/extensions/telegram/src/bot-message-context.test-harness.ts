@@ -160,8 +160,7 @@ export async function buildTelegramMessageContextForTest(
 }
 
 let buildTelegramMessageContextLoader:
-  | typeof import("./bot-message-context.js").buildTelegramMessageContext
-  | undefined;
+  typeof import("./bot-message-context.js").buildTelegramMessageContext | undefined;
 let messageContextMocksInstalled = false;
 
 async function loadBuildTelegramMessageContext() {

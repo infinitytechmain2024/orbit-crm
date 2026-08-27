@@ -40,10 +40,7 @@ import { resolveDiscordNativeInteractionChannelContext } from "./native-interact
 import type { ThreadBindingManager } from "./thread-bindings.js";
 
 type DiscordNativeChoiceInteraction =
-  | AutocompleteInteraction
-  | CommandInteraction
-  | ButtonInteraction
-  | StringSelectMenuInteraction;
+  AutocompleteInteraction | CommandInteraction | ButtonInteraction | StringSelectMenuInteraction;
 
 function resolveDiscordModelPickerCommandContext(
   command: ChatCommandDefinition,
@@ -125,10 +122,7 @@ export function buildDiscordModelPickerNoticePayload(message: string): { compone
 
 async function resolveDiscordModelPickerRouteState(params: {
   interaction:
-    | CommandInteraction
-    | ButtonInteraction
-    | StringSelectMenuInteraction
-    | AutocompleteInteraction;
+    CommandInteraction | ButtonInteraction | StringSelectMenuInteraction | AutocompleteInteraction;
   cfg: OpenClawConfig;
   accountId: string;
   threadBindings: ThreadBindingManager;
@@ -166,10 +160,7 @@ async function resolveDiscordModelPickerRouteState(params: {
 
 export async function resolveDiscordModelPickerRoute(params: {
   interaction:
-    | CommandInteraction
-    | ButtonInteraction
-    | StringSelectMenuInteraction
-    | AutocompleteInteraction;
+    CommandInteraction | ButtonInteraction | StringSelectMenuInteraction | AutocompleteInteraction;
   cfg: OpenClawConfig;
   accountId: string;
   threadBindings: ThreadBindingManager;

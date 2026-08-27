@@ -416,8 +416,7 @@ function normalizeEmbeddedRunAttemptResult(
     messagingToolSentMediaUrls?: EmbeddedRunAttemptForRunner["messagingToolSentMediaUrls"] | null;
     messagingToolSentTargets?: EmbeddedRunAttemptForRunner["messagingToolSentTargets"] | null;
     messagingToolSourceReplyPayloads?:
-      | EmbeddedRunAttemptForRunner["messagingToolSourceReplyPayloads"]
-      | null;
+      EmbeddedRunAttemptForRunner["messagingToolSourceReplyPayloads"] | null;
     didDeliverSourceReplyViaMessageTool?: boolean | null;
     itemLifecycle?: EmbeddedRunAttemptForRunner["itemLifecycle"] | null;
   };

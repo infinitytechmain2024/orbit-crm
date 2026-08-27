@@ -42,14 +42,12 @@ function extractBoomDetails(err: unknown): {
     return null;
   }
   const output = (err as { output?: unknown })?.output as
-    | { statusCode?: unknown; payload?: unknown }
-    | undefined;
+    { statusCode?: unknown; payload?: unknown } | undefined;
   if (!output || typeof output !== "object") {
     return null;
   }
   const payload = (output as { payload?: unknown }).payload as
-    | { error?: unknown; message?: unknown; statusCode?: unknown }
-    | undefined;
+    { error?: unknown; message?: unknown; statusCode?: unknown } | undefined;
   const statusCode =
     typeof (output as { statusCode?: unknown }).statusCode === "number"
       ? ((output as { statusCode?: unknown }).statusCode as number)

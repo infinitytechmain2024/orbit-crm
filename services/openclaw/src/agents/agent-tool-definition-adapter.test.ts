@@ -77,8 +77,7 @@ describe("agent tool definition adapter", () => {
     const result = await executeThrowingTool("boom", "call1");
 
     const details = result.details as
-      | { status?: string; tool?: string; error?: string }
-      | undefined;
+      { status?: string; tool?: string; error?: string } | undefined;
     expect(details?.status).toBe("error");
     expect(details?.tool).toBe("boom");
     expect(details?.error).toBe("nope");
@@ -89,8 +88,7 @@ describe("agent tool definition adapter", () => {
     const result = await executeThrowingTool("bash", "call2");
 
     const details = result.details as
-      | { status?: string; tool?: string; error?: string }
-      | undefined;
+      { status?: string; tool?: string; error?: string } | undefined;
     expect(details?.status).toBe("error");
     expect(details?.tool).toBe("exec");
     expect(details?.error).toBe("nope");

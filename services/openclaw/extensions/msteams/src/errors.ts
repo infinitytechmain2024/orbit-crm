@@ -174,12 +174,7 @@ function parseNonNegativeRetryAfterSeconds(raw: string): number | undefined {
 }
 
 type MSTeamsSendErrorKind =
-  | "auth"
-  | "throttled"
-  | "transient"
-  | "permanent"
-  | "network"
-  | "unknown";
+  "auth" | "throttled" | "transient" | "permanent" | "network" | "unknown";
 
 type MSTeamsSendErrorClassification = {
   kind: MSTeamsSendErrorKind;

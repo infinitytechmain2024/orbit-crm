@@ -41,8 +41,7 @@ function getSentMessageStoreForTest(): SentMessagePersistentStore | undefined {
   return (
     sentMessageStoreForTest ??
     (globalStore[TELEGRAM_SENT_MESSAGES_STORE_FOR_TEST_KEY] as
-      | SentMessagePersistentStore
-      | undefined)
+      SentMessagePersistentStore | undefined)
   );
 }
 

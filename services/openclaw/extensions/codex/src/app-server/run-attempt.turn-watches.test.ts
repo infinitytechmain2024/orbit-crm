@@ -273,8 +273,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
 
   it("releases the session when Codex never completes after a dynamic tool response", async () => {
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
         return threadStartResult("thread-1");
@@ -937,8 +936,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
       ([message]) => message === "codex app-server turn idle timed out waiting for progress",
     );
     const warnData = warnCall?.[1] as
-      | { lastActivityReason?: string; timeoutMs?: number }
-      | undefined;
+      { lastActivityReason?: string; timeoutMs?: number } | undefined;
     expect(warnData?.timeoutMs).toBe(100);
     expect(warnData?.lastActivityReason).toBe("turn:start");
     expect(harness.request.mock.calls.some(([method]) => method === "turn/interrupt")).toBe(true);
@@ -1002,8 +1000,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
       ([message]) => message === "codex app-server turn idle timed out waiting for progress",
     );
     const warnData = warnCall?.[1] as
-      | { lastActivityReason?: string; timeoutMs?: number }
-      | undefined;
+      { lastActivityReason?: string; timeoutMs?: number } | undefined;
     expect(warnData?.timeoutMs).toBe(100);
     expect(warnData?.lastActivityReason).toBe("turn:start");
     expect(harness.request.mock.calls.some(([method]) => method === "turn/interrupt")).toBe(true);
@@ -1365,8 +1362,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
       ([message]) => message === "codex app-server turn idle timed out waiting for progress",
     );
     const warnData = warnCall?.[1] as
-      | { lastActivityReason?: string; timeoutMs?: number }
-      | undefined;
+      { lastActivityReason?: string; timeoutMs?: number } | undefined;
     expect(warnData?.timeoutMs).toBe(100);
     expect(warnData?.lastActivityReason).toBe("turn:start");
     expect(harness.request.mock.calls.some(([method]) => method === "turn/interrupt")).toBe(true);
@@ -1375,8 +1371,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("does not count account rate-limit updates as turn completion activity", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -1453,8 +1448,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
         message === "codex app-server turn idle timed out waiting for progress",
     );
     const warnData = warnCall?.[1] as
-      | { lastActivityReason?: string; timeoutMs?: number }
-      | undefined;
+      { lastActivityReason?: string; timeoutMs?: number } | undefined;
     expect(warnData?.timeoutMs).toBe(5);
     expect(warnData?.lastActivityReason).toBe("request:item/tool/call:response");
   });
@@ -1462,8 +1456,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("keeps the post-tool completion watchdog armed across dynamic tool completion bookkeeping", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -1575,8 +1568,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("keeps the post-tool completion watchdog armed across raw tool-output completion", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -1688,8 +1680,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("keeps waiting when Codex emits a raw assistant item after a dynamic tool response", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
         return threadStartResult("thread-1");
@@ -1788,8 +1779,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("keeps waiting after an OpenClaw dynamic tool response before final synthesis", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
         return threadStartResult("thread-1");
@@ -2029,8 +2019,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("times out post-tool raw assistant progress after the post-tool timeout", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
         return threadStartResult("thread-1");
@@ -2130,8 +2119,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("uses configured post-tool raw assistant completion timeout instead of assistant release timeout", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -2256,8 +2244,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("uses the post-tool timeout for commentary raw assistant progress", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -2357,8 +2344,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("keeps the post-tool guard armed for patch update snapshots", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -2563,8 +2549,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("logs raw assistant item context when the terminal watchdog fires", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -2682,8 +2667,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
   it("uses the post-tool timeout after raw reasoning completes", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
@@ -2774,8 +2758,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
     );
     expect(completionWarnCall).toBeDefined();
     const completionWarnData = completionWarnCall?.[1] as
-      | { lastActivityReason?: string; timeoutMs?: number }
-      | undefined;
+      { lastActivityReason?: string; timeoutMs?: number } | undefined;
     expect(completionWarnData?.timeoutMs).toBe(80);
     expect(completionWarnData?.lastActivityReason).toBe("notification:rawResponseItem/completed");
     // The terminal idle watch (500ms) should NOT have fired; the post-tool
@@ -2867,8 +2850,7 @@ describe("runCodexAppServerAttempt turn watches", () => {
       );
       expect(completionWarnCall).toBeDefined();
       const completionWarnData = completionWarnCall?.[1] as
-        | { lastActivityReason?: string; timeoutMs?: number }
-        | undefined;
+        { lastActivityReason?: string; timeoutMs?: number } | undefined;
       expect(completionWarnData?.timeoutMs).toBe(80);
       expect(completionWarnData?.lastActivityReason).toBe(`notification:${method}`);
       expect(

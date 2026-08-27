@@ -584,17 +584,16 @@ async def run_task(
             status_code=503,
             detail="AI Workflow backend is not configured (Supabase unavailable)",
         )
-    }
 
     # Quick Supabase ping to verify connectivity
-    try {
+    try:
         client = _store.client()
         await client.get(
             f"{settings.SUPABASE_URL.rstrip('/')}/rest/v1/lead_clients",
             params={"select": "count", "organization_id": f"eq.{request.organization_id}"},
             headers=_store._service_headers(),
         )
-    } except HTTPException:
+    except HTTPException:
         raise
     except Exception as e:
         logger.warning(f"Supabase health ping failed: {e}")
@@ -608,7 +607,7 @@ async def run_task(
         health = await _oc.health(use_cache=False)
         if health.status != "online" and health.status != "offline":
             logger.warning(f"OpenClaw health check: {health.status} - {health.error}")
-    } except Exception as e:
+    except Exception as e:
         logger.warning(f"OpenClaw health check failed (non-fatal): {e}")
 
     if task.get("workflow_run_id"):

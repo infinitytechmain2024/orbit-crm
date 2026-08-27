@@ -546,8 +546,7 @@ describe("runCodexAppServerSideQuestion", () => {
     expect(injectParams?.items?.[0]?.role).toBe("user");
     expect(injectCall?.[2]).toEqual({ timeoutMs: 60_000, signal: undefined });
     const injectedItem = injectParams?.items?.[0] as
-      | { content?: Array<{ text?: string }> }
-      | undefined;
+      { content?: Array<{ text?: string }> } | undefined;
     const injectedText = injectedItem?.content?.[0]?.text;
     expect(injectedText).toContain(
       "External tools may be available according to this thread's current permissions",
@@ -1027,15 +1026,13 @@ describe("runCodexAppServerSideQuestion", () => {
     expect(config?.["features.code_mode_only"]).toBe(false);
     expect(config?.["hooks.PermissionRequest"]).toEqual([]);
     const preToolUseHooks = config?.["hooks.PreToolUse"] as
-      | Array<{ hooks?: Array<{ command?: string; timeout?: number; type?: string }> }>
-      | undefined;
+      Array<{ hooks?: Array<{ command?: string; timeout?: number; type?: string }> }> | undefined;
     const preToolUseCommand = preToolUseHooks?.[0]?.hooks?.[0];
     expect(preToolUseCommand?.type).toBe("command");
     expect(preToolUseCommand?.timeout).toBe(9);
     expect(preToolUseCommand?.command).toContain("--event pre_tool_use");
     const hookState = config?.["hooks.state"] as
-      | Record<string, { enabled?: unknown; trusted_hash?: unknown }>
-      | undefined;
+      Record<string, { enabled?: unknown; trusted_hash?: unknown }> | undefined;
     const preToolUseState = codexHookStateForEvent(hookState, "pre_tool_use");
     expect(preToolUseState?.enabled).toBe(true);
     expect(preToolUseState?.trusted_hash).toMatch(/^sha256:[a-f0-9]{64}$/);
@@ -1229,8 +1226,7 @@ describe("runCodexAppServerSideQuestion", () => {
     expect(config?.["hooks.PostToolUse"]).toEqual([]);
     expect(config?.["hooks.Stop"]).toEqual([]);
     const hookState = config?.["hooks.state"] as
-      | Record<string, { enabled?: unknown; trusted_hash?: unknown }>
-      | undefined;
+      Record<string, { enabled?: unknown; trusted_hash?: unknown }> | undefined;
     expect(codexHookStateForEvent(hookState, "permission_request")?.enabled).toBe(true);
     expect(codexHookStateForEvent(hookState, "pre_tool_use")).toEqual({ enabled: false });
     expect(codexHookStateForEvent(hookState, "post_tool_use")).toEqual({ enabled: false });
@@ -1614,8 +1610,7 @@ describe("runCodexAppServerSideQuestion", () => {
     );
     let relayId: string | undefined;
     let reportPreToolUseFailure:
-      | NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]>
-      | undefined;
+      NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]> | undefined;
     client.request.mockImplementation(async (method: string, requestParams: unknown) => {
       if (method === "thread/fork") {
         relayId = extractRelayIdFromThreadConfig(
@@ -1676,8 +1671,7 @@ describe("runCodexAppServerSideQuestion", () => {
       diagnosticEvents.push(event),
     );
     let reportPreToolUseFailure:
-      | NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]>
-      | undefined;
+      NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]> | undefined;
     client.request.mockImplementation(async (method: string, requestParams: unknown) => {
       if (method === "thread/fork") {
         const relayId = extractRelayIdFromThreadConfig(
@@ -1739,8 +1733,7 @@ describe("runCodexAppServerSideQuestion", () => {
       diagnosticEvents.push(event),
     );
     let reportPreToolUseFailure:
-      | NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]>
-      | undefined;
+      NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]> | undefined;
     client.request.mockImplementation(async (method: string, requestParams: unknown) => {
       if (method === "thread/fork") {
         const relayId = extractRelayIdFromThreadConfig(

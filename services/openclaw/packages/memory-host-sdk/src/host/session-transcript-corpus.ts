@@ -19,9 +19,7 @@ import {
 } from "./openclaw-runtime-session.js";
 
 type SessionTranscriptCorpusArtifactKind =
-  | "active-session"
-  | "archive-artifact"
-  | "orphan-file-artifact";
+  "active-session" | "archive-artifact" | "orphan-file-artifact";
 
 export type SessionTranscriptCorpusEntry = {
   agentId: string;

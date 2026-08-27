@@ -2,8 +2,7 @@
 import type { WorkboardCard } from "./types.js";
 
 type WorkboardCardLookupResult =
-  | { card: WorkboardCard; error?: undefined }
-  | { card?: undefined; error: string };
+  { card: WorkboardCard; error?: undefined } | { card?: undefined; error: string };
 
 export function resolveWorkboardCardByIdOrPrefix(
   cards: readonly WorkboardCard[],

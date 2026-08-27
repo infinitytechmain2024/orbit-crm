@@ -60,11 +60,7 @@ export const POLICY_REDIRECT_INVOKE_COMMANDS: ReadonlySet<string> = new Set([
 ]);
 
 type NodeMediaAction =
-  | "camera_snap"
-  | "photos_latest"
-  | "camera_clip"
-  | "screen_record"
-  | "screen_snapshot";
+  "camera_snap" | "photos_latest" | "camera_clip" | "screen_record" | "screen_snapshot";
 const MAX_RECORDING_DURATION_MS = 300_000;
 const RECORDING_INVOKE_GRACE_MS = 30_000;
 const RECORDING_TRANSPORT_GRACE_MS = 30_000;

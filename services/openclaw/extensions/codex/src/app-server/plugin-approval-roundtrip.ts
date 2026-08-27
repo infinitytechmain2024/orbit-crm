@@ -17,11 +17,7 @@ export type ExecApprovalDecision = "allow-once" | "allow-always" | "deny";
 
 /** Normalized Codex app-server approval outcome after a gateway decision. */
 export type AppServerApprovalOutcome =
-  | "approved-once"
-  | "approved-session"
-  | "denied"
-  | "unavailable"
-  | "cancelled";
+  "approved-once" | "approved-session" | "denied" | "unavailable" | "cancelled";
 
 type ApprovalRequestResult = {
   id?: string;

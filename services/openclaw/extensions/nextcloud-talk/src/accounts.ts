@@ -66,8 +66,7 @@ function mergeNextcloudTalkAccountConfig(
   return resolveMergedAccountConfig<NextcloudTalkAccountConfig>({
     channelConfig: cfg.channels?.["nextcloud-talk"] as NextcloudTalkAccountConfig | undefined,
     accounts: cfg.channels?.["nextcloud-talk"]?.accounts as
-      | Record<string, Partial<NextcloudTalkAccountConfig>>
-      | undefined,
+      Record<string, Partial<NextcloudTalkAccountConfig>> | undefined,
     accountId,
     omitKeys: ["defaultAccount"],
     normalizeAccountId,

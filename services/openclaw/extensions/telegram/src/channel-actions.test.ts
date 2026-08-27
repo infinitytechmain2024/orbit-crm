@@ -310,8 +310,7 @@ describe("telegramMessageActions", () => {
       });
 
       const call = handleTelegramActionMock.mock.calls.at(0)?.[0] as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (!call) {
         throw new Error(`expected Telegram action call for ${testCase.name}`);
       }

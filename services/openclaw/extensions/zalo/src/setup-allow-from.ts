@@ -74,8 +74,7 @@ export async function promptZaloAllowFrom(params: {
   }
 
   const currentAccount = cfg.channels?.zalo?.accounts?.[accountId] as
-    | ZaloAccountSetupConfig
-    | undefined;
+    ZaloAccountSetupConfig | undefined;
   return {
     ...cfg,
     channels: {

@@ -66,8 +66,7 @@ export async function resolveDiscordComponentSpec(
   payload: OutboundPayload,
 ): Promise<DiscordComponentMessageSpec | undefined> {
   const discordData = payload.channelData?.discord as
-    | { components?: unknown; presentationComponents?: DiscordComponentMessageSpec }
-    | undefined;
+    { components?: unknown; presentationComponents?: DiscordComponentMessageSpec } | undefined;
   const rawComponentSpec =
     discordData?.presentationComponents ??
     (discordData?.components &&

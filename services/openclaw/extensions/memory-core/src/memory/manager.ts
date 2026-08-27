@@ -1171,8 +1171,7 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
             entries:
               (
                 this.db.prepare(`SELECT COUNT(*) as c FROM ${EMBEDDING_CACHE_TABLE}`).get() as
-                  | { c: number }
-                  | undefined
+                  { c: number } | undefined
               )?.c ?? 0,
             maxEntries: this.cache.maxEntries,
           }

@@ -20,12 +20,7 @@ import {
 import { jidToE164 } from "./text-runtime.js";
 
 type WhatsAppQaDriverObservedMessageKind =
-  | "media"
-  | "location"
-  | "poll"
-  | "reaction"
-  | "text"
-  | "unknown";
+  "media" | "location" | "poll" | "reaction" | "text" | "unknown";
 
 type WhatsAppQaDriverQuotedMessage = {
   messageId?: string;

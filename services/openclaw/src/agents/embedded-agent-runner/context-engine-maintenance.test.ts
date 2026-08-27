@@ -402,8 +402,7 @@ describe("runContextEngineMaintenance", () => {
       requireRecord(maintainParams.runtimeContext, "maintain runtime context").workspaceDir,
     ).toBe("/tmp/workspace");
     const runtimeContext = maintainParams.runtimeContext as
-      | { rewriteTranscriptEntries?: (request: unknown) => Promise<unknown> }
-      | undefined;
+      { rewriteTranscriptEntries?: (request: unknown) => Promise<unknown> } | undefined;
     if (!runtimeContext?.rewriteTranscriptEntries) {
       throw new Error("expected maintain runtime context rewrite helper");
     }

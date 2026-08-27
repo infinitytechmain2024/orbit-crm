@@ -1383,8 +1383,7 @@ export function createAnthropicMessagesTransportStreamFn(): StreamFn {
           }
           if (event.type === "message_start") {
             const message = event.message as
-              | { id?: string; model?: string; usage?: Record<string, unknown> }
-              | undefined;
+              { id?: string; model?: string; usage?: Record<string, unknown> } | undefined;
             const usage = message?.usage ?? {};
             output.responseId = typeof message?.id === "string" ? message.id : undefined;
             output.responseModel = typeof message?.model === "string" ? message.model : undefined;
@@ -1750,8 +1749,7 @@ export function createAnthropicMessagesTransportStreamFn(): StreamFn {
           }
           if (event.type === "message_delta") {
             const delta = event.delta as
-              | { stop_reason?: string; stop_details?: unknown }
-              | undefined;
+              { stop_reason?: string; stop_details?: unknown } | undefined;
             const usage = event.usage as Record<string, unknown> | undefined;
             if (delta?.stop_reason) {
               if (delta.stop_reason === "refusal") {

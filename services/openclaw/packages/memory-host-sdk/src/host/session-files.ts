@@ -799,8 +799,7 @@ export async function buildSessionEntry(
         continue;
       }
       const message = (record as { message?: unknown }).message as
-        | { role?: unknown; content?: unknown; provenance?: unknown }
-        | undefined;
+        { role?: unknown; content?: unknown; provenance?: unknown } | undefined;
       if (!message || typeof message.role !== "string") {
         continue;
       }

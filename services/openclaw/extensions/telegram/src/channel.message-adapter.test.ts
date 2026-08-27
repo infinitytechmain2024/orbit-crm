@@ -273,11 +273,9 @@ describe("telegram channel message adapter", () => {
     });
 
     const firstOpts = sendMessageTelegramMock.mock.calls[0]?.[2] as
-      | { replyToMessageId?: number }
-      | undefined;
+      { replyToMessageId?: number } | undefined;
     const secondOpts = sendMessageTelegramMock.mock.calls[1]?.[2] as
-      | { replyToMessageId?: number }
-      | undefined;
+      { replyToMessageId?: number } | undefined;
     expect(firstOpts?.replyToMessageId).toBe(900);
     expect(secondOpts?.replyToMessageId).toBeUndefined();
   });

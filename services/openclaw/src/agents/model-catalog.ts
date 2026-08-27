@@ -621,8 +621,7 @@ export async function loadModelCatalog(params?: {
       });
       if (!readOnly && params?.useCache !== false) {
         const cached = readCachedAgentModelCatalog({ agentDir, catalogKey }) as
-          | ModelCatalogEntry[]
-          | undefined;
+          ModelCatalogEntry[] | undefined;
         if (cached?.length) {
           logStage("state-cache-hit", `entries=${cached.length}`);
           return cached;
@@ -645,8 +644,7 @@ export async function loadModelCatalog(params?: {
           catalogKey = preparedCatalogKey;
           if (params?.useCache !== false) {
             const cached = readCachedAgentModelCatalog({ agentDir, catalogKey }) as
-              | ModelCatalogEntry[]
-              | undefined;
+              ModelCatalogEntry[] | undefined;
             if (cached?.length) {
               logStage("state-cache-hit", `entries=${cached.length}`);
               return cached;

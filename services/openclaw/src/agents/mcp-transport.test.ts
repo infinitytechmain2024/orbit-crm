@@ -103,8 +103,7 @@ function latestSseEventSourceFetch() {
 
 function runtimeFetchCall(index: number): [RequestInfo | URL, RequestInit | undefined] {
   const call = runtimeFetchMock.mock.calls[index] as
-    | [RequestInfo | URL, RequestInit | undefined]
-    | undefined;
+    [RequestInfo | URL, RequestInit | undefined] | undefined;
   if (!call) {
     throw new Error(`Expected runtime fetch call ${index}`);
   }

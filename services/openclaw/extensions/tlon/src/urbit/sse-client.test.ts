@@ -54,8 +54,7 @@ describe("UrbitSSEClient", () => {
 
       expect(mockUrbitFetch).toHaveBeenCalledTimes(1);
       const callArgs = requireFirstMockCall(mockUrbitFetch.mock.calls, "urbit fetch")[0] as
-        | Parameters<typeof urbitFetch>[0]
-        | undefined;
+        Parameters<typeof urbitFetch>[0] | undefined;
       if (!callArgs) {
         throw new Error("Expected urbit fetch arguments");
       }

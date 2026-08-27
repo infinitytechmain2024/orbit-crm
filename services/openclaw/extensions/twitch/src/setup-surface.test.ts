@@ -220,8 +220,7 @@ describe("setup surface helpers", () => {
         throw new Error("expected Twitch env-token setup result");
       }
       const defaultAccount = result.cfg.channels?.twitch?.accounts?.default as
-        | { username?: string; clientId?: string }
-        | undefined;
+        { username?: string; clientId?: string } | undefined;
       expect(defaultAccount?.username).toBe("testbot");
       expect(defaultAccount?.clientId).toBe("test-client-id");
     });

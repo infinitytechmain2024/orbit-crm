@@ -107,8 +107,7 @@ function installBrowserMocks() {
 
   const getBrowserDisconnectedHandler = () =>
     browserOn.mock.calls.find((call) => call[0] === "disconnected")?.[1] as
-      | (() => void)
-      | undefined;
+      (() => void) | undefined;
 
   return {
     pageGoto,

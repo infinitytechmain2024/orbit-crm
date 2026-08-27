@@ -44,11 +44,7 @@ type DecryptMetricName = "decrypt.success" | "decrypt.failure";
 type MemoryMetricName = "memory.seen_tracker_size" | "memory.rate_limiter_entries";
 
 export type MetricName =
-  | EventMetricName
-  | RelayMetricName
-  | RateLimitMetricName
-  | DecryptMetricName
-  | MemoryMetricName;
+  EventMetricName | RelayMetricName | RateLimitMetricName | DecryptMetricName | MemoryMetricName;
 
 type RelayMetrics = {
   connects: number;

@@ -686,14 +686,7 @@ export class SettingsManager {
   }
 
   getDefaultThinkingLevel():
-    | "off"
-    | "minimal"
-    | "low"
-    | "medium"
-    | "high"
-    | "xhigh"
-    | "max"
-    | undefined {
+    "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max" | undefined {
     return this.settings.defaultThinkingLevel;
   }
 

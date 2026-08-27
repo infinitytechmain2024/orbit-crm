@@ -744,8 +744,7 @@ describe("startTelegramWebhook", () => {
         expect(typeof setWebhookCall[0]).toBe("string");
         const options = requireRecord(setWebhookCall[1], "setWebhook options");
         const certificate = options.certificate as
-          | { path?: string; fileData?: string; filename?: string }
-          | undefined;
+          { path?: string; fileData?: string; filename?: string } | undefined;
         if (!certificate) {
           throw new Error("expected Telegram webhook certificate payload");
         }

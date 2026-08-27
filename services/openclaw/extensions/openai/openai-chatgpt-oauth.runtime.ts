@@ -32,9 +32,7 @@ const tlsCertErrorPatterns = [
 ];
 
 type OpenAICodexOAuthFailureCode =
-  | "callback_timeout"
-  | "callback_validation_failed"
-  | "unsupported_region";
+  "callback_timeout" | "callback_validation_failed" | "unsupported_region";
 
 type PreflightFailureKind = "tls-cert" | "network";
 type OpenAIOAuthTlsPreflightResult =

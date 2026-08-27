@@ -67,10 +67,7 @@ export type ModelFallbackStepFields = {
 /** Input payload for logging one model fallback decision. */
 export type ModelFallbackDecisionParams = {
   decision:
-    | "skip_candidate"
-    | "probe_cooldown_candidate"
-    | "candidate_failed"
-    | "candidate_succeeded";
+    "skip_candidate" | "probe_cooldown_candidate" | "candidate_failed" | "candidate_succeeded";
   runId?: string;
   sessionId?: string;
   lane?: string;

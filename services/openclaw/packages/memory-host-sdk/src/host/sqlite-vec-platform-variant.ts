@@ -16,8 +16,7 @@ const PLATFORM_VARIANTS: Readonly<Record<string, PlatformVariant | undefined>> =
 
 /** Resolve the installed sqlite-vec native extension for the current platform if present. */
 export function resolveSqliteVecPlatformVariant():
-  | { pkg: string; extensionPath: string }
-  | undefined {
+  { pkg: string; extensionPath: string } | undefined {
   const entry = PLATFORM_VARIANTS[`${process.platform}-${process.arch}`];
   if (!entry) {
     return undefined;

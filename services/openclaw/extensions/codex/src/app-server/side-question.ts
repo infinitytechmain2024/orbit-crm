@@ -257,8 +257,7 @@ export async function runCodexAppServerSideQuestion(
   let nativePreToolUseFailureFallbackActive = false;
   let nativeToolRunWasAbortedBeforeCleanup: boolean | undefined;
   let nativePreToolUseFailureFallbackTerminalReason:
-    | CodexNativePreToolUseFailure["disposition"]
-    | undefined;
+    CodexNativePreToolUseFailure["disposition"] | undefined;
   const emitNativePreToolUseFailure = (failure: CodexNativePreToolUseFailure) => {
     emitCodexNativePreToolUseFailureDiagnostic({
       agentId: sessionAgentId,

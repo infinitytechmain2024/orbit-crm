@@ -26,10 +26,7 @@ import {
 
 /** Reason a profile is or is not eligible for provider auth. */
 export type AuthProfileEligibilityReasonCode =
-  | AuthCredentialReasonCode
-  | "profile_missing"
-  | "provider_mismatch"
-  | "mode_mismatch";
+  AuthCredentialReasonCode | "profile_missing" | "provider_mismatch" | "mode_mismatch";
 
 /** Eligibility decision for one auth profile candidate. */
 type AuthProfileEligibility = {

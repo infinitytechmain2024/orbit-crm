@@ -1424,8 +1424,7 @@ describe("VoiceCallWebhookServer replay handling", () => {
       });
       expect(processEvent).toHaveBeenCalledTimes(1);
       const firstEvent = requireFirstMockCall(processEvent.mock.calls, "processed event")[0] as
-        | NormalizedEvent
-        | undefined;
+        NormalizedEvent | undefined;
       if (!firstEvent) {
         throw new Error("webhook server did not forward the parsed event");
       }
@@ -2123,8 +2122,7 @@ describe("VoiceCallWebhookServer barge-in suppression during initial message", (
       expect(clearTtsQueue).toHaveBeenCalledTimes(2);
       expect(processEvent).toHaveBeenCalledTimes(1);
       const event = requireFirstMockCall(processEvent.mock.calls, "inbound processed event")[0] as
-        | NormalizedEvent
-        | undefined;
+        NormalizedEvent | undefined;
       expect(event?.type).toBe("call.speech");
       if (event?.type !== "call.speech") {
         throw new Error("expected media transcript callback to emit a speech event");

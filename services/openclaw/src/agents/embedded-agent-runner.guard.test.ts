@@ -190,8 +190,7 @@ describe("guardSessionManager integration", () => {
     sm.appendMessage({ role: "user", content: "runtime prompt", timestamp: 125 });
 
     const message = sm.getEntries().find((entry) => entry.type === "message") as
-      | { message?: AgentMessage }
-      | undefined;
+      { message?: AgentMessage } | undefined;
     expect(message?.message).toMatchObject({
       role: "user",
       content: "[redacted by hook]",

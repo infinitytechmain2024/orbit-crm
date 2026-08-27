@@ -679,8 +679,7 @@ describe("runCodexAppServerAttempt", () => {
 
       const environmentAdd = request.mock.calls.find(([method]) => method === "environment/add");
       const environmentAddParams = environmentAdd?.[1] as
-        | { environmentId?: string; execServerUrl?: string }
-        | undefined;
+        { environmentId?: string; execServerUrl?: string } | undefined;
       const startRequest = request.mock.calls.find(([method]) => method === "thread/start");
       const startParams = startRequest?.[1] as
         | {
@@ -2225,8 +2224,7 @@ describe("runCodexAppServerAttempt", () => {
     );
     const turnStart = harness.requests.find((request) => request.method === "turn/start");
     const turnStartParams = turnStart?.params as
-      | { input?: Array<{ text?: string; text_elements?: unknown[]; type?: string }> }
-      | undefined;
+      { input?: Array<{ text?: string; text_elements?: unknown[]; type?: string }> } | undefined;
     expect(turnStartParams?.input).toEqual([
       { type: "text", text: "queued context\n\nhello\n\ntail context", text_elements: [] },
     ]);
@@ -4091,8 +4089,7 @@ describe("runCodexAppServerAttempt", () => {
   it("routes Computer Use MCP elicitations through the native bridge", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const bridgeSpy = vi
       .spyOn(elicitationBridge, "handleCodexAppServerElicitationRequest")
       .mockResolvedValue({
@@ -4239,8 +4236,7 @@ describe("runCodexAppServerAttempt", () => {
     const requestCalls = request.mock.calls as unknown as Array<[string, unknown, unknown?]>;
     const threadStart = requestCalls.find(([method]) => method === "thread/start");
     const threadStartParams = threadStart?.[1] as
-      | { approvalPolicy?: { granular?: { mcp_elicitations?: boolean } } }
-      | undefined;
+      { approvalPolicy?: { granular?: { mcp_elicitations?: boolean } } } | undefined;
     expect(threadStartParams?.approvalPolicy?.granular?.mcp_elicitations).toBe(true);
 
     await notify({
@@ -4302,8 +4298,7 @@ describe("runCodexAppServerAttempt", () => {
     });
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const bridgeSpy = vi
       .spyOn(elicitationBridge, "handleCodexAppServerElicitationRequest")
       .mockResolvedValue({
@@ -4441,13 +4436,11 @@ describe("runCodexAppServerAttempt", () => {
     const requestCalls = request.mock.calls as unknown as Array<[string, unknown, unknown?]>;
     const threadStart = requestCalls.find(([method]) => method === "thread/start");
     const threadStartParams = threadStart?.[1] as
-      | { approvalPolicy?: { granular?: { mcp_elicitations?: boolean } } }
-      | undefined;
+      { approvalPolicy?: { granular?: { mcp_elicitations?: boolean } } } | undefined;
     expect(threadStartParams?.approvalPolicy?.granular?.mcp_elicitations).toBe(true);
     const turnStart = requestCalls.find(([method]) => method === "turn/start");
     const turnStartParams = turnStart?.[1] as
-      | { approvalPolicy?: { granular?: { mcp_elicitations?: boolean } } }
-      | undefined;
+      { approvalPolicy?: { granular?: { mcp_elicitations?: boolean } } } | undefined;
     expect(turnStartParams?.approvalPolicy?.granular?.mcp_elicitations).toBe(true);
 
     await notify({
@@ -4598,8 +4591,7 @@ describe("runCodexAppServerAttempt", () => {
 
     const threadStart = requests.find((entry) => entry.method === "thread/start");
     const threadStartParams = threadStart?.params as
-      | { config?: { apps?: Record<string, { enabled?: boolean }> } }
-      | undefined;
+      { config?: { apps?: Record<string, { enabled?: boolean }> } } | undefined;
     expect(threadStartParams?.config?.apps?.["google-calendar-app"]?.enabled).toBe(true);
     expect(requests.map((entry) => entry.method)).not.toContain("app/list");
   });
@@ -4723,8 +4715,7 @@ describe("runCodexAppServerAttempt", () => {
 
     const threadStart = requests.find((entry) => entry.method === "thread/start");
     const threadStartParams = threadStart?.params as
-      | { config?: { apps?: Record<string, { enabled?: boolean }> } }
-      | undefined;
+      { config?: { apps?: Record<string, { enabled?: boolean }> } } | undefined;
     expect(threadStartParams?.config?.apps?.["google-calendar-app"]?.enabled).toBe(true);
     expect(requests.map((entry) => entry.method)).not.toContain("app/list");
   });
@@ -4874,8 +4865,7 @@ describe("runCodexAppServerAttempt", () => {
     expect(requests.map((entry) => entry.method)).toContain("app/list");
     const threadStart = requests.find((entry) => entry.method === "thread/start");
     const threadStartParams = threadStart?.params as
-      | { config?: { apps?: Record<string, { enabled?: boolean }> } }
-      | undefined;
+      { config?: { apps?: Record<string, { enabled?: boolean }> } } | undefined;
     expect(threadStartParams?.config?.apps?.["google-calendar-app"]?.enabled).toBe(true);
   });
 
@@ -4968,8 +4958,7 @@ describe("runCodexAppServerAttempt", () => {
       await flushDiagnosticEvents();
 
       const errorEvent = diagnosticEvents.find((event) => event.type === "model.call.error") as
-        | ({ failureKind?: string; errorCategory?: string } & DiagnosticEventPayload)
-        | undefined;
+        ({ failureKind?: string; errorCategory?: string } & DiagnosticEventPayload) | undefined;
       expect(errorEvent?.failureKind).toBe("timeout");
       expect(errorEvent?.errorCategory).toBe("timeout");
       expect(queueActiveRunMessageForTest("session-1", "after timeout")).toBe(false);
@@ -5787,8 +5776,7 @@ describe("runCodexAppServerAttempt", () => {
     const turnRequest = requests.find((request) => request.method === "turn/start");
     const turnRequestParams = turnRequest?.params as Record<string, unknown> | undefined;
     const collaborationMode = turnRequestParams?.collaborationMode as
-      | { settings?: Record<string, unknown> }
-      | undefined;
+      { settings?: Record<string, unknown> } | undefined;
     expect(turnRequestParams?.model).toBe("local-model");
     expect(collaborationMode?.settings?.model).toBe("local-model");
     expect(turnRequestParams?.approvalsReviewer).toBe("user");

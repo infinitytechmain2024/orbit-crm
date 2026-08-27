@@ -37,5 +37,5 @@ roles:
           directions, and scene descriptions.
 
 dependencies:
- - task: scriptwriting_task
-   depends_on: story_concept_development  
+  - task: scriptwriting_task
+    depends_on: story_concept_development

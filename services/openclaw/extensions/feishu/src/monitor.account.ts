@@ -446,8 +446,7 @@ function registerEventHandlers(
 }
 
 type BotOpenIdSource =
-  | { kind: "prefetched"; botOpenId?: string; botName?: string }
-  | { kind: "fetch" };
+  { kind: "prefetched"; botOpenId?: string; botName?: string } | { kind: "fetch" };
 
 type MonitorSingleAccountParams = {
   cfg: ClawdbotConfig;

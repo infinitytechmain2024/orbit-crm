@@ -1418,8 +1418,7 @@ async function runCanary(params: {
   );
   const requestStartedAt = new Date(requestStartedAtMs).toISOString();
   let firstUnthreadedReply:
-    | Pick<TelegramObservedMessage, "messageId" | "replyToMessageId" | "text">
-    | undefined;
+    Pick<TelegramObservedMessage, "messageId" | "replyToMessageId" | "text"> | undefined;
   let sutObserved: Awaited<ReturnType<typeof waitForObservedMessage>>;
   try {
     sutObserved = await waitForObservedMessage({

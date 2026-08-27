@@ -22,8 +22,7 @@ function resolveSlackChannelPolicyEntry(
     params.accountId ?? resolveDefaultSlackAccountId(params.cfg),
   );
   const channels = mergeSlackAccountConfig(params.cfg, accountId).channels as
-    | Record<string, SlackChannelPolicyEntry>
-    | undefined;
+    Record<string, SlackChannelPolicyEntry> | undefined;
   const channelMap = channels ?? {};
   if (Object.keys(channelMap).length === 0) {
     return undefined;

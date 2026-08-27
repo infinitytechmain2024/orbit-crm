@@ -9,24 +9,22 @@ const mocks = vi.hoisted(() => ({
     hostnameAllowlist: hosts,
   })),
   fetchWithSsrFGuard: vi.fn(),
-  gaxiosCtor: vi.fn(
-    function MockGaxios(
-      this: {
-        defaults: Record<string, unknown>;
-        interceptors: {
-          request: { add: ReturnType<typeof vi.fn> };
-          response: { add: ReturnType<typeof vi.fn> };
-        };
-      },
-      defaults,
-    ) {
-      this.defaults = defaults as Record<string, unknown>;
-      this.interceptors = {
-        request: { add: vi.fn() },
-        response: { add: vi.fn() },
+  gaxiosCtor: vi.fn(function MockGaxios(
+    this: {
+      defaults: Record<string, unknown>;
+      interceptors: {
+        request: { add: ReturnType<typeof vi.fn> };
+        response: { add: ReturnType<typeof vi.fn> };
       };
     },
-  ),
+    defaults,
+  ) {
+    this.defaults = defaults as Record<string, unknown>;
+    this.interceptors = {
+      request: { add: vi.fn() },
+      response: { add: vi.fn() },
+    };
+  }),
 }));
 
 vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
@@ -389,11 +387,9 @@ describe("googlechat google auth runtime", () => {
         "add"
       ] as unknown as ReturnType<typeof vi.fn>;
       const requestInterceptor = mockCallArg(requestInterceptorAdd) as
-        | { resolved?: unknown }
-        | undefined;
+        { resolved?: unknown } | undefined;
       const responseInterceptor = mockCallArg(responseInterceptorAdd) as
-        | { resolved?: unknown }
-        | undefined;
+        { resolved?: unknown } | undefined;
 
       expect(mocks.gaxiosCtor).toHaveBeenCalledOnce();
       expect(typeof transportDefaults.fetchImplementation).toBe("function");

@@ -6284,8 +6284,7 @@ describe("dispatchTelegramMessage draft streaming", () => {
         }
       | undefined;
     let deliverQueuedRoomEvent:
-      | DispatchReplyWithBufferedBlockDispatcherArgs["dispatcherOptions"]["deliver"]
-      | undefined;
+      DispatchReplyWithBufferedBlockDispatcherArgs["dispatcherOptions"]["deliver"] | undefined;
     let adoptQueuedRoomEvent: (() => void | Promise<void>) | undefined;
     dispatchReplyWithBufferedBlockDispatcher
       .mockImplementationOnce(async ({ dispatcherOptions, replyOptions }) => {

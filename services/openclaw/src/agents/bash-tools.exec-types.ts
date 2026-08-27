@@ -149,9 +149,7 @@ export type ExecToolDetails =
   | {
       status: "approval-unavailable";
       reason:
-        | "initiating-platform-disabled"
-        | "initiating-platform-unsupported"
-        | "no-approval-route";
+        "initiating-platform-disabled" | "initiating-platform-unsupported" | "no-approval-route";
       channel?: string;
       channelLabel?: string;
       accountId?: string;

@@ -562,9 +562,7 @@ export function applyPreparedRuntimeAuthToModel<
 >(
   model: T,
   preparedAuth:
-    | { baseUrl?: string; request?: ModelProviderRequestTransportOverrides }
-    | null
-    | undefined,
+    { baseUrl?: string; request?: ModelProviderRequestTransportOverrides } | null | undefined,
 ): T {
   if (!preparedAuth?.baseUrl && !preparedAuth?.request) {
     return model;

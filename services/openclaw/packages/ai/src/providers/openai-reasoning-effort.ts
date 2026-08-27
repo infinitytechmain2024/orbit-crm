@@ -10,13 +10,7 @@ import {
 } from "@openclaw/normalization-core/string-normalization";
 
 export type OpenAIReasoningEffort =
-  | "none"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh"
-  | "max";
+  "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
 export type OpenAIApiReasoningEffort = OpenAIReasoningEffort | (string & {});
 

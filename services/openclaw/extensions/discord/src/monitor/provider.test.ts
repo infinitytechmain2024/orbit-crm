@@ -169,8 +169,7 @@ describe("monitorDiscordProvider", () => {
   };
 
   const getConstructedEventQueue = ():
-    | { listenerTimeout?: number; slowListenerThreshold?: number }
-    | undefined => {
+    { listenerTimeout?: number; slowListenerThreshold?: number } | undefined => {
     expect(clientConstructorOptionsMock).toHaveBeenCalledTimes(1);
     const opts = firstMockArg(clientConstructorOptionsMock, "Discord client constructor") as {
       eventQueue?: { listenerTimeout?: number; slowListenerThreshold?: number };
@@ -209,8 +208,7 @@ describe("monitorDiscordProvider", () => {
   } => {
     expect(monitorLifecycleMock).toHaveBeenCalledTimes(1);
     const params = firstMockArg(monitorLifecycleMock, "Discord lifecycle monitor") as
-      | { gatewayReadyTimeoutMs?: number; gatewayRuntimeReadyTimeoutMs?: number }
-      | undefined;
+      { gatewayReadyTimeoutMs?: number; gatewayRuntimeReadyTimeoutMs?: number } | undefined;
     if (!params) {
       throw new Error("expected lifecycle monitor params");
     }
@@ -263,8 +261,7 @@ describe("monitorDiscordProvider", () => {
     providerTesting.setFetchDiscordApplicationId(async () => "app-1");
     providerTesting.setCreateDiscordNativeCommand(((
       ...args: Parameters<typeof providerTesting.setCreateDiscordNativeCommand>[0] extends
-        | ((...inner: infer P) => unknown)
-        | undefined
+        ((...inner: infer P) => unknown) | undefined
         ? P
         : never
     ) =>
@@ -712,8 +709,7 @@ describe("monitorDiscordProvider", () => {
       });
 
       const firstCall = firstMockArg(getAcpSessionStatusMock, "ACP session status") as
-        | { signal?: AbortSignal }
-        | undefined;
+        { signal?: AbortSignal } | undefined;
       if (!firstCall?.signal) {
         throw new Error("ACP status check did not receive an abort signal");
       }

@@ -50,8 +50,7 @@ describe("qa suite runtime launcher", () => {
     runQaFlowSuite.mockImplementation(
       async (
         params:
-          | { outputDir?: string; scenarioIds?: string[]; writeEvidenceFile?: boolean }
-          | undefined,
+          { outputDir?: string; scenarioIds?: string[]; writeEvidenceFile?: boolean } | undefined,
       ) => {
         const outputDir = params?.outputDir ?? "/tmp/qa-flow";
         const evidencePath = path.join(outputDir, "qa-evidence.json");
@@ -333,8 +332,7 @@ describe("qa suite runtime launcher", () => {
     runQaFlowSuite.mockImplementation(
       async (
         params:
-          | { outputDir?: string; scenarioIds?: string[]; writeEvidenceFile?: boolean }
-          | undefined,
+          { outputDir?: string; scenarioIds?: string[]; writeEvidenceFile?: boolean } | undefined,
       ) => {
         const scenarioIds = params?.scenarioIds ?? [];
         const isolatedWorker = scenarioIds.some((scenarioId) =>

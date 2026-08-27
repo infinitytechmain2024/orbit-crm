@@ -288,9 +288,7 @@ async function pathHasSymlinkComponent(baseDir: string, targetPath: string): Pro
 }
 
 type WebAuthDirOwnership =
-  | { kind: "owned"; authDir: string }
-  | { kind: "unsafe-owned" }
-  | { kind: "external" };
+  { kind: "owned"; authDir: string } | { kind: "unsafe-owned" } | { kind: "external" };
 
 async function isLegacyWebAuthDir(authDir: string): Promise<boolean> {
   const legacyAuthDir = path.resolve(resolveOAuthDir());

@@ -240,8 +240,7 @@ export function resolveSandboxConfigForAgent(
     agentSandbox = agentConfig.sandbox;
   }
   const legacyAgentSandbox = agentSandbox as
-    | (typeof agentSandbox & { perSession?: boolean })
-    | undefined;
+    (typeof agentSandbox & { perSession?: boolean }) | undefined;
   const legacyDefaultSandbox = agent as (typeof agent & { perSession?: boolean }) | undefined;
 
   const scope = resolveSandboxScope({

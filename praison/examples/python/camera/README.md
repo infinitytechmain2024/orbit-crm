@@ -9,11 +9,13 @@ PraisonAI supports visual input through the `images` parameter in Tasks. While t
 ## 🛠️ Setup
 
 ### Requirements
+
 ```bash
 pip install praisonaiagents opencv-python
 ```
 
 ### Environment Variables
+
 ```bash
 export OPENAI_API_KEY=your_openai_api_key
 ```
@@ -21,6 +23,7 @@ export OPENAI_API_KEY=your_openai_api_key
 ## 📁 Examples
 
 ### 1. `camera-basic.py` - Basic Camera Capture
+
 - **Purpose**: Capture a single frame and analyze it
 - **Use Case**: Quick analysis, testing camera setup
 - **Features**:
@@ -29,11 +32,13 @@ export OPENAI_API_KEY=your_openai_api_key
   - Automatic cleanup
 
 **Usage:**
+
 ```bash
 python camera-basic.py
 ```
 
 ### 2. `camera-continuous.py` - Continuous Monitoring
+
 - **Purpose**: Continuous camera monitoring with periodic analysis
 - **Use Case**: Security monitoring, surveillance systems
 - **Features**:
@@ -43,11 +48,13 @@ python camera-basic.py
   - Graceful shutdown with Ctrl+C
 
 **Usage:**
+
 ```bash
 python camera-continuous.py
 ```
 
 ### 3. `camera-multi-agent.py` - Multi-Agent Analysis
+
 - **Purpose**: Multiple specialized agents analyzing the same camera feed
 - **Use Case**: Comprehensive analysis from different perspectives
 - **Features**:
@@ -57,11 +64,13 @@ python camera-continuous.py
   - Parallel processing
 
 **Usage:**
+
 ```bash
 python camera-multi-agent.py
 ```
 
 ### 4. `camera-video-analysis.py` - Video Recording & Analysis
+
 - **Purpose**: Record video segments and analyze temporal events
 - **Use Case**: Activity analysis, event detection
 - **Features**:
@@ -71,6 +80,7 @@ python camera-multi-agent.py
   - Automatic cleanup
 
 **Usage:**
+
 ```bash
 python camera-video-analysis.py
 ```
@@ -85,16 +95,19 @@ python camera-video-analysis.py
 ## 🔧 Configuration Options
 
 ### Camera Settings
+
 ```python
 camera_id = 0  # Default camera (change to 1, 2, etc. for other cameras)
 ```
 
 ### Analysis Intervals
+
 ```python
 analysis_interval = 10  # Seconds between analyses for continuous monitoring
 ```
 
 ### Recording Duration
+
 ```python
 recording_duration = 15  # Seconds for video recording
 ```
@@ -102,6 +115,7 @@ recording_duration = 15  # Seconds for video recording
 ## 💡 Integration Patterns
 
 ### 1. Real-time Processing
+
 ```python
 # Capture frames periodically and process them as separate tasks
 def capture_and_analyze():
@@ -114,6 +128,7 @@ def capture_and_analyze():
 ```
 
 ### 2. Batch Analysis
+
 ```python
 # Process multiple camera angles simultaneously
 task = Task(
@@ -124,6 +139,7 @@ task = Task(
 ```
 
 ### 3. Video Analysis
+
 ```python
 # Save video segments and analyze them
 task = Task(
@@ -143,6 +159,7 @@ task = Task(
 ## 🐛 Troubleshooting
 
 ### Camera Not Found
+
 ```python
 # Check available cameras
 for i in range(4):  # Check first 4 camera indices
@@ -153,11 +170,13 @@ for i in range(4):  # Check first 4 camera indices
 ```
 
 ### Permission Issues
+
 - On Linux: Add user to `video` group
 - On macOS: Grant camera permissions in System Preferences
 - On Windows: Check camera privacy settings
 
 ### Performance Optimization
+
 - Reduce frame size for faster processing
 - Adjust analysis intervals based on requirements
 - Use parallel processing for multiple agents

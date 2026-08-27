@@ -65,13 +65,7 @@ export type OcMatch =
 export type LeafType = "string" | "number" | "boolean" | "null";
 
 export type NodeDescriptor =
-  | "md-block"
-  | "md-item"
-  | "jsonc-object"
-  | "jsonc-array"
-  | "jsonl-line"
-  | "yaml-map"
-  | "yaml-seq";
+  "md-block" | "md-item" | "jsonc-object" | "jsonc-array" | "jsonl-line" | "yaml-map" | "yaml-seq";
 
 export type ContainerKind =
   | "md-section" // append item to a section

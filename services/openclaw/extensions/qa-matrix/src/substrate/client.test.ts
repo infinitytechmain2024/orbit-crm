@@ -305,8 +305,7 @@ describe("matrix driver client", () => {
       "/_matrix/client/v3/rooms/!room%3Amatrix-qa.test/send/m.room.message/",
     );
     const relation = requests[0]?.body?.["m.relates_to"] as
-      | { event_id?: string; rel_type?: string }
-      | undefined;
+      { event_id?: string; rel_type?: string } | undefined;
     expect(relation?.rel_type).toBe("m.replace");
     expect(relation?.event_id).toBe("$msg-1");
     expect(requests[1]?.url).toMatch(

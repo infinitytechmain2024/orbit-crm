@@ -51,8 +51,7 @@ export function mergeDiscordAccountConfig(
   const merged = resolveMergedAccountConfig<DiscordAccountConfig>({
     channelConfig: cfg.channels?.discord as DiscordAccountConfig | undefined,
     accounts: cfg.channels?.discord?.accounts as
-      | Record<string, Partial<DiscordAccountConfig>>
-      | undefined,
+      Record<string, Partial<DiscordAccountConfig>> | undefined,
     accountId,
     nestedObjectKeys: ["agentComponents", "botLoopProtection"],
   });

@@ -324,9 +324,7 @@ type ActiveToolPromptMetadata = {
 type CompactionReason = "manual" | "threshold" | "overflow";
 
 type CompactionWorkOutcome =
-  | { status: "compacted"; result: CompactionResult }
-  | { status: "aborted" }
-  | { status: "skipped" };
+  { status: "compacted"; result: CompactionResult } | { status: "aborted" } | { status: "skipped" };
 
 // ============================================================================
 // Constants

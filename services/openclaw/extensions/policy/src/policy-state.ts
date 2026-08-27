@@ -146,10 +146,7 @@ type PolicyNetworkEvidence = {
 export type PolicyIngressEvidence = {
   readonly id: string;
   readonly kind:
-    | "channelDmPolicy"
-    | "channelGroupPolicy"
-    | "channelRequireMention"
-    | "sessionDmScope";
+    "channelDmPolicy" | "channelGroupPolicy" | "channelRequireMention" | "sessionDmScope";
   readonly source: string;
   readonly channel?: string;
   readonly accountId?: string;
@@ -608,15 +605,13 @@ function withExecApprovalAllowlistSource(
   value: unknown,
   sourceAgentId: string,
 ): readonly NormalizedExecApprovalAllowlistEntry[] {
-  return execApprovalAllowlistEntries(value).map(
-    (entry): NormalizedExecApprovalAllowlistEntry => ({
-      index: entry.index,
-      pattern: entry.pattern,
-      argPattern: entry.argPattern,
-      entrySource: entry.entrySource,
-      sourceAgentId,
-    }),
-  );
+  return execApprovalAllowlistEntries(value).map((entry): NormalizedExecApprovalAllowlistEntry => ({
+    index: entry.index,
+    pattern: entry.pattern,
+    argPattern: entry.argPattern,
+    entrySource: entry.entrySource,
+    sourceAgentId,
+  }));
 }
 
 function readExecApprovalAllowlistEntrySource(value: unknown): "allow-always" | undefined {

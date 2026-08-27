@@ -30,9 +30,7 @@ const getBase64 = async (spec: any, width?: number, height?: number) => {
   await page.setContent(getHtmlVChart(spec, width, height));
 
   const dataUrl = await page.evaluate(() => {
-    const canvas: any = document
-      .getElementById("chart-container")
-      ?.querySelector("canvas");
+    const canvas: any = document.getElementById("chart-container")?.querySelector("canvas");
     return canvas?.toDataURL("image/png");
   });
 
@@ -101,14 +99,12 @@ function getSavedPathName(
   directory: string,
   fileName: string,
   outputType: "html" | "png" | "json" | "md",
-  isUpdate: boolean = false
+  isUpdate: boolean = false,
 ) {
   let newFileName = fileName;
   while (
     !isUpdate &&
-    fs.existsSync(
-      path.join(directory, "visualization", `${newFileName}.${outputType}`)
-    )
+    fs.existsSync(path.join(directory, "visualization", `${newFileName}.${outputType}`))
   ) {
     newFileName += "_new";
   }
@@ -125,11 +121,7 @@ const readStdin = (): Promise<string> => {
 };
 
 /** Save insights markdown in local, and return content && path */
-const setInsightTemplate = (
-  path: string,
-  title: string,
-  insights: string[]
-) => {
+const setInsightTemplate = (path: string, title: string, insights: string[]) => {
   let res = "";
   if (insights.length) {
     res += `## ${title} Insights`;
@@ -154,8 +146,7 @@ async function saveChartRes(options: {
   height?: number;
   isUpdate?: boolean;
 }) {
-  const { directory, fileName, spec, outputType, width, height, isUpdate } =
-    options;
+  const { directory, fileName, spec, outputType, width, height, isUpdate } = options;
   const specPath = getSavedPathName(directory, fileName, "json", isUpdate);
   fs.writeFileSync(specPath, JSON.stringify(spec, null, 2));
   const savedPath = getSavedPathName(directory, fileName, outputType, isUpdate);
@@ -180,7 +171,7 @@ async function generateChart(
     width?: number;
     height?: number;
     language?: "en" | "zh";
-  }
+  },
 ) {
   let res: {
     chart_path?: string;
@@ -188,16 +179,7 @@ async function generateChart(
     insight_path?: string;
     insight_md?: string;
   } = {};
-  const {
-    dataset,
-    userPrompt,
-    directory,
-    width,
-    height,
-    outputType,
-    fileName,
-    language,
-  } = options;
+  const { dataset, userPrompt, directory, width, height, outputType, fileName, language } = options;
   try {
     // Get chart spec and save in local file
     const jsonDataset = isString(dataset) ? JSON.parse(dataset) : dataset;
@@ -208,7 +190,7 @@ async function generateChart(
       {
         enableDataQuery: false,
         theme: "light",
-      }
+      },
     );
     if (error || !spec) {
       return {
@@ -272,11 +254,7 @@ async function generateChart(
     fs.writeFileSync(specPath, JSON.stringify(spec, null, 2));
     res = {
       ...res,
-      ...setInsightTemplate(
-        getSavedPathName(directory, fileName, "md"),
-        userPrompt,
-        insightsText
-      ),
+      ...setInsightTemplate(getSavedPathName(directory, fileName, "md"), userPrompt, insightsText),
     };
   } catch (error: any) {
     res.error = error.toString();
@@ -292,7 +270,7 @@ async function updateChartWithInsight(
     outputType: "png" | "html";
     fileName: string;
     insightsId: number[];
-  }
+  },
 ) {
   const { directory, outputType, fileName, insightsId } = options;
   let res: { error?: string; chart_path?: string } = {};
@@ -300,8 +278,8 @@ async function updateChartWithInsight(
     const specPath = getSavedPathName(directory, fileName, "json", true);
     const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
     // llm select index from 1
-    const insights = (spec.insights || []).filter(
-      (_insight: any, index: number) => insightsId.includes(index + 1)
+    const insights = (spec.insights || []).filter((_insight: any, index: number) =>
+      insightsId.includes(index + 1),
     );
     const { newSpec, error } = await vmind.updateSpecByInsights(spec, insights);
     if (error) {

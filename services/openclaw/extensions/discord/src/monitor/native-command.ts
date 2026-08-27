@@ -318,8 +318,7 @@ async function dispatchDiscordCommandInteraction(params: {
       threadParentSlug,
     });
   let nativeRouteStatePromise:
-    | ReturnType<typeof nativeCommandRuntime.resolveDiscordNativeInteractionRouteState>
-    | undefined;
+    ReturnType<typeof nativeCommandRuntime.resolveDiscordNativeInteractionRouteState> | undefined;
   const getNativeRouteState = () =>
     (nativeRouteStatePromise ??= nativeCommandRuntime.resolveDiscordNativeInteractionRouteState({
       cfg,

@@ -77,9 +77,7 @@ function runWrappedPayloadCase(params: {
   provider: string;
   modelId: string;
   model:
-    | Model<"openai-responses">
-    | Model<"openai-chatgpt-responses">
-    | Model<"azure-openai-responses">;
+    Model<"openai-responses"> | Model<"openai-chatgpt-responses"> | Model<"azure-openai-responses">;
   extraParams?: Record<string, unknown>;
   cfg?: Record<string, unknown>;
   agentId?: string;

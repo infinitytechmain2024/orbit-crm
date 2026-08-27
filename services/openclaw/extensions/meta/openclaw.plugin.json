@@ -42,13 +42,7 @@
             "compat": {
               "supportsTools": true,
               "supportsReasoningEffort": true,
-              "supportedReasoningEfforts": [
-                "minimal",
-                "low",
-                "medium",
-                "high",
-                "xhigh"
-              ]
+              "supportedReasoningEfforts": ["minimal", "low", "medium", "high", "xhigh"]
             },
             "cost": {
               "input": 0,

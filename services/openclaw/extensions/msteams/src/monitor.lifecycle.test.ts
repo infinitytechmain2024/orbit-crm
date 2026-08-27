@@ -267,8 +267,7 @@ function createStores() {
 
 function requireRegisteredMSTeamsConfig(): OpenClawConfig {
   const registered = registerMSTeamsHandlers.mock.calls[0]?.[1] as
-    | { cfg?: OpenClawConfig }
-    | undefined;
+    { cfg?: OpenClawConfig } | undefined;
   if (!registered?.cfg) {
     throw new Error("expected registered MSTeams handler config");
   }

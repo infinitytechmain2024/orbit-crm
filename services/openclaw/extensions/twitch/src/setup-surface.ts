@@ -77,8 +77,7 @@ export function setTwitchAccount(
       ...cfg.channels,
       twitch: {
         ...((cfg.channels as Record<string, unknown>)?.twitch as
-          | Record<string, unknown>
-          | undefined),
+          Record<string, unknown> | undefined),
         enabled: true,
         accounts: {
           ...((
@@ -475,8 +474,7 @@ export const twitchSetupWizard: ChannelSetupWizard = {
   groupAccess: twitchGroupAccess,
   disable: (cfg) => {
     const twitch = (cfg.channels as Record<string, unknown>)?.twitch as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     return {
       ...cfg,
       channels: {

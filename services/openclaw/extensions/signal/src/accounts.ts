@@ -31,8 +31,7 @@ function mergeSignalAccountConfig(cfg: OpenClawConfig, accountId: string): Signa
   return resolveMergedAccountConfig<SignalAccountConfig>({
     channelConfig: cfg.channels?.signal as SignalAccountConfig | undefined,
     accounts: cfg.channels?.signal?.accounts as
-      | Record<string, Partial<SignalAccountConfig>>
-      | undefined,
+      Record<string, Partial<SignalAccountConfig>> | undefined,
     accountId,
     nestedObjectKeys: ["aliases"],
   });

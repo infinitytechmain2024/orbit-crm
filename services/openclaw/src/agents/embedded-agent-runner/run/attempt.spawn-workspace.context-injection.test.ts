@@ -240,8 +240,7 @@ describe("embedded attempt context injection", () => {
     });
 
     const assembleInput = assemble.mock.calls.at(0)?.[0] as
-      | { messages?: AgentMessage[] }
-      | undefined;
+      { messages?: AgentMessage[] } | undefined;
     const projectedMessages = assembleInput?.messages?.map((message) => ({
       role: message.role,
       content: (message as { content?: unknown }).content,

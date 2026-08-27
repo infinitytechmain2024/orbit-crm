@@ -136,12 +136,7 @@ export const OPENCLAW_BROWSER_HEADLESS_ENV = "OPENCLAW_BROWSER_HEADLESS";
 
 /** Source that determined managed Chrome headless mode. */
 export type ManagedBrowserHeadlessSource =
-  | "request"
-  | "env"
-  | "profile"
-  | "config"
-  | "linux-display-fallback"
-  | "default";
+  "request" | "env" | "profile" | "config" | "linux-display-fallback" | "default";
 
 type ManagedBrowserHeadlessMode = {
   headless: boolean;

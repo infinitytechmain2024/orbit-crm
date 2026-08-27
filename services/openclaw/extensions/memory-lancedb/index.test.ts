@@ -130,8 +130,7 @@ function expectToolExecute(tool: unknown, name?: string) {
 
 function firstAddedMemory(add: ReturnType<typeof vi.fn>) {
   const batch = firstMockArg(add as MockCallSource, "memory add") as
-    | Array<Record<string, unknown>>
-    | undefined;
+    Array<Record<string, unknown>> | undefined;
   const memory = batch?.[0];
   if (!memory) {
     throw new Error("expected first added memory");
@@ -401,8 +400,7 @@ describe("memory plugin e2e", () => {
       "memory capability",
     );
     const publicArtifacts = capability.publicArtifacts as
-      | { listArtifacts?: (params: { cfg: unknown }) => Promise<unknown> }
-      | undefined;
+      { listArtifacts?: (params: { cfg: unknown }) => Promise<unknown> } | undefined;
     expect(publicArtifacts?.listArtifacts).toBeTypeOf("function");
 
     await expect(

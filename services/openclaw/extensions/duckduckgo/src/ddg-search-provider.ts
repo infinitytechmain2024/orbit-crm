@@ -46,10 +46,7 @@ export function createDuckDuckGoWebSearchProvider(): WebSearchProviderPlugin {
           }),
           region: readStringParam(args, "region"),
           safeSearch: readStringParam(args, "safeSearch") as
-            | "strict"
-            | "moderate"
-            | "off"
-            | undefined,
+            "strict" | "moderate" | "off" | undefined,
         });
       },
     }),

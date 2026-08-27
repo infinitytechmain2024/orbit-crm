@@ -4609,8 +4609,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const handler = commandSpy.mock.calls.find((call) => call[0] === "status")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!handler) {
       throw new Error("status command handler missing");
     }
@@ -4651,8 +4650,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const handler = commandSpy.mock.calls.find((call) => call[0] === "status")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!handler) {
       throw new Error("status command handler missing");
     }
@@ -4694,8 +4692,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const handler = commandSpy.mock.calls.find((call) => call[0] === "status")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!handler) {
       throw new Error("status command handler missing");
     }
@@ -4752,8 +4749,7 @@ describe("createTelegramBot", () => {
     readChannelAllowFromStore.mockResolvedValueOnce(["12345"]);
 
     const handler = commandSpy.mock.calls.find((call) => call[0] === "status")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!handler) {
       throw new Error("status command handler missing");
     }
@@ -4790,8 +4786,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const handler = commandSpy.mock.calls.find((call) => call[0] === "status")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!handler) {
       throw new Error("status command handler missing");
     }

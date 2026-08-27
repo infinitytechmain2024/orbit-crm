@@ -1,6 +1,6 @@
-import axios from 'axios';
-import { Tool, BaseTool } from './index';
-import { XMLParser } from 'fast-xml-parser';
+import axios from "axios";
+import { Tool, BaseTool } from "./index";
+import { XMLParser } from "fast-xml-parser";
 
 export interface ArxivPaper {
   id: string;
@@ -16,13 +16,10 @@ export class ArxivSearchTool extends BaseTool {
   private parser: XMLParser;
 
   constructor() {
-    super(
-      'arxiv-search',
-      'Search for academic papers on arXiv'
-    );
+    super("arxiv-search", "Search for academic papers on arXiv");
     this.parser = new XMLParser({
       ignoreAttributes: false,
-      attributeNamePrefix: '@_'
+      attributeNamePrefix: "@_",
     });
   }
 
@@ -32,9 +29,9 @@ export class ArxivSearchTool extends BaseTool {
         params: {
           search_query: encodeURIComponent(query),
           max_results: maxResults,
-          sortBy: 'lastUpdatedDate',
-          sortOrder: 'descending'
-        }
+          sortBy: "lastUpdatedDate",
+          sortOrder: "descending",
+        },
       });
 
       const parsed = this.parser.parse(response.data);
@@ -48,44 +45,41 @@ export class ArxivSearchTool extends BaseTool {
       const entriesArray = Array.isArray(entries) ? entries : [entries];
 
       return entriesArray.map((entry: any) => ({
-        id: entry.id.split('/abs/')[1],
-        title: entry.title.replace(/\s+/g, ' ').trim(),
-        authors: Array.isArray(entry.author) 
+        id: entry.id.split("/abs/")[1],
+        title: entry.title.replace(/\s+/g, " ").trim(),
+        authors: Array.isArray(entry.author)
           ? entry.author.map((a: any) => a.name)
           : [entry.author.name],
-        summary: entry.summary.replace(/\s+/g, ' ').trim(),
+        summary: entry.summary.replace(/\s+/g, " ").trim(),
         published: entry.published,
         updated: entry.updated,
-        link: entry.id
+        link: entry.id,
       }));
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to search arXiv: ${error.message}`);
       }
-      throw new Error('Failed to search arXiv: Unknown error');
+      throw new Error("Failed to search arXiv: Unknown error");
     }
   }
 }
 
 export class ArxivDownloadTool extends BaseTool {
   constructor() {
-    super(
-      'arxiv-download',
-      'Download PDF of an arXiv paper'
-    );
+    super("arxiv-download", "Download PDF of an arXiv paper");
   }
 
   async execute(paperId: string): Promise<Buffer> {
     try {
       const response = await axios.get(`https://arxiv.org/pdf/${paperId}.pdf`, {
-        responseType: 'arraybuffer'
+        responseType: "arraybuffer",
       });
       return Buffer.from(response.data);
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to download paper: ${error.message}`);
       }
-      throw new Error('Failed to download paper: Unknown error');
+      throw new Error("Failed to download paper: Unknown error");
     }
   }
 }

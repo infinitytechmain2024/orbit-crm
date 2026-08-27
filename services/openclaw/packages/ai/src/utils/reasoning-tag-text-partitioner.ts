@@ -7,8 +7,7 @@ import {
 import type { FenceScanState } from "@openclaw/markdown-core/fences";
 
 export type ReasoningTagTextDelta =
-  | { kind: "text"; text: string }
-  | { kind: "thinking"; text: string };
+  { kind: "text"; text: string } | { kind: "thinking"; text: string };
 
 const REASONING_TAG_RE =
   /<\s*(\/?)\s*(?:(?:antml:|mm:)?(?:think(?:ing)?|thought|reasoning)|antthinking)\b[^<>]*>/gi;
@@ -251,7 +250,7 @@ function reasoningTagPrefixSuffixIndex(
   text: string,
   isIndexInsideCode: (index: number) => boolean,
 ): number {
-  for (let index = text.lastIndexOf("<"); index >= 0; ) {
+  for (let index = text.lastIndexOf("<"); index >= 0;) {
     if (!isIndexInsideCode(index) && isReasoningTagPrefix(text.slice(index))) {
       return index;
     }

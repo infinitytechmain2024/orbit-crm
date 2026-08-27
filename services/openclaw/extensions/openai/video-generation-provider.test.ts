@@ -40,8 +40,7 @@ function postJsonRequest(index = 0): Record<string, unknown> {
 
 function postMultipartRequest(index = 0): Record<string, unknown> {
   const request = postMultipartRequestMock.mock.calls[index]?.[0] as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (!request) {
     throw new Error(`expected postMultipartRequest call ${index}`);
   }
@@ -50,8 +49,7 @@ function postMultipartRequest(index = 0): Record<string, unknown> {
 
 function fetchWithTimeoutCall(index: number): [string, RequestInit | undefined, number, unknown] {
   const call = fetchWithTimeoutMock.mock.calls[index] as
-    | [string, RequestInit | undefined, number, unknown]
-    | undefined;
+    [string, RequestInit | undefined, number, unknown] | undefined;
   if (!call) {
     throw new Error(`expected fetchWithTimeout call ${index}`);
   }
@@ -72,8 +70,7 @@ function fetchWithTimeoutGuardedCall(
 
 function pollProviderOperationRequest(index = 0): Record<string, unknown> {
   const request = pollProviderOperationJsonMock.mock.calls[index]?.[0] as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (!request) {
     throw new Error(`expected pollProviderOperationJson call ${index}`);
   }

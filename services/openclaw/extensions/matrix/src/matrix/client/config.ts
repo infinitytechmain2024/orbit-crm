@@ -217,12 +217,7 @@ function clean(
 }
 
 type MatrixConfigStringField =
-  | "homeserver"
-  | "userId"
-  | "accessToken"
-  | "password"
-  | "deviceId"
-  | "deviceName";
+  "homeserver" | "userId" | "accessToken" | "password" | "deviceId" | "deviceName";
 
 function resolveMatrixBaseConfigFieldPath(field: MatrixConfigStringField): string {
   return `channels.matrix.${field}`;

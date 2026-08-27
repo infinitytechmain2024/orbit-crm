@@ -141,8 +141,7 @@ export async function registerMattermostMonitorSlashCommands(params: {
   botUserId: string;
 }) {
   const commandsRaw = params.account.config.commands as
-    | Partial<MattermostSlashCommandConfig>
-    | undefined;
+    Partial<MattermostSlashCommandConfig> | undefined;
   const slashConfig = resolveSlashCommandConfig(commandsRaw);
   if (!isSlashCommandsEnabled(slashConfig)) {
     return;

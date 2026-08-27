@@ -10,13 +10,7 @@ import {
 import { normalizeStringEntries, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export type WhatsAppSendKind =
-  | "contact"
-  | "location"
-  | "media"
-  | "poll"
-  | "reaction"
-  | "sticker"
-  | "text";
+  "contact" | "location" | "media" | "poll" | "reaction" | "sticker" | "text";
 
 type WhatsAppSendKey = Omit<
   Pick<WAMessageKey, "fromMe" | "id" | "participant" | "remoteJid">,

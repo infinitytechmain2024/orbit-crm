@@ -55,15 +55,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/linux-arm64/-/linux-arm64-3.19.0.tgz",
       "integrity": "sha512-wWI2XhsOYWfxCV6A8LdDWF8m/UrM6OeE0pYing4j4YshcZIRhlBKhJK7/Dm5UvSzMyfsd/L1OpPrR0rDiVemZw==",
-      "cpu": [
-        "arm64",
-        "x64"
-      ],
+      "cpu": ["arm64", "x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -72,15 +67,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/linux-armv7l/-/linux-armv7l-3.19.0.tgz",
       "integrity": "sha512-MtupbpWjl2ccMssyAh6ZjJr9rE1P5moHNRAXparzjmKT2l69QyfVmr984503PPWXsAGhvVETqdDDpaFJOdNh4g==",
-      "cpu": [
-        "arm",
-        "x64"
-      ],
+      "cpu": ["arm", "x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -89,14 +79,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/linux-riscv64/-/linux-riscv64-3.19.0.tgz",
       "integrity": "sha512-XdNZJxpnLsjt1E+y+HZcjTUxRd5fBzUA9L1NqFkJOYizRjYbuK1z/pDr0wqcsndmkB7IHu6ay9XqfCnM5AeY8w==",
-      "cpu": [
-        "riscv64"
-      ],
+      "cpu": ["riscv64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -105,14 +91,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/linux-x64/-/linux-x64-3.19.0.tgz",
       "integrity": "sha512-cFnXjyRmFJ+lVq0QQFqflGDdF5UnMPzHLIQ4i2Xg5526QpWOw3IC0APiZluKvyqXCtU+g44ZH4YPQNUKqsZG6A==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -121,14 +103,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/linux-x64-cuda/-/linux-x64-cuda-3.19.0.tgz",
       "integrity": "sha512-lqx8CZcLxXimz3vOsFwRdyUs8VdceT0MMYMjmYvvTRRae8q047yM3mk0Ys6Hi6+31Lzw5MpQTFvO8RAxxJEnng==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -137,14 +115,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/linux-x64-cuda-ext/-/linux-x64-cuda-ext-3.19.0.tgz",
       "integrity": "sha512-CLewIjUH0ag/W3R3/lBV/2ABMoTewcDJOQ3SIIGYXuARu4AwMi62cVfBxUtDONW/rWb9EdMQIhCggdTdkI63iA==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -153,14 +127,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/linux-x64-vulkan/-/linux-x64-vulkan-3.19.0.tgz",
       "integrity": "sha512-dFtqAV8GTZN08LoDHk0BFh+y/zZDscb/QbIbKtoR/JJyLwLNFEOIuKfHl/ay8K3bYxg4QWHnQz8r5coEwIBECQ==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -169,15 +139,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/mac-arm64-metal/-/mac-arm64-metal-3.19.0.tgz",
       "integrity": "sha512-mBIM9ZOMBiexxvE5I9Py5rhdtaPZVbtWec0oA5UefBmhcmcQdAp+fcy3R9zNUlEn8BbBDU4TPNc7Nr8UkSyqzw==",
-      "cpu": [
-        "arm64",
-        "x64"
-      ],
+      "cpu": ["arm64", "x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -186,14 +151,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/mac-x64/-/mac-x64-3.19.0.tgz",
       "integrity": "sha512-Z/+kSll5Fc5eyt9WawC5Zq5CP2/f0W6VJ7mfoDQSgwbZym4Vc3K9Hrlswf4j6NBcqbA0dylVkkirfCvIi6MFzQ==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -202,15 +163,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/win-arm64/-/win-arm64-3.19.0.tgz",
       "integrity": "sha512-MReCDQcBQ649xluUMyeaUwrEXlb4Ffaxu8JQBpX0FzCUpVW/LVXRoa9ZJuAtshij0OE/6aR0peyF1VoOH6Qd4w==",
-      "cpu": [
-        "arm64",
-        "x64"
-      ],
+      "cpu": ["arm64", "x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -219,14 +175,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/win-x64/-/win-x64-3.19.0.tgz",
       "integrity": "sha512-z5zsRXW2tlR4e93aiVxon15t4h9xKFjlbKnKBN1NNX8YxaUgqp8rflfBYi1SO9Nk6JlKBLnftNYaI53Vy0u7HQ==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -235,14 +187,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/win-x64-cuda/-/win-x64-cuda-3.19.0.tgz",
       "integrity": "sha512-Y/mnB8suxOzMnvD3w0TCkQSdSUIIvJ7DYFrvj4P4uXMsKE46NMtgoAVT7k9sIIvE5V1UfwbAcCqhbvfAR/frug==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -251,14 +199,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/win-x64-cuda-ext/-/win-x64-cuda-ext-3.19.0.tgz",
       "integrity": "sha512-WQ46P50bYWpRsksPR+ilrCkJ8qqk2nHnjrMGQp5o2JUhP/KR3ChorefKrEsjwG5v9AViq9hBxqaOc88WvZL3bg==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -267,14 +211,10 @@
       "version": "3.19.0",
       "resolved": "https://registry.npmjs.org/@node-llama-cpp/win-x64-vulkan/-/win-x64-vulkan-3.19.0.tgz",
       "integrity": "sha512-1zL5XjxohAh47qRPnrhEgdRRvALuC+ukMyPyu88po6BHL8yWhmnR6aSzrgxfvgzvTZycGpAm+hajinIPKD2yNg==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "engines": {
         "node": ">=20.0.0"
       }
@@ -303,14 +243,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-darwin-arm64/-/reflink-darwin-arm64-0.1.19.tgz",
       "integrity": "sha512-ruy44Lpepdk1FqDz38vExBY/PVUsjxZA+chd9wozjUH9JjuDT/HEaQYA6wYN9mf041l0yLVar6BCZuWABJvHSA==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": ">= 10"
       }
@@ -319,14 +255,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-darwin-x64/-/reflink-darwin-x64-0.1.19.tgz",
       "integrity": "sha512-By85MSWrMZa+c26TcnAy8SDk0sTUkYlNnwknSchkhHpGXOtjNDUOxJE9oByBnGbeuIE1PiQsxDG3Ud+IVV9yuA==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": ">= 10"
       }
@@ -335,14 +267,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-linux-arm64-gnu/-/reflink-linux-arm64-gnu-0.1.19.tgz",
       "integrity": "sha512-7P+er8+rP9iNeN+bfmccM4hTAaLP6PQJPKWSA4iSk2bNvo6KU6RyPgYeHxXmzNKzPVRcypZQTpFgstHam6maVg==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">= 10"
       }
@@ -351,14 +279,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-linux-arm64-musl/-/reflink-linux-arm64-musl-0.1.19.tgz",
       "integrity": "sha512-37iO/Dp6m5DDaC2sf3zPtx/hl9FV3Xze4xoYidrxxS9bgP3S8ALroxRK6xBG/1TtfXKTvolvp+IjrUU6ujIGmA==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">= 10"
       }
@@ -367,14 +291,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-linux-x64-gnu/-/reflink-linux-x64-gnu-0.1.19.tgz",
       "integrity": "sha512-jbI8jvuYCaA3MVUdu8vLoLAFqC+iNMpiSuLbxlAgg7x3K5bsS8nOpTRnkLF7vISJ+rVR8W+7ThXlXlUQ93ulkw==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">= 10"
       }
@@ -383,14 +303,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-linux-x64-musl/-/reflink-linux-x64-musl-0.1.19.tgz",
       "integrity": "sha512-e9FBWDe+lv7QKAwtKOt6A2W/fyy/aEEfr0g6j/hWzvQcrzHCsz07BNQYlNOjTfeytrtLU7k449H1PI95jA4OjQ==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "engines": {
         "node": ">= 10"
       }
@@ -399,14 +315,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-win32-arm64-msvc/-/reflink-win32-arm64-msvc-0.1.19.tgz",
       "integrity": "sha512-09PxnVIQcd+UOn4WAW73WU6PXL7DwGS6wPlkMhMg2zlHHG65F3vHepOw06HFCq+N42qkaNAc8AKIabWvtk6cIQ==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "engines": {
         "node": ">= 10"
       }
@@ -415,14 +327,10 @@
       "version": "0.1.19",
       "resolved": "https://registry.npmjs.org/@reflink/reflink-win32-x64-msvc/-/reflink-win32-x64-msvc-0.1.19.tgz",
       "integrity": "sha512-E//yT4ni2SyhwP8JRjVGWr3cbnhWDiPLgnQ66qqaanjjnMiu3O/2tjCPQXlcGc/DEYofpDc9fvhv6tALQsMV9w==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "win32"
-      ],
+      "os": ["win32"],
       "engines": {
         "node": ">= 10"
       }

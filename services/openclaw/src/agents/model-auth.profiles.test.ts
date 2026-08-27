@@ -689,8 +689,7 @@ describe("getApiKeyForModel", () => {
     );
 
     const options = cliCredentialMocks.readClaudeCliCredentialsCached.mock.calls.at(0)?.[0] as
-      | { allowKeychainPrompt?: boolean }
-      | undefined;
+      { allowKeychainPrompt?: boolean } | undefined;
     expect(options?.allowKeychainPrompt).toBe(false);
   });
 

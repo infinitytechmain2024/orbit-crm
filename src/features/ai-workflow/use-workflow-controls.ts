@@ -35,13 +35,16 @@ export function useWorkflowControls(
       setError(null);
 
       try {
-        const response = await authenticatedFetch(`/api/backend/api/ai-workflow/tasks/${taskId}/${action}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await authenticatedFetch(
+          `/api/backend/api/ai-workflow/tasks/${taskId}/${action}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ organization_id: organizationId }),
           },
-          body: JSON.stringify({ organization_id: organizationId }),
-        });
+        );
 
         if (!response.ok) {
           throw new Error(`Ошибка: ${response.statusText}`);

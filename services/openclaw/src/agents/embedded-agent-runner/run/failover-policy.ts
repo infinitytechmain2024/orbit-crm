@@ -73,9 +73,7 @@ type AssistantDecisionParams = {
 };
 
 type RunFailoverDecisionParams =
-  | RetryLimitDecisionParams
-  | PromptDecisionParams
-  | AssistantDecisionParams;
+  RetryLimitDecisionParams | PromptDecisionParams | AssistantDecisionParams;
 
 function shouldEscalateRetryLimit(reason: FailoverReason | null): boolean {
   return Boolean(

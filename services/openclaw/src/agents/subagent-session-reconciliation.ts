@@ -25,9 +25,7 @@ import { isStaleUnendedSubagentRun } from "./subagent-run-liveness.js";
 
 export type SubagentSessionStoreCache = Map<string, Record<string, SessionEntry>>;
 export type SubagentRunOrphanReason =
-  | "missing-session-entry"
-  | "missing-session-id"
-  | "stale-unended-run";
+  "missing-session-entry" | "missing-session-id" | "stale-unended-run";
 
 /** Completion inferred from the child session store. */
 export type SubagentSessionCompletion = {

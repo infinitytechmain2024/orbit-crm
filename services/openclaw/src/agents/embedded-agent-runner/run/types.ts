@@ -176,10 +176,7 @@ export type EmbeddedRunAttemptResult = {
     turnId?: string;
     replaySafe: boolean;
     replayBlockedReason?:
-      | "assistant_output"
-      | "tool_activity"
-      | "potential_side_effect"
-      | "active_item";
+      "assistant_output" | "tool_activity" | "potential_side_effect" | "active_item";
     diagnostics?: {
       idleMs?: number;
       timeoutMs?: number;

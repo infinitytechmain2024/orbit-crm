@@ -42,10 +42,7 @@ export function writeRefIndex(params: {
         att.transcript = processed.voiceTranscripts[voiceIdx];
         if (voiceIdx < processed.voiceTranscriptSources.length) {
           att.transcriptSource = processed.voiceTranscriptSources[voiceIdx] as
-            | "stt"
-            | "asr"
-            | "tts"
-            | "fallback";
+            "stt" | "asr" | "tts" | "fallback";
         }
         voiceIdx++;
       }

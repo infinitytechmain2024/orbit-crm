@@ -5,6 +5,7 @@ Welcome to the PraisonAI Tools directory! This guide will help you understand ho
 ## What is a Tool?
 
 A tool is a piece of code that helps our AI agents perform specific tasks. Think of tools as special abilities that we give to our agents. For example:
+
 - An internet search tool lets agents search the web
 - A stock market tool lets agents check stock prices
 - A weather tool lets agents check the weather
@@ -16,12 +17,14 @@ A tool is a piece of code that helps our AI agents perform specific tasks. Think
 Best for simple tools that do one specific thing. Like a calculator that just adds numbers.
 
 **When to use:**
+
 - Tool does one simple task
 - Doesn't need to remember information between uses
 - Doesn't need to share information with other tools
 - Quick, one-time operations
 
 **Example:**
+
 ```python
 def internet_search(query: str):
     # Search the internet and return results
@@ -29,6 +32,7 @@ def internet_search(query: str):
 ```
 
 **Usage:**
+
 ```python
 from praisonaiagents.tools import internet_search
 
@@ -40,24 +44,27 @@ results = internet_search("AI news")
 Best for tools that do multiple related things or need to remember information. Like a smart calculator that remembers your previous calculations and can do many different math operations.
 
 **When to use:**
+
 - Tool has multiple related functions
 - Needs to remember or share information
 - Needs to manage resources efficiently
 - Has complex setup requirements
 
 **Example:**
+
 ```python
 class StockTools:
     def get_stock_price(self, symbol):
         # Get current stock price
         return price
-        
+
     def get_stock_info(self, symbol):
         # Get detailed stock information
         return info
 ```
 
 **Usage:**
+
 ```python
 from praisonaiagents.tools import get_stock_price, get_stock_info
 
@@ -88,18 +95,21 @@ Ask yourself these questions:
 ## Real-World Examples
 
 ### Internet Search Tool (Function-Based)
+
 - Does one thing: searches the internet
 - Doesn't need to remember previous searches
 - Each search is independent
 - Simple input/output operation
 
 ### SearxNG Search Tool (Function-Based)
+
 - Privacy-focused web search using local SearxNG instance
 - Simple search operation with customizable parameters
 - Each search is independent and secure
 - Alternative to traditional search engines for privacy
 
 ### Stock Market Tool (Class-Based)
+
 - Does multiple things: check prices, get company info, get historical data
 - Remembers stock information to avoid repeated downloads
 - Operations are related (all about stocks)

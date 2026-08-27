@@ -206,8 +206,7 @@ function isMissingMatrixCryptoRuntimeError(error: unknown): boolean {
 function isMuslRuntime(): boolean {
   try {
     const report = process.report?.getReport?.() as
-      | { header?: { glibcVersionRuntime?: string } }
-      | undefined;
+      { header?: { glibcVersionRuntime?: string } } | undefined;
     return !report?.header?.glibcVersionRuntime;
   } catch {
     return true;

@@ -729,11 +729,9 @@ describe("normalizeToolParameterSchema", () => {
     };
 
     const parentId = cleaned.properties?.parentId as
-      | { type?: unknown; anyOf?: unknown; oneOf?: unknown }
-      | undefined;
+      { type?: unknown; anyOf?: unknown; oneOf?: unknown } | undefined;
     const count = cleaned.properties?.count as
-      | { type?: unknown; anyOf?: unknown; oneOf?: unknown }
-      | undefined;
+      { type?: unknown; anyOf?: unknown; oneOf?: unknown } | undefined;
 
     expect(parentId?.type).toBe("string");
     expect(parentId?.anyOf).toBeUndefined();

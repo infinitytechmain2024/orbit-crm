@@ -519,8 +519,7 @@ async function resolveUploadInput(
   // Enforce mutual exclusivity: exactly one input source must be provided.
   const inputSources = (
     [url ? "url" : null, filePath ? "file_path" : null, imageInput ? "image" : null] as (
-      | string
-      | null
+      string | null
     )[]
   ).filter(Boolean);
   if (inputSources.length > 1) {

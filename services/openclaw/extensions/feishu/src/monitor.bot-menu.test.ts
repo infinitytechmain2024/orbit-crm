@@ -144,8 +144,7 @@ describe("Feishu bot menu handler", () => {
 
     expect(handleFeishuMessageMock).toHaveBeenCalledTimes(1);
     const handleArgs = firstMockArg(handleFeishuMessageMock, "Feishu synthetic message") as
-      | { event?: { message?: { content?: string } } }
-      | undefined;
+      { event?: { message?: { content?: string } } } | undefined;
     expect(handleArgs?.event?.message?.content).toBe('{"text":"/menu custom-key"}');
     expect(sendCardFeishuMock).not.toHaveBeenCalled();
   });
@@ -160,8 +159,7 @@ describe("Feishu bot menu handler", () => {
       expect(handleFeishuMessageMock).toHaveBeenCalledTimes(1);
     });
     const handleArgs = firstMockArg(handleFeishuMessageMock, "Feishu fallback message") as
-      | { event?: { message?: { content?: string } } }
-      | undefined;
+      { event?: { message?: { content?: string } } } | undefined;
     expect(handleArgs?.event?.message?.content).toBe('{"text":"/menu quick-actions"}');
     expectFirstSentCardUsesFillWidthOnly(sendCardFeishuMock);
   });

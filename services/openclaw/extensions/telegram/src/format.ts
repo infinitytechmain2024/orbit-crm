@@ -947,8 +947,7 @@ type TelegramRawRichHtmlTableCell = MarkdownTableCell & {
 
 function parseTelegramHtmlAlign(attrs: string): TelegramTableAlignment | undefined {
   return TELEGRAM_HTML_ALIGN_PATTERN.exec(attrs)?.slice(1).find(Boolean) as
-    | TelegramTableAlignment
-    | undefined;
+    TelegramTableAlignment | undefined;
 }
 
 function parseTelegramRichHtmlTableAligns(

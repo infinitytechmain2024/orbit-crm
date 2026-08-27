@@ -56,8 +56,7 @@ describe("nextcloud-talk doctor", () => {
     expect(
       (
         result.config.channels?.["nextcloud-talk"]?.accounts?.work as
-          | { network?: Record<string, unknown> }
-          | undefined
+          { network?: Record<string, unknown> } | undefined
       )?.network,
     ).toEqual({
       dangerouslyAllowPrivateNetwork: false,

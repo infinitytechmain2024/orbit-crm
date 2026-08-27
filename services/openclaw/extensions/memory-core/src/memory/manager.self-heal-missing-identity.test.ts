@@ -48,8 +48,7 @@ describe("memory manager self-heal missing identity with FTS-only chunks", () =>
 
   function indexIdentityStatus(memoryManager: MemoryIndexManager): string | undefined {
     const identity = memoryManager.status().custom?.indexIdentity as
-      | { status?: string }
-      | undefined;
+      { status?: string } | undefined;
     return identity?.status;
   }
 

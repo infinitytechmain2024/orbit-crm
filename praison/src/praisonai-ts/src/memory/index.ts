@@ -30,8 +30,8 @@ export class BaseMemoryStore implements MemoryStore {
   }
 
   search(query: string): Memory[] {
-    return Array.from(this.memories.values()).filter(m =>
-      JSON.stringify(m).toLowerCase().includes(query.toLowerCase())
+    return Array.from(this.memories.values()).filter((m) =>
+      JSON.stringify(m).toLowerCase().includes(query.toLowerCase()),
     );
   }
 

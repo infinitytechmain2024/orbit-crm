@@ -70,8 +70,7 @@ function mergeMattermostAccountConfig(
   return resolveMergedAccountConfig<MattermostAccountConfig>({
     channelConfig: cfg.channels?.mattermost as MattermostAccountConfig | undefined,
     accounts: cfg.channels?.mattermost?.accounts as
-      | Record<string, Partial<MattermostAccountConfig>>
-      | undefined,
+      Record<string, Partial<MattermostAccountConfig>> | undefined,
     accountId,
     omitKeys: ["defaultAccount"],
     nestedObjectKeys: ["commands"],

@@ -104,13 +104,7 @@ export type MatrixQaScenarioDefinition = LiveTransportScenarioDefinition<MatrixQ
 };
 
 type MatrixQaProfile =
-  | "all"
-  | "e2ee-cli"
-  | "e2ee-deep"
-  | "e2ee-smoke"
-  | "fast"
-  | "media"
-  | "transport";
+  "all" | "e2ee-cli" | "e2ee-deep" | "e2ee-smoke" | "fast" | "media" | "transport";
 
 export const MATRIX_QA_BLOCK_ROOM_KEY = "block";
 export const MATRIX_QA_BOT_DM_ROOM_KEY = "bot-dm";

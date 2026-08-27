@@ -238,8 +238,7 @@ describe("spawnSubagentDirect thread binding delivery", () => {
     expect(result.status).toBe("accepted");
     expect(bindCalls).toHaveLength(1);
     const bindingConversation = bindCalls[0]?.conversation as
-      | { channel?: string; accountId?: string; conversationId?: string }
-      | undefined;
+      { channel?: string; accountId?: string; conversationId?: string } | undefined;
     expect(bindingConversation?.channel).toBe("matrix");
     expect(bindingConversation?.accountId).toBe("bot-alpha");
     expect(bindingConversation?.conversationId).toBe(boundRoom);

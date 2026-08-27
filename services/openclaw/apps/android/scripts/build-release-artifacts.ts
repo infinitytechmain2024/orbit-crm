@@ -18,7 +18,10 @@ import {
 } from "node:fs";
 import { basename, delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveAndroidVersion, syncAndroidVersioning } from "../../../scripts/lib/android-version.ts";
+import {
+  resolveAndroidVersion,
+  syncAndroidVersioning,
+} from "../../../scripts/lib/android-version.ts";
 
 type ReleaseArtifact = {
   flavorName: "play" | "third-party";
@@ -266,10 +269,14 @@ function main() {
   }
 
   mkdirSync(releaseOutputDir, { recursive: true });
-  execFileSync("./gradlew", artifacts.map((artifact) => artifact.gradleTask), {
-    cwd: androidDir,
-    stdio: "inherit",
-  });
+  execFileSync(
+    "./gradlew",
+    artifacts.map((artifact) => artifact.gradleTask),
+    {
+      cwd: androidDir,
+      stdio: "inherit",
+    },
+  );
 
   for (const artifact of artifacts) {
     const outputPath = join(

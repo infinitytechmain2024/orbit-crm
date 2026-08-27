@@ -249,8 +249,7 @@ describe("discord native /status", () => {
     );
     expect(interaction.followUp.mock.calls.length).toBeGreaterThan(1);
     const firstPayload = firstMockArg(interaction.followUp, "interaction.followUp") as
-      | { ephemeral?: boolean; files?: Array<{ name?: string; data?: unknown }> }
-      | undefined;
+      { ephemeral?: boolean; files?: Array<{ name?: string; data?: unknown }> } | undefined;
     expect(firstPayload?.ephemeral).toBe(true);
     expect(firstPayload?.files?.map((file) => file.name)).toEqual(["status.png"]);
     for (const [payload] of interaction.followUp.mock.calls) {

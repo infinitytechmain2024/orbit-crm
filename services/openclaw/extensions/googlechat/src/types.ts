@@ -121,9 +121,7 @@ type GoogleChatButtonWidget = {
 type GoogleChatDividerWidget = { divider: Record<string, never> };
 
 type GoogleChatWidget =
-  | GoogleChatTextParagraphWidget
-  | GoogleChatButtonWidget
-  | GoogleChatDividerWidget;
+  GoogleChatTextParagraphWidget | GoogleChatButtonWidget | GoogleChatDividerWidget;
 
 export type GoogleChatCardV2 = {
   cardId?: string;

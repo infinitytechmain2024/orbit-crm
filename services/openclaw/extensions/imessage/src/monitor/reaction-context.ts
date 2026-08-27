@@ -67,10 +67,7 @@ function resolveTapbackTextContext(bodyText: string): IMessageReactionContext | 
     return {
       action: pattern.action,
       emoji: pattern.emoji,
-      targetText: afterPrefix
-        .replace(/^["“]/u, "")
-        .replace(/["”]$/u, "")
-        .trim(),
+      targetText: afterPrefix.replace(/^["“]/u, "").replace(/["”]$/u, "").trim(),
     };
   }
   return null;

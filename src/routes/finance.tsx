@@ -14,10 +14,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Plus, CreditCard } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
+import { StripePaymentForm } from "@/components/crm/StripePaymentForm";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({
@@ -37,17 +38,43 @@ export const Route = createFileRoute("/finance")({
 const COLORS = ["var(--acc-1)", "var(--acc-2)", "var(--acc-3)", "var(--acc-4)"];
 
 function FinancePage() {
-  const { txs, isLoading } = useCrm();
+  const { txs, stripeTransactions, stripeSubscriptions, isLoading } = useCrm();
   const [view, setView] = useState<"area" | "bar">("area");
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
-  const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const allTransactions = useMemo(() => {
+    const manual = txs.map((t) => ({
+      ...t,
+      source: "manual" as const,
+      stripeId: null,
+    }));
+
+    const stripe = stripeTransactions.map((t) => ({
+      id: t.id,
+      label: t.description || t.stripePaymentIntentId,
+      amount: t.amount,
+      type: t.status === "succeeded" ? ("income" as const) : ("expense" as const),
+      category: "Stripe",
+      date: t.date,
+      dateIso: t.dateIso,
+      taskId: null,
+      source: "stripe" as const,
+      stripeId: t.stripePaymentIntentId,
+    }));
+
+    return [...manual, ...stripe].sort(
+      (a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime()
+    );
+  }, [txs, stripeTransactions]);
+
+  const income = allTransactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const expense = allTransactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
   const monthly = useMemo(() => {
     const formatter = new Intl.DateTimeFormat("ru-RU", { month: "short" });
     const map = new Map<string, { m: string; income: number; expense: number }>();
 
-    txs.forEach((tx) => {
+    allTransactions.forEach((tx) => {
       const date = new Date(`${tx.dateIso}T00:00:00`);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const current = map.get(key) ?? { m: formatter.format(date), income: 0, expense: 0 };
@@ -59,18 +86,38 @@ function FinancePage() {
       .sort(([left], [right]) => left.localeCompare(right))
       .slice(-6)
       .map(([, value]) => value);
-  }, [txs]);
+  }, [allTransactions]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
-    txs
+    allTransactions
       .filter((t) => t.type === "expense")
       .forEach((t) => map.set(t.category, (map.get(t.category) ?? 0) + t.amount));
     return [...map].map(([name, value]) => ({ name, value }));
-  }, [txs]);
+  }, [allTransactions]);
+
+  const stripeIncome = stripeTransactions
+    .filter((t) => t.status === "succeeded")
+    .reduce((s, t) => s + t.amount, 0);
+
+  const activeSubscriptions = stripeSubscriptions.filter(
+    (s) => s.status === "active" || s.status === "trialing"
+  );
+
+  const mrr = activeSubscriptions
+    .filter((s) => s.interval === "month")
+    .reduce((s, sub) => s + sub.amount, 0);
+  const arr = activeSubscriptions
+    .filter((s) => s.interval === "year")
+    .reduce((s, sub) => s + sub.amount / 12, 0);
+  const totalMRR = mrr + arr;
+
+  const handlePaymentSuccess = (paymentIntentId: string) => {
+    setShowPaymentForm(false);
+  };
 
   return (
-    <AppShell title="Финансы" subtitle="Доходы, расходы и структура по данным Supabase">
+    <AppShell title="Финансы" subtitle="Доходы, расходы и структура по данным Supabase + Stripe">
       {isLoading && (
         <div className="panel mb-6 p-6 text-sm text-muted-foreground">
           Загружаю финансовые операции из Supabase…
@@ -82,6 +129,44 @@ function FinancePage() {
         <Kpi label="Расход" value={expense} tone="down" />
         <Kpi label="Чистыми" value={income - expense} tone="up" />
       </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Stripe метрики</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowPaymentForm(true)}
+        >
+          <Plus className="size-4 mr-2" />
+          Принять платеж
+        </Button>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <Kpi label="Stripe доходы" value={stripeIncome} tone="up" />
+        <Kpi label="MRR (ежемесячно)" value={totalMRR} tone="up" />
+        <Kpi label="Активные подписки" value={activeSubscriptions.length} tone="up" />
+      </div>
+
+      {showPaymentForm && (
+        <div className="mt-4 panel p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold">Принять платеж через Stripe</h3>
+            <button
+              onClick={() => setShowPaymentForm(false)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ×
+            </button>
+          </div>
+          <StripePaymentForm
+            amount={100}
+            currency="EUR"
+            description="Тестовый платеж"
+            onSuccess={handlePaymentSuccess}
+          />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.7fr_1fr]">
         <section className="panel p-6">
@@ -226,6 +311,12 @@ function FinancePage() {
       </div>
 
       <section className="panel mt-6 overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold">История операций</h3>
+          <span className="text-xs text-muted-foreground">
+            {allTransactions.length} операций
+          </span>
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-surface-2/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -236,9 +327,16 @@ function FinancePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {txs.map((t) => (
+            {allTransactions.map((t) => (
               <tr key={t.id} className="transition hover:bg-surface-2/50">
-                <td className="px-4 py-3">{t.label}</td>
+                <td className="px-4 py-3">
+                  {t.label}
+                  {t.source === "stripe" && (
+                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      Stripe
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">{t.category}</td>
                 <td className="px-4 py-3 text-muted-foreground">{t.date}</td>
                 <td
@@ -252,7 +350,7 @@ function FinancePage() {
                 </td>
               </tr>
             ))}
-            {!txs.length && (
+            {!allTransactions.length && (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Операций пока нет.

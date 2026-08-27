@@ -368,8 +368,7 @@ export interface WebhookHandlerDeps {
  * 7. Delivers to the agent asynchronously and sends final reply via incomingUrl
  */
 type SynologyWebhookAuthorization =
-  | { ok: false; statusCode: number; error: string }
-  | { ok: true; commandAuthorized: boolean };
+  { ok: false; statusCode: number; error: string } | { ok: true; commandAuthorized: boolean };
 
 type AuthorizedSynologyWebhook = {
   payload: SynologyWebhookPayload;

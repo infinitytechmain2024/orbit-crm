@@ -44,11 +44,7 @@ type GatewayPluginOptions = {
   url?: string;
 };
 type GatewayReconnectReason =
-  | "close"
-  | "identify"
-  | "invalid-session"
-  | "reconnect-opcode"
-  | "zombie";
+  "close" | "identify" | "invalid-session" | "reconnect-opcode" | "zombie";
 type GatewayReconnectOptions = {
   reason: GatewayReconnectReason;
   preferResume: boolean;

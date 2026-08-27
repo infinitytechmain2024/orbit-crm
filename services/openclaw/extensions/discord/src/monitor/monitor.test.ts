@@ -345,8 +345,7 @@ describe("discord component interactions", () => {
     expect(lastDispatchCtx?.BodyForAgent).toBe('Clicked "Approve".');
     expect(dispatchReplyMock).toHaveBeenCalledTimes(1);
     const dispatchParams = firstMockArg(dispatchReplyMock, "dispatchReplyMock") as
-      | DispatchParams
-      | undefined;
+      DispatchParams | undefined;
     expect(typeof dispatchParams?.dispatcherOptions.responsePrefixContextProvider).toBe("function");
     expect(typeof dispatchParams?.replyOptions?.onModelSelected).toBe("function");
     expect(resolveDiscordComponentEntry({ id: "btn_1" })).toBeNull();

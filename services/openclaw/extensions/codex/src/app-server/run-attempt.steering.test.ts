@@ -284,8 +284,7 @@ describe("runCodexAppServerAttempt steering", () => {
   it("routes request_user_input prompts through the active run follow-up queue", async () => {
     let notify: (notification: CodexServerNotification) => Promise<void> = async () => undefined;
     let handleRequest:
-      | ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>)
-      | undefined;
+      ((request: { id: string; method: string; params?: unknown }) => Promise<unknown>) | undefined;
     const request = vi.fn(async (method: string) => {
       if (method === "thread/start") {
         return threadStartResult();

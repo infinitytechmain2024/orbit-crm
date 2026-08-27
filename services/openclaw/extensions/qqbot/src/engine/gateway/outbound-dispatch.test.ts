@@ -956,8 +956,7 @@ describe("dispatchOutbound", () => {
     });
     expect(audioFileToSilkBase64Mock).toHaveBeenCalledWith("/tmp/openclaw-qqbot/tts.wav");
     const sentMedia = sendMediaMock.mock.calls.at(0)?.[0] as
-      | { kind?: string; source?: unknown; msgId?: string; ttsText?: string }
-      | undefined;
+      { kind?: string; source?: unknown; msgId?: string; ttsText?: string } | undefined;
     expect(sentMedia?.kind).toBe("voice");
     expect(sentMedia?.source).toEqual({ base64: "silk-base64" });
     expect(sentMedia?.msgId).toBe("msg-1");

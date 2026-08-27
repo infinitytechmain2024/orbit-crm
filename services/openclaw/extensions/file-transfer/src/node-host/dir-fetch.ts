@@ -34,12 +34,7 @@ type DirFetchOk = {
 };
 
 type DirFetchErrCode =
-  | "INVALID_PATH"
-  | "NOT_FOUND"
-  | "IS_FILE"
-  | "TREE_TOO_LARGE"
-  | "SYMLINK_REDIRECT"
-  | "READ_ERROR";
+  "INVALID_PATH" | "NOT_FOUND" | "IS_FILE" | "TREE_TOO_LARGE" | "SYMLINK_REDIRECT" | "READ_ERROR";
 
 type DirFetchErr = {
   ok: false;

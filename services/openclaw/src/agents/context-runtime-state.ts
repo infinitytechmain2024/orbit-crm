@@ -31,8 +31,7 @@ export const CONTEXT_WINDOW_RUNTIME_STATE = (() => {
     [CONTEXT_WINDOW_RUNTIME_STATE_KEY]?: ContextWindowRuntimeState;
   };
   let state = globalState[CONTEXT_WINDOW_RUNTIME_STATE_KEY] as
-    | Partial<ContextWindowRuntimeState>
-    | undefined;
+    Partial<ContextWindowRuntimeState> | undefined;
   if (!state) {
     // Discovery is lifecycle-owned here; callers reuse the same pending load
     // promise and backoff counters instead of racing config discovery.

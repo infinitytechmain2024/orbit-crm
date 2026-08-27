@@ -116,10 +116,7 @@ type BoundaryReportSummary = {
     sourceBridgeFileCount: number;
     packageCoreReferenceFileCount: number;
     implementation:
-      | "private-core-bridge"
-      | "private-package-core-integrated"
-      | "package-owned"
-      | "mixed";
+      "private-core-bridge" | "private-package-core-integrated" | "package-owned" | "mixed";
   };
 };
 

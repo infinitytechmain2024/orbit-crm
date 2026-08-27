@@ -2,10 +2,7 @@
 import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export type FeishuGroupSessionScope =
-  | "group"
-  | "group_sender"
-  | "group_topic"
-  | "group_topic_sender";
+  "group" | "group_sender" | "group_topic" | "group_topic_sender";
 
 export function resolveConfiguredFeishuGroupSessionScope(params: {
   groupConfig?: {

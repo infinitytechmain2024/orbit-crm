@@ -67,11 +67,9 @@ describe("browser action observe commands", () => {
     );
 
     const request = mocks.callBrowserRequest.mock.calls.at(-1)?.[1] as
-      | { body?: { timeoutMs?: number; maxChars?: number } }
-      | undefined;
+      { body?: { timeoutMs?: number; maxChars?: number } } | undefined;
     const options = mocks.callBrowserRequest.mock.calls.at(-1)?.[2] as
-      | { timeoutMs?: number }
-      | undefined;
+      { timeoutMs?: number } | undefined;
     expect(request?.body?.timeoutMs).toBe(30000);
     expect(request?.body?.maxChars).toBe(100);
     expect(options?.timeoutMs).toBe(30000);

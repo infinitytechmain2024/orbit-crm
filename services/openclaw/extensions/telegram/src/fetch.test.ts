@@ -333,8 +333,7 @@ function expectPinnedFallbackIpDispatcher(callIndex: number) {
 function expectCallerDispatcherPreserved(callIndexes: number[], dispatcher: unknown) {
   for (const callIndex of callIndexes) {
     const callInit = undiciFetch.mock.calls[callIndex - 1]?.[1] as
-      | (RequestInit & { dispatcher?: unknown })
-      | undefined;
+      (RequestInit & { dispatcher?: unknown }) | undefined;
     expect(callInit?.dispatcher).toBe(dispatcher);
   }
 }
@@ -542,8 +541,7 @@ describe("resolveTelegramFetch", () => {
     expect(EnvHttpProxyAgentCtor).not.toHaveBeenCalled();
     expect(AgentCtor).not.toHaveBeenCalled();
     const dispatcherPolicy = transport.dispatcherAttempts?.[0]?.dispatcherPolicy as
-      | ExplicitProxyTelegramDispatcherPolicy
-      | undefined;
+      ExplicitProxyTelegramDispatcherPolicy | undefined;
     expect(dispatcherPolicy?.mode).toBe("explicit-proxy");
     expect(dispatcherPolicy?.proxyUrl).toBe("http://127.0.0.1:7788");
   });

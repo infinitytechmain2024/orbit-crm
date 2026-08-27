@@ -95,8 +95,8 @@ function selectQaFlowSuiteScenarios(params: {
     if (missingScenarioIds.length > 0) {
       throw new Error(`unknown QA scenario id(s): ${missingScenarioIds.join(", ")}`);
     }
-    const selectedScenarios = [...requestedScenarioIds].map(
-      (scenarioId) => scenarioById.get(scenarioId)!,
+    const selectedScenarios = [...requestedScenarioIds].map((scenarioId) =>
+      scenarioById.get(scenarioId)!,
     );
     const nonFlowScenarios = selectedScenarios.filter(
       (scenario) => scenario.execution.kind !== "flow",

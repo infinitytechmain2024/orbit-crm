@@ -39,8 +39,7 @@ describe("mattermost doctor", () => {
       dangerouslyAllowPrivateNetwork: true,
     });
     const workAccount = mattermostConfig.accounts?.work as
-      | { network?: Record<string, unknown> }
-      | undefined;
+      { network?: Record<string, unknown> } | undefined;
     if (!workAccount) {
       throw new Error("expected Mattermost work account config");
     }

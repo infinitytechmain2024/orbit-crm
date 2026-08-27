@@ -9,7 +9,7 @@ function usage(message) {
     console.error(message);
   }
   console.error(
-    "\nUsage: sherpa-onnx-tts [--runtime-dir <dir>] [--model-dir <dir>] [--model-file <file>] [--tokens-file <file>] [--data-dir <dir>] [--output <file>] \"text\"",
+    '\nUsage: sherpa-onnx-tts [--runtime-dir <dir>] [--model-dir <dir>] [--model-file <file>] [--tokens-file <file>] [--data-dir <dir>] [--output <file>] "text"',
   );
   console.error("\nRequired env (or flags):\n  SHERPA_ONNX_RUNTIME_DIR\n  SHERPA_ONNX_MODEL_DIR");
   process.exit(1);
@@ -55,7 +55,8 @@ function resolveDataDir(modelDir, explicitFlag) {
 }
 
 function resolveBinary(runtimeDir) {
-  const binName = process.platform === "win32" ? "sherpa-onnx-offline-tts.exe" : "sherpa-onnx-offline-tts";
+  const binName =
+    process.platform === "win32" ? "sherpa-onnx-offline-tts.exe" : "sherpa-onnx-offline-tts";
   return path.join(runtimeDir, "bin", binName);
 }
 
@@ -146,7 +147,10 @@ const libDir = path.join(runtimeDir, "lib");
 if (process.platform === "darwin") {
   env.DYLD_LIBRARY_PATH = prependEnvPath(env.DYLD_LIBRARY_PATH || "", libDir);
 } else if (process.platform === "win32") {
-  env.PATH = prependEnvPath(env.PATH || "", [path.join(runtimeDir, "bin"), libDir].join(path.delimiter));
+  env.PATH = prependEnvPath(
+    env.PATH || "",
+    [path.join(runtimeDir, "bin"), libDir].join(path.delimiter),
+  );
 } else {
   env.LD_LIBRARY_PATH = prependEnvPath(env.LD_LIBRARY_PATH || "", libDir);
 }

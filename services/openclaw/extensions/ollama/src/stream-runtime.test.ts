@@ -1536,8 +1536,7 @@ describe("parseNdjsonStream", () => {
     }
 
     const args = chunks[0]?.message.tool_calls?.[0]?.function.arguments as
-      | { target?: unknown; nested?: { thread?: unknown } }
-      | undefined;
+      { target?: unknown; nested?: { thread?: unknown } } | undefined;
     expect(args?.target).toBe("1234567890123456789");
     expect(args?.nested?.thread).toBe("9223372036854775807");
   });
@@ -1553,8 +1552,7 @@ describe("parseNdjsonStream", () => {
     }
 
     const args = chunks[0]?.message.tool_calls?.[0]?.function.arguments as
-      | { retries?: unknown; delayMs?: unknown }
-      | undefined;
+      { retries?: unknown; delayMs?: unknown } | undefined;
     expect(args?.retries).toBe(3);
     expect(args?.delayMs).toBe(2500);
   });
@@ -2806,8 +2804,7 @@ describe("createOllamaStreamFn", () => {
       const events = await collectStreamEvents(stream);
 
       const errorEvent = events.find((e) => e.type === "error") as
-        | { type: "error"; error: { errorMessage?: string } }
-        | undefined;
+        { type: "error"; error: { errorMessage?: string } } | undefined;
       if (!errorEvent) {
         throw new Error("expected Ollama stream error event");
       }

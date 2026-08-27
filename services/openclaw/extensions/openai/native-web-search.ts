@@ -10,9 +10,7 @@ import { isOpenAIApiBaseUrl } from "./base-url.js";
 const OPENAI_WEB_SEARCH_TOOL = { type: "web_search" } as const;
 
 type OpenAINativeWebSearchPatchResult =
-  | "payload_not_object"
-  | "native_tool_already_present"
-  | "injected";
+  "payload_not_object" | "native_tool_already_present" | "injected";
 
 function isOpenAINativeWebSearchEligibleModel(model: {
   api?: unknown;

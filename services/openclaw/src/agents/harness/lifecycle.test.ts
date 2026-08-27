@@ -232,8 +232,7 @@ describe("AgentHarness lifecycle runner", () => {
     ]);
     expect(diagnostics.events.every(({ metadata }) => metadata.trusted)).toBe(true);
     const completedEvent = diagnostics.events[1]?.event as
-      | (DiagnosticEventPayload & Record<string, unknown>)
-      | undefined;
+      (DiagnosticEventPayload & Record<string, unknown>) | undefined;
     expect(completedEvent?.type).toBe("harness.run.completed");
     expect(completedEvent?.runId).toBe("run-1");
     expect(completedEvent?.sessionKey).toBe("session-key");
@@ -305,8 +304,7 @@ describe("AgentHarness lifecycle runner", () => {
     ]);
     expect(diagnostics.events.every(({ metadata }) => metadata.trusted)).toBe(true);
     const runStarted = diagnostics.events[1]?.event as
-      | (DiagnosticEventPayload & { trace?: DiagnosticTraceContext })
-      | undefined;
+      (DiagnosticEventPayload & { trace?: DiagnosticTraceContext }) | undefined;
     const runCompleted = diagnostics.events[2]?.event as
       | (DiagnosticEventPayload & {
           channel?: string;
@@ -315,8 +313,7 @@ describe("AgentHarness lifecycle runner", () => {
         })
       | undefined;
     const harnessCompleted = diagnostics.events[3]?.event as
-      | (DiagnosticEventPayload & { channel?: string; trace?: DiagnosticTraceContext })
-      | undefined;
+      (DiagnosticEventPayload & { channel?: string; trace?: DiagnosticTraceContext }) | undefined;
     expect(runStarted?.trace?.traceId).toBe(harnessTrace.traceId);
     expect(runStarted?.trace?.parentSpanId).toBe(harnessTrace.spanId);
     expect(runAttemptTrace).toEqual(runStarted?.trace);
@@ -429,8 +426,7 @@ describe("AgentHarness lifecycle runner", () => {
     ]);
     expect(diagnostics.events.every(({ metadata }) => metadata.trusted)).toBe(true);
     const errorEvent = diagnostics.events[1]?.event as
-      | (DiagnosticEventPayload & Record<string, unknown>)
-      | undefined;
+      (DiagnosticEventPayload & Record<string, unknown>) | undefined;
     expect(errorEvent?.type).toBe("harness.run.error");
     expect(errorEvent?.phase).toBe("send");
     expect(errorEvent?.errorCategory).toBe("Error");

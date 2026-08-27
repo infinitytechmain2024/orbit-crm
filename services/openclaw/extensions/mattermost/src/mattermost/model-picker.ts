@@ -24,9 +24,7 @@ const ACTION_IDS = {
 } as const;
 
 type MattermostModelPickerEntry =
-  | { kind: "summary" }
-  | { kind: "providers" }
-  | { kind: "models"; provider: string };
+  { kind: "summary" } | { kind: "providers" } | { kind: "models"; provider: string };
 
 type MattermostModelPickerState =
   | { action: "providers"; ownerUserId: string }

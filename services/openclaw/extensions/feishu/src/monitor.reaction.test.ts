@@ -495,8 +495,7 @@ describe("monitorSingleAccount lifecycle", () => {
     });
 
     const manager = createFeishuThreadBindingManagerMock.mock.results[0]?.value as
-      | { stop: ReturnType<typeof vi.fn> }
-      | undefined;
+      { stop: ReturnType<typeof vi.fn> } | undefined;
     expect(manager?.stop).toHaveBeenCalledTimes(1);
   });
 
@@ -521,8 +520,7 @@ describe("monitorSingleAccount lifecycle", () => {
     ).rejects.toThrow("register failed");
 
     const manager = createFeishuThreadBindingManagerMock.mock.results[0]?.value as
-      | { stop: ReturnType<typeof vi.fn> }
-      | undefined;
+      { stop: ReturnType<typeof vi.fn> } | undefined;
     expect(manager?.stop).toHaveBeenCalledTimes(1);
   });
 });
@@ -558,8 +556,7 @@ describe("Feishu inbound debounce regressions", () => {
     expect(handleFeishuMessageMock).toHaveBeenCalledTimes(2);
     const first = getFirstDispatchedEvent();
     const secondCall = mockCallAt(handleFeishuMessageMock, 1, "Feishu stop dispatch")[0] as
-      | { event?: FeishuMessageEvent }
-      | undefined;
+      { event?: FeishuMessageEvent } | undefined;
     const second = secondCall?.event;
     expect(JSON.parse(first.message.content)).toEqual({ text: "first" });
     expect(second?.message.message_id).toBe("om_stop");
@@ -619,8 +616,7 @@ describe("Feishu inbound debounce regressions", () => {
 
     expect(handleFeishuMessageMock).toHaveBeenCalledTimes(1);
     const firstParams = mockCallAt(handleFeishuMessageMock, 0, "Feishu message dispatch")[0] as
-      | { botName?: string }
-      | undefined;
+      { botName?: string } | undefined;
     expect(firstParams?.botName).toBe("OpenClaw Bot");
   });
 

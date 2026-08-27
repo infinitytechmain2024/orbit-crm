@@ -198,6 +198,21 @@ class TelegramBot:
             caption=f"📄 <b>Отчет по проекту</b>\n{report_filename}",
         )
 
+    async def get_file(self, file_id: str) -> dict:
+        """Get file info from Telegram API."""
+        return await self._make_request("getFile", {"file_id": file_id})
+
+    async def download_file(self, file_id: str) -> bytes:
+        """Download a file from Telegram API."""
+        file_info = await self.get_file(file_id)
+        file_path = file_info["file_path"]
+        file_url = f"https://api.telegram.org/file/bot{self.token}/{file_path}"
+        
+        client = await self._get_client()
+        response = await client.get(file_url)
+        response.raise_for_status()
+        return response.content
+
     async def process_voice_message(self, file_id: str, chat_id: str) -> dict:
         """Process voice message from Telegram: download -> STT -> AI Dispatcher -> Execute -> Reply."""
         from backend.services.stt import stt_service
@@ -205,7 +220,7 @@ class TelegramBot:
         from backend.services.intent_executor import execute_intent
         
         # Get file info
-        file_info = await self._make_request("getFile", {"file_id": file_id})
+        file_info = await self.get_file(file_id)
         file_path = file_info["file_path"]
         file_url = f"https://api.telegram.org/file/bot{self.token}/{file_path}"
         

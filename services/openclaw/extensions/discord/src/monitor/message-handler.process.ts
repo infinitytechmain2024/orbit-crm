@@ -538,8 +538,7 @@ async function processDiscordMessageInner(
   let userFacingFinalDelivered = false;
   let userFacingFinalDeliveryFailed = false;
   let pendingToolWarningFinal:
-    | { payload: ReplyPayload; info: { kind: ReplyDispatchKind } }
-    | undefined;
+    { payload: ReplyPayload; info: { kind: ReplyDispatchKind } } | undefined;
   const markUserFacingFinalDelivered = () => {
     userFacingFinalDelivered = true;
     userFacingFinalDeliveryFailed = false;

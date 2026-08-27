@@ -60,21 +60,25 @@ https://stackoverflow.com,Q&A site
 ## Available Methods
 
 ### Method 1: Simple Loop Processing (Recommended)
+
 - **File**: `simple-csv-url-processor.py`
 - **Best for**: Beginners, simple use cases
 - **How it works**: Uses `task_type="loop"` to automatically process each CSV row
 
 ### Method 2: Manual CSV Processing
+
 - **File**: `csv-processing-agents.py` (Method 2)
 - **Best for**: When you need more control over validation and processing
 - **How it works**: Uses CSV tools (`read_csv`, `write_csv`) for manual processing
 
 ### Method 3: URL-Specific Processing
+
 - **File**: `csv-processing-agents.py` (Method 3)
 - **Best for**: Specifically processing URLs with detailed analysis
 - **How it works**: Combines CSV tools with URL analysis logic
 
 ### Method 4: Advanced Processing with Validation
+
 - **File**: `csv-processing-agents.py` (Method 4)
 - **Best for**: Production use cases requiring data validation
 - **How it works**: Validates data before processing, handles errors gracefully
@@ -89,7 +93,7 @@ from praisonaiagents.tools import read_csv, write_csv, merge_csv
 # Read CSV files
 data = read_csv("input.csv")
 
-# Write CSV files  
+# Write CSV files
 write_csv("output.csv", data)
 
 # Merge multiple CSV files
@@ -99,6 +103,7 @@ merge_csv(["file1.csv", "file2.csv"], "merged.csv")
 ## Examples for Different Use Cases
 
 ### Processing URLs from CSV
+
 ```python
 # Your CSV: urls.csv
 # url,priority
@@ -113,14 +118,16 @@ agent = Agent(
 ```
 
 ### Processing Any Text File
+
 ```python
 # For text files, you can convert to CSV format first
 # Or process line by line using file tools
 ```
 
 ### Batch Processing Tasks
+
 ```python
-# Your CSV: tasks.csv  
+# Your CSV: tasks.csv
 # task
 # "Analyze competitor website"
 # "Research market trends"
@@ -136,11 +143,13 @@ task = Task(
 ## Prerequisites
 
 1. **Install PraisonAI Agents**:
+
    ```bash
    pip install praisonaiagents
    ```
 
 2. **Set API Key**:
+
    ```bash
    export OPENAI_API_KEY=your_api_key_here
    ```
@@ -153,6 +162,7 @@ task = Task(
 ## Running the Examples
 
 1. **Simple URL Processing**:
+
    ```bash
    python simple-csv-url-processor.py
    ```
@@ -190,16 +200,17 @@ task = Task(
 ## Related Documentation
 
 - [CSV Tools Documentation](../../../docs/tools/csv_tools.mdx)
-- [Repetitive Agents](../../../docs/features/repetitive.mdx)  
+- [Repetitive Agents](../../../docs/features/repetitive.mdx)
 - [Agent Examples](../../README.md)
 
 ## Support
 
 If you encounter issues:
+
 1. Check the troubleshooting section above
 2. Review the example files for working implementations
 3. Open an issue on the GitHub repository with your specific use case
 
 ---
 
-*This solution was generated in response to GitHub Issue #23*
+_This solution was generated in response to GitHub Issue #23_

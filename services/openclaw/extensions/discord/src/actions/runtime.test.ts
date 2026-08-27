@@ -47,9 +47,10 @@ const discordSendMocks = {
     name: "edited",
   })),
   editMessageDiscord: vi.fn(async () => ({})),
-  fetchChannelInfoDiscord: vi.fn(
-    async (channelId: string): Promise<DiscordChannelInfoTest> => ({ id: channelId, type: 0 }),
-  ),
+  fetchChannelInfoDiscord: vi.fn(async (channelId: string): Promise<DiscordChannelInfoTest> => ({
+    id: channelId,
+    type: 0,
+  })),
   fetchChannelPermissionsDiscord: vi.fn(async () => ({})),
   fetchGuildInfoDiscord: vi.fn(async (guildId: string) => ({
     id: guildId,

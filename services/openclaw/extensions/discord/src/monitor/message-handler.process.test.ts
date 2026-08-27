@@ -507,8 +507,7 @@ function getLastRouteUpdate():
     }
   | undefined {
   const callArgs = recordInboundSession.mock.calls[recordInboundSession.mock.calls.length - 1] as
-    | unknown[]
-    | undefined;
+    unknown[] | undefined;
   const params = callArgs?.[0] as
     | {
         updateLastRoute?: {

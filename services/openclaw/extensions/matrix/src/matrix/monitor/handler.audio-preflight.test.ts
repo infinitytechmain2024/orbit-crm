@@ -70,8 +70,7 @@ function expectLatestInboundContext(
   recordInboundSession: ReturnType<typeof createMatrixHandlerTestHarness>["recordInboundSession"],
 ) {
   const call = vi.mocked(recordInboundSession).mock.calls.at(-1)?.[0] as
-    | { ctx?: Record<string, unknown> }
-    | undefined;
+    { ctx?: Record<string, unknown> } | undefined;
   if (!call?.ctx) {
     throw new Error("expected inbound session context");
   }
@@ -298,8 +297,7 @@ describe("createMatrixRoomMessageHandler audio preflight", () => {
 
   it("does not hold the room history ingress queue during slow audio preflight", async () => {
     let releaseDownload:
-      | ((media: { path: string; contentType: string; placeholder: string }) => void)
-      | undefined;
+      ((media: { path: string; contentType: string; placeholder: string }) => void) | undefined;
     downloadMatrixMediaMock.mockReturnValue(
       new Promise((resolve) => {
         releaseDownload = resolve;

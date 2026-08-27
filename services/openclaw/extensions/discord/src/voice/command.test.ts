@@ -10,8 +10,7 @@ function findVoiceSubcommand(command: CommandWithSubcommands, name: string) {
     command as unknown as { subcommands?: Array<{ name: string; run: unknown }> }
   ).subcommands;
   const subcommand = subcommands?.find((entry) => entry.name === name) as
-    | { run: (interaction: CommandInteraction) => Promise<void> }
-    | undefined;
+    { run: (interaction: CommandInteraction) => Promise<void> } | undefined;
   if (!subcommand) {
     throw new Error(`Missing vc ${name} subcommand`);
   }

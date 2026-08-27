@@ -6675,8 +6675,7 @@ describe("QmdMemoryManager", () => {
 
     const db = (manager as unknown as { ensureDb: () => DatabaseSync }).ensureDb();
     const row = db.prepare("PRAGMA busy_timeout").get() as
-      | { busy_timeout?: number; timeout?: number }
-      | undefined;
+      { busy_timeout?: number; timeout?: number } | undefined;
     const busyTimeout = row?.busy_timeout ?? row?.timeout;
     expect(busyTimeout).toBe(1000);
     await manager.close();

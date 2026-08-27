@@ -170,7 +170,9 @@ async function callProvider(provider: ProviderConfig, userText: string): Promise
 
   return tasks.map((t: Record<string, unknown>) => {
     const rawTarget = String(t.target_role ?? t.targetRole ?? "").trim();
-    const normalizedTarget = (TARGET_ROLES as readonly string[]).includes(rawTarget) ? rawTarget : null;
+    const normalizedTarget = (TARGET_ROLES as readonly string[]).includes(rawTarget)
+      ? rawTarget
+      : null;
     const dispatchRaw = t.dispatch_to_workflow ?? t.dispatchToWorkflow;
     return {
       title: String(t.title || "Без названия").slice(0, 200),

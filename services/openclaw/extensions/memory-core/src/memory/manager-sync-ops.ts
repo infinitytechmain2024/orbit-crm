@@ -520,8 +520,7 @@ export abstract class MemoryManagerSyncOps {
 
   protected hasIndexedChunks(): boolean {
     const row = this.db.prepare(`SELECT 1 as found FROM memory_index_chunks LIMIT 1`).get() as
-      | { found?: number }
-      | undefined;
+      { found?: number } | undefined;
     return row?.found === 1;
   }
 
@@ -2054,9 +2053,10 @@ export abstract class MemoryManagerSyncOps {
         }
         dirtyEntries.push(entry);
       }
-      const indexItems = dirtyEntries.map(
-        (entry): MemoryIndexWorkItem => ({ entry, source: "memory" }),
-      );
+      const indexItems = dirtyEntries.map((entry): MemoryIndexWorkItem => ({
+        entry,
+        source: "memory",
+      }));
       if (params.deferIndex) {
         return { indexItems, finalize: deleteStaleRows };
       }
@@ -2265,13 +2265,11 @@ export abstract class MemoryManagerSyncOps {
           )
         ).filter((entry): entry is MemoryIndexEntry => entry !== null);
         pendingIndexItems.push(
-          ...dirtyEntries.map(
-            (entry): MemoryIndexWorkItem => ({
-              entry,
-              source: "sessions",
-              afterIndex: () => this.resetSessionDelta(entry.absPath, entry.size),
-            }),
-          ),
+          ...dirtyEntries.map((entry): MemoryIndexWorkItem => ({
+            entry,
+            source: "sessions",
+            afterIndex: () => this.resetSessionDelta(entry.absPath, entry.size),
+          })),
         );
         if (pendingIndexItems.length >= SOURCE_WIDE_SESSION_INDEX_FLUSH_FILES) {
           await flushPendingIndexItems();

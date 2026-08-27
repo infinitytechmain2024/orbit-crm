@@ -9085,8 +9085,7 @@ describe("openai transport stream", () => {
       ) as { messages: Array<Record<string, unknown>> };
 
       const assistant = params.messages.find((message) => message.role === "assistant") as
-        | { tool_calls?: Array<{ extra_content?: unknown }> }
-        | undefined;
+        { tool_calls?: Array<{ extra_content?: unknown }> } | undefined;
       expect(assistant?.tool_calls?.[0]?.extra_content).toBeUndefined();
     });
 

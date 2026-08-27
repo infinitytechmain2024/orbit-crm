@@ -304,8 +304,7 @@ describe("agentCommand compaction transcript rotation", () => {
     });
 
     const attempt = state.runAgentAttemptMock.mock.calls[0]?.[0] as
-      | { providerOverride?: string; modelOverride?: string; pluginsEnabled?: boolean }
-      | undefined;
+      { providerOverride?: string; modelOverride?: string; pluginsEnabled?: boolean } | undefined;
     expect(attempt).toMatchObject({
       providerOverride: "tui-pty-mock",
       modelOverride: "gpt-5.5",
@@ -393,8 +392,7 @@ describe("agentCommand compaction transcript rotation", () => {
     });
 
     const secondAttempt = state.runAgentAttemptMock.mock.calls[0]?.[0] as
-      | { sessionId?: string; sessionFile?: string; sessionKey?: string }
-      | undefined;
+      { sessionId?: string; sessionFile?: string; sessionKey?: string } | undefined;
     expect(secondAttempt).toMatchObject({
       sessionId: "rotated-session",
       sessionKey,

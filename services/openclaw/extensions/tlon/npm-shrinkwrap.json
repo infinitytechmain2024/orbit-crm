@@ -449,14 +449,10 @@
       "version": "0.4.3",
       "resolved": "https://registry.npmjs.org/@tloncorp/tlon-skill-darwin-arm64/-/tlon-skill-darwin-arm64-0.4.3.tgz",
       "integrity": "sha512-1duHwRDnU8Y87LlHXqGpQ4SPvJcv7jKUYrf6Ublo+mImsx1Vjq2O9NwdKVA5wu+dUPwuiDy8BPbWJXaF95cpdw==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "bin": {
         "tlon": "tlon"
       }
@@ -465,14 +461,10 @@
       "version": "0.4.3",
       "resolved": "https://registry.npmjs.org/@tloncorp/tlon-skill-darwin-x64/-/tlon-skill-darwin-x64-0.4.3.tgz",
       "integrity": "sha512-8PzGWuQsq5NKDysNaP6RPv8YsxErrmuYs8vXHIJhlD3N96GWdfBht6WuD/VsOuzUO1w2FXThXa51FQkIi6WC5A==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "bin": {
         "tlon": "tlon"
       }
@@ -481,14 +473,10 @@
       "version": "0.4.3",
       "resolved": "https://registry.npmjs.org/@tloncorp/tlon-skill-linux-arm64/-/tlon-skill-linux-arm64-0.4.3.tgz",
       "integrity": "sha512-w1BVxjWZbO/xPrrGO+CGn/6vCh8D1EAF8dGF8ocmXzXF3or7c82VTq0ihMv2PCmyd1pOay2LFj5xOeLJU6o9cQ==",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "bin": {
         "tlon": "tlon"
       }
@@ -497,14 +485,10 @@
       "version": "0.4.3",
       "resolved": "https://registry.npmjs.org/@tloncorp/tlon-skill-linux-x64/-/tlon-skill-linux-x64-0.4.3.tgz",
       "integrity": "sha512-RYgQ/mvyZmoNbmcmgtlA5JTGqr35qDh0YHBZCkUon026MQMDL4bAgkxP9bp3c2s5Iw4vWQODAmJeiIUiFfT8Hw==",
-      "cpu": [
-        "x64"
-      ],
+      "cpu": ["x64"],
       "license": "MIT",
       "optional": true,
-      "os": [
-        "linux"
-      ],
+      "os": ["linux"],
       "bin": {
         "tlon": "tlon"
       }

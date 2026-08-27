@@ -5,7 +5,7 @@ This document demonstrates the three different ways to register tool functions i
 ## Method 1: Using the `tools` array with function objects directly
 
 ```typescript
-import { Agent } from 'praisonai';
+import { Agent } from "praisonai";
 
 // Define the functions directly
 async function getWeather(location: string) {
@@ -20,11 +20,11 @@ async function getTime(location: string) {
 }
 
 // Create an agent with directly registered functions
-const agent = new Agent({ 
+const agent = new Agent({
   instructions: `You provide the current weather and time for requested locations.`,
   name: "DirectFunctionAgent",
   // Register functions directly as an array
-  tools: [getWeather, getTime]
+  tools: [getWeather, getTime],
 });
 
 // Start the agent with a prompt that will trigger tool usage
@@ -34,7 +34,7 @@ agent.start("What's the weather and time in Paris, France?");
 ## Method 2: Using the `toolFunctions` object with name-function pairs
 
 ```typescript
-import { Agent } from 'praisonai';
+import { Agent } from "praisonai";
 
 // Define the functions directly
 async function getWeather(location: string) {
@@ -49,14 +49,14 @@ async function getTime(location: string) {
 }
 
 // Create an agent with directly registered functions
-const agent = new Agent({ 
+const agent = new Agent({
   instructions: `You provide the current weather and time for requested locations.`,
   name: "DirectFunctionAgent",
   // Register functions with custom names
   toolFunctions: {
     get_weather: getWeather,
-    get_time: getTime
-  }
+    get_time: getTime,
+  },
 });
 
 // Start the agent with a prompt that will trigger tool usage
@@ -66,7 +66,7 @@ agent.start("What's the weather and time in Paris, France?");
 ## Method 3: Using the `tools` array with pre-defined tool definitions
 
 ```typescript
-import { Agent } from 'praisonai';
+import { Agent } from "praisonai";
 
 // Define the functions
 async function getWeather(location: string) {
@@ -81,9 +81,9 @@ async function getTime(location: string) {
 }
 
 // Register functions globally
-import { registerFunction } from 'praisonai';
-registerFunction('get_weather', getWeather);
-registerFunction('get_time', getTime);
+import { registerFunction } from "praisonai";
+registerFunction("get_weather", getWeather);
+registerFunction("get_time", getTime);
 
 // Define tool definitions
 const weatherTool = {
@@ -96,12 +96,12 @@ const weatherTool = {
       properties: {
         location: {
           type: "string",
-          description: "The location to get weather for"
-        }
+          description: "The location to get weather for",
+        },
       },
-      required: ["location"]
-    }
-  }
+      required: ["location"],
+    },
+  },
 };
 
 const timeTool = {
@@ -114,20 +114,20 @@ const timeTool = {
       properties: {
         location: {
           type: "string",
-          description: "The location to get time for"
-        }
+          description: "The location to get time for",
+        },
       },
-      required: ["location"]
-    }
-  }
+      required: ["location"],
+    },
+  },
 };
 
 // Create an agent with pre-defined tool definitions
-const agent = new Agent({ 
+const agent = new Agent({
   instructions: `You provide the current weather and time for requested locations.`,
   name: "ToolDefinitionAgent",
   // Register pre-defined tool definitions
-  tools: [weatherTool, timeTool]
+  tools: [weatherTool, timeTool],
 });
 
 // Start the agent with a prompt that will trigger tool usage
@@ -139,7 +139,7 @@ agent.start("What's the weather and time in Paris, France?");
 You can also combine these approaches as needed:
 
 ```typescript
-import { Agent } from 'praisonai';
+import { Agent } from "praisonai";
 
 // Define the functions
 async function getWeather(location: string) {
@@ -164,28 +164,28 @@ const calculatorTool = {
       properties: {
         expression: {
           type: "string",
-          description: "The mathematical expression to calculate"
-        }
+          description: "The mathematical expression to calculate",
+        },
       },
-      required: ["expression"]
-    }
-  }
+      required: ["expression"],
+    },
+  },
 };
 
 // Register the calculator function globally
-import { registerFunction } from 'praisonai';
-registerFunction('calculate', async (expression: string) => {
+import { registerFunction } from "praisonai";
+registerFunction("calculate", async (expression: string) => {
   console.log(`Calculating ${expression}...`);
   // Simple eval for demonstration purposes only
   return eval(expression).toString();
 });
 
 // Create an agent with mixed tool registration approaches
-const agent = new Agent({ 
+const agent = new Agent({
   instructions: `You can provide weather, time, and perform calculations.`,
   name: "MixedToolAgent",
   // Register functions directly as an array
-  tools: [getWeather, getTime, calculatorTool]
+  tools: [getWeather, getTime, calculatorTool],
 });
 
 // Start the agent with a prompt that will trigger tool usage

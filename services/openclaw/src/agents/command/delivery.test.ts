@@ -423,13 +423,11 @@ describe("normalizeAgentCommandReplyPayloads", () => {
   });
 
   it("normalizes reply-media paths before outbound delivery", async () => {
-    const normalizerFn = vi.fn(
-      async (payload: ReplyPayload): Promise<ReplyPayload> => ({
-        ...payload,
-        mediaUrl: "/tmp/agent-workspace/out/photo.png",
-        mediaUrls: ["/tmp/agent-workspace/out/photo.png"],
-      }),
-    );
+    const normalizerFn = vi.fn(async (payload: ReplyPayload): Promise<ReplyPayload> => ({
+      ...payload,
+      mediaUrl: "/tmp/agent-workspace/out/photo.png",
+      mediaUrls: ["/tmp/agent-workspace/out/photo.png"],
+    }));
     createReplyMediaPathNormalizerMock.mockReturnValue(normalizerFn);
     deliverOutboundPayloadsMock.mockResolvedValue([]);
 

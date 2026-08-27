@@ -2311,5 +2311,4 @@ describe("memory index", () => {
       restoreMemoryIndexStateDir();
     }
   });
-
 });

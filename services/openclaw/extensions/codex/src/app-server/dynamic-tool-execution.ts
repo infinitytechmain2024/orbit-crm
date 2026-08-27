@@ -373,10 +373,7 @@ export function shouldBlockTerminalReleaseForNonTerminalDynamicToolResult(
 
 /** Action chosen after checking terminal dynamic-tool diagnostics. */
 export type TerminalDynamicToolBatchAction =
-  | "idle"
-  | "wait"
-  | "clear-nonterminal-batch"
-  | "release-pending-terminal";
+  "idle" | "wait" | "clear-nonterminal-batch" | "release-pending-terminal";
 
 type TerminalDynamicToolBatchState = {
   activeAppServerTurnRequests: number;

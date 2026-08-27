@@ -57,8 +57,7 @@ export function applyCloudflareAiGatewayProviderConfig(
   };
 
   const existingProvider = cfg.models?.providers?.["cloudflare-ai-gateway"] as
-    | { baseUrl?: unknown }
-    | undefined;
+    { baseUrl?: unknown } | undefined;
   const baseUrl =
     params?.accountId && params?.gatewayId
       ? resolveCloudflareAiGatewayBaseUrl({

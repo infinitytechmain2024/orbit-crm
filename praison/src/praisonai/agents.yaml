@@ -16,7 +16,7 @@ roles:
           a cat being on Mars. Also, research about cat behavior and characteristics.
         expected_output: Document with research findings on Mars and cats.
     tools:
-    - search_tool
+      - search_tool
   narrative_designer:
     backstory: Skilled in narrative development, with a focus on creating engaging
       stories.
@@ -28,7 +28,7 @@ roles:
           a movie about a cat in Mars.
         expected_output: Document with narrative arcs, character bios, and settings.
     tools:
-    - ''
+      - ""
   scriptwriter:
     backstory: Expert in dialogue and script structure, translating concepts into
       scripts.
@@ -40,5 +40,5 @@ roles:
           including dialogue and scene details.
         expected_output: Final movie script with dialogue and scene details.
     tools:
-    - ''
+      - ""
 dependencies: []

@@ -159,8 +159,7 @@ export function stripSessionsYieldArtifacts(activeSession: {
   const strippedMessages = activeSession.messages.slice();
   while (strippedMessages.length > 0) {
     const last = strippedMessages.at(-1) as
-      | AgentMessage
-      | { role?: string; customType?: string; stopReason?: string };
+      AgentMessage | { role?: string; customType?: string; stopReason?: string };
     if (last?.role === "assistant" && "stopReason" in last && last.stopReason === "aborted") {
       strippedMessages.pop();
       continue;

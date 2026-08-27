@@ -411,8 +411,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       getOnHandler("callback_query") as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
     let releaseBusyUpdate: (() => void) | undefined;
@@ -561,8 +560,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const sequentializer = sequentializeSpy.mock.results[0]?.value as
-      | TelegramMiddleware
-      | undefined;
+      TelegramMiddleware | undefined;
     if (!sequentializer) {
       throw new Error("Expected sequentialize middleware");
     }
@@ -615,8 +613,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const sequentializer = sequentializeSpy.mock.results[0]?.value as
-      | TelegramMiddleware
-      | undefined;
+      TelegramMiddleware | undefined;
     if (!sequentializer) {
       throw new Error("Expected sequentialize middleware");
     }
@@ -1687,8 +1684,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
 
@@ -1731,8 +1727,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
 
@@ -1767,8 +1762,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
 
@@ -1798,8 +1792,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
 
@@ -1826,8 +1819,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
 
@@ -1864,8 +1856,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
 
@@ -1900,8 +1891,7 @@ describe("createTelegramBot", () => {
     createTelegramBot({ token: "tok" });
     const callbackHandler = requireValue(
       onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as
-        | ((ctx: Record<string, unknown>) => Promise<void>)
-        | undefined,
+        ((ctx: Record<string, unknown>) => Promise<void>) | undefined,
       "callback_query handler",
     );
 
@@ -5038,8 +5028,7 @@ describe("createTelegramBot", () => {
       expect(sendMessageSpy.mock.calls.length).toBeGreaterThan(1);
       for (const call of sendMessageSpy.mock.calls) {
         const params = call[2] as
-          | { reply_to_message_id?: number; reply_parameters?: { message_id?: number } }
-          | undefined;
+          { reply_to_message_id?: number; reply_parameters?: { message_id?: number } } | undefined;
         const actual = params?.reply_parameters?.message_id ?? params?.reply_to_message_id;
         if (mode === "all") {
           expect(actual).toBe(messageId);
@@ -5147,8 +5136,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const compactHandler = commandSpy.mock.calls.find((call) => call[0] === "compact")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!compactHandler) {
       throw new Error("compact command handler missing");
     }
@@ -5233,8 +5221,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const statusHandler = commandSpy.mock.calls.find((call) => call[0] === "status")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!statusHandler) {
       throw new Error("status command handler missing");
     }
@@ -5280,8 +5267,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const verboseHandler = commandSpy.mock.calls.find((call) => call[0] === "verbose")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!verboseHandler) {
       throw new Error("verbose command handler missing");
     }
@@ -5345,8 +5331,7 @@ describe("createTelegramBot", () => {
 
     createTelegramBot({ token: "tok" });
     const verboseHandler = commandSpy.mock.calls.find((call) => call[0] === "verbose")?.[1] as
-      | ((ctx: Record<string, unknown>) => Promise<void>)
-      | undefined;
+      ((ctx: Record<string, unknown>) => Promise<void>) | undefined;
     if (!verboseHandler) {
       throw new Error("verbose command handler missing");
     }

@@ -77,8 +77,7 @@ function uploadMattermostFileCall() {
 
 function createMattermostPostParams() {
   const params = mockCall(mockState.createMattermostPost, "createMattermostPost")[1] as
-    | MattermostPostParams
-    | undefined;
+    MattermostPostParams | undefined;
   if (!params) {
     throw new Error("Expected createMattermostPost params");
   }

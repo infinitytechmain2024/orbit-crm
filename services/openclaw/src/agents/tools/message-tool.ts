@@ -168,9 +168,7 @@ function normalizeEscapedLineBreaksForVisibleText(text: string): string {
 }
 
 type VisibleTextSuppressionReason =
-  | "internal_runtime_context_echo"
-  | "inbound_metadata_echo"
-  | "poll_vote_echo";
+  "internal_runtime_context_echo" | "inbound_metadata_echo" | "poll_vote_echo";
 
 const POLL_VOTE_ECHO_TTL_MS = 30_000;
 

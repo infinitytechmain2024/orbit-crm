@@ -37,8 +37,7 @@ type AgentPayload = {
 };
 
 type InProcessAgentDispatch =
-  | { phase: "started"; resultText?: undefined }
-  | { phase: "completed"; resultText: string };
+  { phase: "started"; resultText?: undefined } | { phase: "completed"; resultText: string };
 
 const REQUEST_TIMEOUT_MS = 8 * 60_000;
 const WAIT_TIMEOUT_MS = 8 * 60_000;

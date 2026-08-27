@@ -13,10 +13,7 @@ const REDACTED_QUERY_VALUE = "[redacted]";
 type MatrixQaStateFamily = "backup" | "device" | "key" | "media" | "sync-token";
 
 type MatrixQaBodyShape =
-  | { kind: "binary" }
-  | { kind: "empty" }
-  | { kind: "json"; fields: string[] }
-  | { kind: "text" };
+  { kind: "binary" } | { kind: "empty" } | { kind: "json"; fields: string[] } | { kind: "text" };
 
 type MatrixQaRecordedExchange = {
   categories: MatrixQaStateFamily[];

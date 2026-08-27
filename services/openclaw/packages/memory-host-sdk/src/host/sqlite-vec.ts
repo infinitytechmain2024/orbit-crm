@@ -31,8 +31,7 @@ function isMissingSqliteVecPackageError(err: unknown): boolean {
 function assertSqliteVecAvailable(db: DatabaseSync, source: string): void {
   try {
     const row = db.prepare("SELECT vec_version() AS version").get() as
-      | { version?: unknown }
-      | undefined;
+      { version?: unknown } | undefined;
     if (typeof row?.version !== "string" || row.version.trim().length === 0) {
       throw new Error("vec_version() did not return a version");
     }

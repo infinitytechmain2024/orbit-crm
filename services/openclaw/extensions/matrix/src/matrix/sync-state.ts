@@ -1,12 +1,6 @@
 // Matrix plugin module implements sync state behavior.
 export type MatrixSyncState =
-  | "PREPARED"
-  | "SYNCING"
-  | "CATCHUP"
-  | "RECONNECTING"
-  | "ERROR"
-  | "STOPPED"
-  | (string & {});
+  "PREPARED" | "SYNCING" | "CATCHUP" | "RECONNECTING" | "ERROR" | "STOPPED" | (string & {});
 
 export function isMatrixReadySyncState(
   state: MatrixSyncState | null | undefined,

@@ -46,8 +46,7 @@ export function stripStaleAssistantUsageBeforeLatestCompaction<TMessage extends 
   let touched = false;
   for (let i = 0; i < out.length; i += 1) {
     const candidate = out[i] as
-      | (AgentMessage & { usage?: unknown; timestamp?: unknown })
-      | undefined;
+      (AgentMessage & { usage?: unknown; timestamp?: unknown }) | undefined;
     if (!candidate || candidate.role !== "assistant") {
       continue;
     }

@@ -210,10 +210,7 @@ function convertContentBlocks(
       source: {
         type: "base64" as const,
         media_type: (typeof record.mimeType === "string" ? record.mimeType : "image/jpeg") as
-          | "image/jpeg"
-          | "image/png"
-          | "image/gif"
-          | "image/webp",
+          "image/jpeg" | "image/png" | "image/gif" | "image/webp",
         data: typeof record.data === "string" ? record.data : "",
       },
     });

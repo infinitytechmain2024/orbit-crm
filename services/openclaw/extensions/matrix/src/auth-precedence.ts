@@ -2,12 +2,7 @@
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 
 export type MatrixResolvedStringField =
-  | "homeserver"
-  | "userId"
-  | "accessToken"
-  | "password"
-  | "deviceId"
-  | "deviceName";
+  "homeserver" | "userId" | "accessToken" | "password" | "deviceId" | "deviceName";
 
 export type MatrixResolvedStringValues = Record<MatrixResolvedStringField, string>;
 

@@ -9,12 +9,7 @@ export type MatrixQaRoomEvent = {
 };
 
 type MatrixQaObservedEventKind =
-  | "membership"
-  | "message"
-  | "notice"
-  | "redaction"
-  | "reaction"
-  | "room-event";
+  "membership" | "message" | "notice" | "redaction" | "reaction" | "room-event";
 
 type MatrixQaObservedEventAttachment = {
   caption?: string;

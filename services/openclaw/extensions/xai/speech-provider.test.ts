@@ -6,9 +6,9 @@ const { xaiTTSMock, isProviderAuthProfileConfiguredMock, resolveApiKeyForProvide
   vi.hoisted(() => ({
     xaiTTSMock: vi.fn(async () => Buffer.from("audio-bytes")),
     isProviderAuthProfileConfiguredMock: vi.fn(() => false),
-    resolveApiKeyForProviderMock: vi.fn(
-      async (): Promise<{ apiKey: string | undefined }> => ({ apiKey: undefined }),
-    ),
+    resolveApiKeyForProviderMock: vi.fn(async (): Promise<{ apiKey: string | undefined }> => ({
+      apiKey: undefined,
+    })),
   }));
 
 vi.mock("./tts.js", () => ({

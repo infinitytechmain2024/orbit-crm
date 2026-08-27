@@ -294,8 +294,7 @@ function resolveMessageGuidFromChatDb(params: {
   try {
     db = new sqlite.DatabaseSync(dbPath, { readOnly: true });
     const row = db.prepare("SELECT guid FROM message WHERE ROWID = ?").get(messageId) as
-      | { guid?: unknown }
-      | undefined;
+      { guid?: unknown } | undefined;
     return normalizeResolvedMessageGuid(row?.guid);
   } catch {
     return null;

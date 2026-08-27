@@ -11,17 +11,20 @@ npm install praisonai
 ## Development Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/MervinPraison/PraisonAI.git
 cd src/praisonai-ts
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Build the package:
+
 ```bash
 npm run build
 ```
@@ -33,30 +36,30 @@ Here are examples of different ways to use PraisonAI:
 ### 1. Single Agent Example
 
 ```typescript
-import { Agent, PraisonAIAgents } from 'praisonai';
+import { Agent, PraisonAIAgents } from "praisonai";
 
 async function main() {
-    // Create a simple agent (no task specified)
-    const agent = new Agent({
-        name: "BiologyExpert",
-        instructions: "Explain the process of photosynthesis in detail.",
-        verbose: true
-    });
+  // Create a simple agent (no task specified)
+  const agent = new Agent({
+    name: "BiologyExpert",
+    instructions: "Explain the process of photosynthesis in detail.",
+    verbose: true,
+  });
 
-    // Run the agent
-    const praisonAI = new PraisonAIAgents({
-        agents: [agent],
-        tasks: ["Explain the process of photosynthesis in detail."],
-        verbose: true
-    });
+  // Run the agent
+  const praisonAI = new PraisonAIAgents({
+    agents: [agent],
+    tasks: ["Explain the process of photosynthesis in detail."],
+    verbose: true,
+  });
 
-    try {
-        console.log('Starting single agent example...');
-        const results = await praisonAI.start();
-        console.log('\nFinal Results:', results);
-    } catch (error) {
-        console.error('Error:', error);
-    }
+  try {
+    console.log("Starting single agent example...");
+    const results = await praisonAI.start();
+    console.log("\nFinal Results:", results);
+  } catch (error) {
+    console.error("Error:", error);
+  }
 }
 
 main();
@@ -65,46 +68,48 @@ main();
 ### 2. Multi-Agent Example
 
 ```typescript
-import { Agent, PraisonAIAgents } from 'praisonai';
+import { Agent, PraisonAIAgents } from "praisonai";
 
 async function main() {
-    // Create multiple agents with different roles
-    const researchAgent = new Agent({
-        name: "ResearchAgent",
-        instructions: "Research and provide detailed information about renewable energy sources.",
-        verbose: true
-    });
+  // Create multiple agents with different roles
+  const researchAgent = new Agent({
+    name: "ResearchAgent",
+    instructions: "Research and provide detailed information about renewable energy sources.",
+    verbose: true,
+  });
 
-    const summaryAgent = new Agent({
-        name: "SummaryAgent",
-        instructions: "Create a concise summary of the research findings about renewable energy sources. Use {previous_result} as input.",
-        verbose: true
-    });
+  const summaryAgent = new Agent({
+    name: "SummaryAgent",
+    instructions:
+      "Create a concise summary of the research findings about renewable energy sources. Use {previous_result} as input.",
+    verbose: true,
+  });
 
-    const recommendationAgent = new Agent({
-        name: "RecommendationAgent",
-        instructions: "Based on the summary in {previous_result}, provide specific recommendations for implementing renewable energy solutions.",
-        verbose: true
-    });
+  const recommendationAgent = new Agent({
+    name: "RecommendationAgent",
+    instructions:
+      "Based on the summary in {previous_result}, provide specific recommendations for implementing renewable energy solutions.",
+    verbose: true,
+  });
 
-    // Run the agents in sequence
-    const praisonAI = new PraisonAIAgents({
-        agents: [researchAgent, summaryAgent, recommendationAgent],
-        tasks: [
-            "Research and analyze current renewable energy technologies and their implementation.",
-            "Summarize the key findings from the research.",
-            "Provide actionable recommendations based on the summary."
-        ],
-        verbose: true
-    });
+  // Run the agents in sequence
+  const praisonAI = new PraisonAIAgents({
+    agents: [researchAgent, summaryAgent, recommendationAgent],
+    tasks: [
+      "Research and analyze current renewable energy technologies and their implementation.",
+      "Summarize the key findings from the research.",
+      "Provide actionable recommendations based on the summary.",
+    ],
+    verbose: true,
+  });
 
-    try {
-        console.log('Starting multi-agent example...');
-        const results = await praisonAI.start();
-        console.log('\nFinal Results:', results);
-    } catch (error) {
-        console.error('Error:', error);
-    }
+  try {
+    console.log("Starting multi-agent example...");
+    const results = await praisonAI.start();
+    console.log("\nFinal Results:", results);
+  } catch (error) {
+    console.error("Error:", error);
+  }
 }
 
 main();
@@ -113,17 +118,18 @@ main();
 ### 3. Task-Based Agent Example
 
 ```typescript
-import { Agent, Task, PraisonAIAgents } from 'praisonai';
+import { Agent, Task, PraisonAIAgents } from "praisonai";
 
 async function main() {
-    // Create agents first
-    const dietAgent = new Agent({
-        name: "DietAgent",
-        role: "Nutrition Expert",
-        goal: "Create healthy and delicious recipes",
-        backstory: "You are a certified nutritionist with years of experience in creating balanced meal plans.",
-        verbose: true,  // Enable streaming output
-        instructions: `You are a professional chef and nutritionist. Create 5 healthy food recipes that are both nutritious and delicious.
+  // Create agents first
+  const dietAgent = new Agent({
+    name: "DietAgent",
+    role: "Nutrition Expert",
+    goal: "Create healthy and delicious recipes",
+    backstory:
+      "You are a certified nutritionist with years of experience in creating balanced meal plans.",
+    verbose: true, // Enable streaming output
+    instructions: `You are a professional chef and nutritionist. Create 5 healthy food recipes that are both nutritious and delicious.
 Each recipe should include:
 1. Recipe name
 2. List of ingredients with quantities
@@ -131,48 +137,49 @@ Each recipe should include:
 4. Nutritional information
 5. Health benefits
 
-Format your response in markdown.`
-    });
+Format your response in markdown.`,
+  });
 
-    const blogAgent = new Agent({
-        name: "BlogAgent",
-        role: "Food Blogger",
-        goal: "Write engaging blog posts about food and recipes",
-        backstory: "You are a successful food blogger known for your ability to make recipes sound delicious and approachable.",
-        verbose: true,  // Enable streaming output
-        instructions: `You are a food and health blogger. Write an engaging blog post about the provided recipes.
+  const blogAgent = new Agent({
+    name: "BlogAgent",
+    role: "Food Blogger",
+    goal: "Write engaging blog posts about food and recipes",
+    backstory:
+      "You are a successful food blogger known for your ability to make recipes sound delicious and approachable.",
+    verbose: true, // Enable streaming output
+    instructions: `You are a food and health blogger. Write an engaging blog post about the provided recipes.
 The blog post should:
 1. Have an engaging title
-2. Include an introduction about healthy eating`
-    });
+2. Include an introduction about healthy eating`,
+  });
 
-    // Create tasks
-    const createRecipesTask = new Task({
-        name: "Create Recipes",
-        description: "Create 5 healthy and delicious recipes",
-        agent: dietAgent
-    });
+  // Create tasks
+  const createRecipesTask = new Task({
+    name: "Create Recipes",
+    description: "Create 5 healthy and delicious recipes",
+    agent: dietAgent,
+  });
 
-    const writeBlogTask = new Task({
-        name: "Write Blog",
-        description: "Write a blog post about the recipes",
-        agent: blogAgent,
-        dependencies: [createRecipesTask]  // This task depends on the recipes being created first
-    });
+  const writeBlogTask = new Task({
+    name: "Write Blog",
+    description: "Write a blog post about the recipes",
+    agent: blogAgent,
+    dependencies: [createRecipesTask], // This task depends on the recipes being created first
+  });
 
-    // Run the tasks
-    const praisonAI = new PraisonAIAgents({
-        tasks: [createRecipesTask, writeBlogTask],
-        verbose: true
-    });
+  // Run the tasks
+  const praisonAI = new PraisonAIAgents({
+    tasks: [createRecipesTask, writeBlogTask],
+    verbose: true,
+  });
 
-    try {
-        console.log('Starting task-based example...');
-        const results = await praisonAI.start();
-        console.log('\nFinal Results:', results);
-    } catch (error) {
-        console.error('Error:', error);
-    }
+  try {
+    console.log("Starting task-based example...");
+    const results = await praisonAI.start();
+    console.log("\nFinal Results:", results);
+  } catch (error) {
+    console.error("Error:", error);
+  }
 }
 
 main();
@@ -181,6 +188,7 @@ main();
 ### Running the Examples
 
 1. First, set up your environment variables:
+
 ```bash
 export OPENAI_API_KEY='your-api-key'
 ```
@@ -188,6 +196,7 @@ export OPENAI_API_KEY='your-api-key'
 2. Create a new TypeScript file (e.g., `example.ts`) with any of the above examples.
 
 3. Run the example:
+
 ```bash
 npx ts-node example.ts
 ```
@@ -246,4 +255,3 @@ npx ts-node examples/simple/multi-agent.ts
 ```bash
 npm run test
 ```
-

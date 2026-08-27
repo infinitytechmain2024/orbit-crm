@@ -1,11 +1,6 @@
 // Plugin Sdk Doc Metadata script supports OpenClaw repository automation.
 export type PluginSdkDocCategory =
-  | "channel"
-  | "core"
-  | "legacy"
-  | "provider"
-  | "runtime"
-  | "utilities";
+  "channel" | "core" | "legacy" | "provider" | "runtime" | "utilities";
 
 type PluginSdkDocMetadata = {
   category: PluginSdkDocCategory;

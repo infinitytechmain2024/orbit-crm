@@ -292,9 +292,7 @@ function repairEntryWithCorruptedImageBlocks(entry: SessionMessageEntry): {
 }
 
 type UserEntryRepair =
-  | { kind: "drop" }
-  | { kind: "rewrite"; entry: SessionMessageEntry }
-  | { kind: "keep" };
+  { kind: "drop" } | { kind: "rewrite"; entry: SessionMessageEntry } | { kind: "keep" };
 
 function repairUserEntryWithBlankTextContent(entry: SessionMessageEntry): UserEntryRepair {
   const content = entry.message.content;

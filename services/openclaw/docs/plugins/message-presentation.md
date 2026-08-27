@@ -47,8 +47,7 @@ type MessagePresentationBlock =
   | { type: "select"; placeholder?: string; options: MessagePresentationOption[] };
 
 type MessagePresentationAction =
-  | { type: "command"; command: string }
-  | { type: "callback"; value: string };
+  { type: "command"; command: string } | { type: "callback"; value: string };
 
 type MessagePresentationButton = {
   label: string;

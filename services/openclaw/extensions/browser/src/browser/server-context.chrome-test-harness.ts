@@ -15,10 +15,11 @@ vi.mock("./chrome.js", () => ({
     message: "mock CDP diagnostic",
     elapsedMs: 1,
   })),
-  formatChromeCdpDiagnostic: vi.fn((diagnostic: { ok: boolean; code?: string; message?: string }) =>
-    diagnostic.ok
-      ? "CDP diagnostic: ready."
-      : `CDP diagnostic: ${diagnostic.code}; ${diagnostic.message}.`,
+  formatChromeCdpDiagnostic: vi.fn(
+    (diagnostic: { ok: boolean; code?: string; message?: string }) =>
+      diagnostic.ok
+        ? "CDP diagnostic: ready."
+        : `CDP diagnostic: ${diagnostic.code}; ${diagnostic.message}.`,
   ),
   isChromeCdpReady: vi.fn(async () => true),
   isChromeReachable: vi.fn(async () => true),

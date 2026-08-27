@@ -625,8 +625,7 @@ describe("google web search provider", () => {
 
     const body = parseGeminiFetchBody(mockFetch);
     const filter = body.tools?.[0]?.google_search?.timeRangeFilter as
-      | { startTime: string; endTime: string }
-      | undefined;
+      { startTime: string; endTime: string } | undefined;
     expect(filter?.startTime).not.toMatch(/\.\d+Z$/);
     expect(filter?.endTime).not.toMatch(/\.\d+Z$/);
     expect(filter).toEqual({

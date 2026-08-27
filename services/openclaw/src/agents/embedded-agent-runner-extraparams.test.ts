@@ -2639,8 +2639,7 @@ describe("applyExtraParamsToAgent", () => {
         baseUrl: (params.context.model as Record<string, unknown> | undefined)?.baseUrl,
         headerAuth: (
           (params.context.model as Record<string, unknown> | undefined)?.headers as
-            | Record<string, unknown>
-            | undefined
+            Record<string, unknown> | undefined
         )?.["X-Test"],
       },
     }));

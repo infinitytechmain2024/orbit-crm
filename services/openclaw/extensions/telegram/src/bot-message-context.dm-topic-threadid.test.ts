@@ -49,8 +49,7 @@ describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#889
 
   function expectRecordedRoute(params: { to: string; threadId?: string }) {
     const updateLastRoute = getRecordedUpdateLastRoute(0) as
-      | { threadId?: string; to?: string }
-      | undefined;
+      { threadId?: string; to?: string } | undefined;
     if (!updateLastRoute) {
       throw new Error("expected recorded Telegram route");
     }

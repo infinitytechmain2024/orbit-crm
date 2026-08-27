@@ -67,10 +67,8 @@ export function getRecordedUpdateLastRoute(callIndex = -1): unknown {
   const callArgs =
     callIndex === -1
       ? (recordInboundSessionMock.mock.calls.at(-1)?.[0] as
-          | { updateLastRoute?: unknown }
-          | undefined)
+          { updateLastRoute?: unknown } | undefined)
       : (recordInboundSessionMock.mock.calls[callIndex]?.[0] as
-          | { updateLastRoute?: unknown }
-          | undefined);
+          { updateLastRoute?: unknown } | undefined);
   return callArgs?.updateLastRoute;
 }

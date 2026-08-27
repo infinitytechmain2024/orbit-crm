@@ -177,8 +177,7 @@ describe("createOpenClawCodingTools", () => {
       properties?: Record<string, unknown>;
     };
     const action = parameters.properties?.action as
-      | { const?: unknown; enum?: unknown[] }
-      | undefined;
+      { const?: unknown; enum?: unknown[] } | undefined;
     const values = new Set<string>();
     collectActionValues(action, values);
 
@@ -978,8 +977,7 @@ describe("createOpenClawCodingTools", () => {
         properties?: Record<string, unknown>;
       };
       const action = parameters.properties?.action as
-        | { const?: unknown; enum?: unknown[] }
-        | undefined;
+        { const?: unknown; enum?: unknown[] } | undefined;
       const values = new Set<string>();
       collectActionValues(action, values);
 
@@ -1497,11 +1495,9 @@ describe("createOpenClawCodingTools", () => {
       });
 
       const imageBlocks = imageResult?.content?.filter((block) => block.type === "image") as
-        | Array<{ mimeType?: string }>
-        | undefined;
+        Array<{ mimeType?: string }> | undefined;
       const imageTextBlocks = imageResult?.content?.filter((block) => block.type === "text") as
-        | Array<{ text?: string }>
-        | undefined;
+        Array<{ text?: string }> | undefined;
       const imageText = imageTextBlocks?.map((block) => block.text ?? "").join("\n") ?? "";
       expect(imageText).toContain("Read image file [image/png]");
       if ((imageBlocks?.length ?? 0) > 0) {
@@ -1582,8 +1578,7 @@ describe("createOpenClawCodingTools", () => {
       });
 
       const textBlocks = result?.content?.filter((block) => block.type === "text") as
-        | Array<{ text?: string }>
-        | undefined;
+        Array<{ text?: string }> | undefined;
       const combinedText = textBlocks?.map((block) => block.text ?? "").join("\n");
       expect(combinedText).toContain("hello universe");
     } finally {

@@ -488,8 +488,7 @@ describe("feishuOutbound.sendPayload native cards", () => {
     }
     expect(rendered.text).toBe("Approval\n\nApprove the request?\n\n- Approve");
     const renderedChannelData = rendered.channelData as
-      | { feishu?: { card?: Record<string, any> } }
-      | undefined;
+      { feishu?: { card?: Record<string, any> } } | undefined;
     const renderedCard = renderedChannelData?.feishu?.card;
     expect(renderedCard?.schema).toBe("2.0");
     expect(renderedCard?.header).toEqual({
@@ -570,8 +569,7 @@ describe("feishuOutbound.sendPayload native cards", () => {
     }
     expect(rendered.text).toBe("- Open app: https://example.com/app");
     const renderedChannelData = rendered.channelData as
-      | { feishu?: { card?: Record<string, any> } }
-      | undefined;
+      { feishu?: { card?: Record<string, any> } } | undefined;
     expect(renderedChannelData?.feishu?.card?.body?.elements).toEqual([
       {
         tag: "button",
@@ -604,8 +602,7 @@ describe("feishuOutbound.sendPayload native cards", () => {
       throw new Error("expected Feishu presentation renderer to return a payload");
     }
     const renderedChannelData = rendered.channelData as
-      | { feishu?: { card?: Record<string, any> } }
-      | undefined;
+      { feishu?: { card?: Record<string, any> } } | undefined;
     const renderedCard = renderedChannelData?.feishu?.card;
     expect(renderedCard?.header).toEqual({
       title: { tag: "plain_text", content: "Status" },

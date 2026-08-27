@@ -189,8 +189,7 @@ function resolvePayloadTelegramInlineButtons(
   payload: ReplyPayload,
 ): TelegramInlineButtons | undefined {
   const telegramData = payload.channelData?.telegram as
-    | { buttons?: TelegramInlineButtons }
-    | undefined;
+    { buttons?: TelegramInlineButtons } | undefined;
   const presentation = normalizeMessagePresentation(payload.presentation);
   return resolveTelegramInlineButtons({
     buttons: telegramData?.buttons,

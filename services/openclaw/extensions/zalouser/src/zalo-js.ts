@@ -1117,8 +1117,7 @@ export async function listZaloGroupMembers(
   return await withZaloApi(profile, async (api) => {
     const infoResponse = await api.getGroupInfo(groupId);
     const groupInfo = infoResponse.gridInfoMap?.[groupId] as
-      | (GroupInfo & { memVerList?: unknown })
-      | undefined;
+      (GroupInfo & { memVerList?: unknown }) | undefined;
     if (!groupInfo) {
       return [];
     }
@@ -1199,8 +1198,7 @@ export async function resolveZaloGroupContext(
   return await withZaloApi(profile, async (api) => {
     const response = await api.getGroupInfo(normalizedGroupId);
     const groupInfo = response.gridInfoMap?.[normalizedGroupId] as
-      | (GroupInfo & { currentMems?: unknown[]; memVerList?: unknown[] })
-      | undefined;
+      (GroupInfo & { currentMems?: unknown[]; memVerList?: unknown[] }) | undefined;
     const context: ZaloGroupContext = {
       groupId: normalizedGroupId,
       name: normalizeOptionalString(groupInfo?.name),

@@ -98,8 +98,7 @@ describe("browser action input wait command", () => {
     await program.parseAsync(["browser", "wait", "--time", "+025000"], { from: "user" });
 
     const options = mocks.callBrowserRequest.mock.calls.at(-1)?.[2] as
-      | { timeoutMs?: number }
-      | undefined;
+      { timeoutMs?: number } | undefined;
     expect(options?.timeoutMs).toBeGreaterThan(25000);
   });
 
@@ -111,8 +110,7 @@ describe("browser action input wait command", () => {
     });
 
     const options = mocks.callBrowserRequest.mock.calls.at(-1)?.[2] as
-      | { timeoutMs?: number }
-      | undefined;
+      { timeoutMs?: number } | undefined;
     expect(options?.timeoutMs).toBeGreaterThan(21000);
   });
 
@@ -183,11 +181,9 @@ describe("browser action input evaluate command", () => {
     );
 
     const request = mocks.callBrowserRequest.mock.calls.at(-1)?.[1] as
-      | { body?: { timeoutMs?: number } }
-      | undefined;
+      { body?: { timeoutMs?: number } } | undefined;
     const options = mocks.callBrowserRequest.mock.calls.at(-1)?.[2] as
-      | { timeoutMs?: number }
-      | undefined;
+      { timeoutMs?: number } | undefined;
     expect(request?.body?.timeoutMs).toBe(30000);
     expect(options?.timeoutMs).toBeGreaterThan(30000);
   });

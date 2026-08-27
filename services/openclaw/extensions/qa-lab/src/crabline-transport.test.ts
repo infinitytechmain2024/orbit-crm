@@ -859,8 +859,7 @@ describe("crabline transport", () => {
 
         const config = transport.createGatewayConfig({ baseUrl: "http://127.0.0.1:1" });
         const telegram = config.channels?.telegram as
-          | { apiRoot?: string; botToken?: string }
-          | undefined;
+          { apiRoot?: string; botToken?: string } | undefined;
         expect(telegram?.apiRoot).toBeTruthy();
         expect(telegram?.botToken).toBeTruthy();
         const { response, release } = await fetchWithSsrFGuard({

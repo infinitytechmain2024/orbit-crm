@@ -11,6 +11,7 @@ In hierarchical multi-agent workflows, tools often default to generic values lik
 This solution uses four existing PraisonAI features to ensure domain context is properly maintained:
 
 ### 1. **Custom Tool Wrappers**
+
 ```python
 def create_domain_aware_tools(target_domain: str):
     def query_fofa(query: str = None) -> dict:
@@ -20,10 +21,11 @@ def create_domain_aware_tools(target_domain: str):
 ```
 
 ### 2. **Agent Instructions**
+
 ```python
 agent = Agent(
     instructions=f"""
-    CRITICAL DOMAIN CONTEXT: You are working exclusively with the domain '{domain}'. 
+    CRITICAL DOMAIN CONTEXT: You are working exclusively with the domain '{domain}'.
     All operations, tool calls, and analysis must focus on this specific domain.
     Never use example.com or generic examples - always use {domain}.
     """,
@@ -32,6 +34,7 @@ agent = Agent(
 ```
 
 ### 3. **Task Context Parameter**
+
 ```python
 task = Task(
     description=f"Analyze domain {domain}",
@@ -41,6 +44,7 @@ task = Task(
 ```
 
 ### 4. **Shared Memory**
+
 ```python
 agents = PraisonAIAgents(
     agents=[agent1, agent2],

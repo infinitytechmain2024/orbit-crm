@@ -29,10 +29,7 @@ const NODE_READ_ACTION_COMMANDS = {
 } as const;
 
 export type NodeCommandAction =
-  | keyof typeof NODE_READ_ACTION_COMMANDS
-  | "notifications_action"
-  | "location_get"
-  | "invoke";
+  keyof typeof NODE_READ_ACTION_COMMANDS | "notifications_action" | "location_get" | "invoke";
 
 export async function executeNodeCommandAction(params: {
   action: NodeCommandAction;

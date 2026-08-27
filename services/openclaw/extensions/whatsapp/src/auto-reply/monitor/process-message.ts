@@ -103,8 +103,7 @@ function shouldEmitWhatsAppMessageReceivedHooks(params: {
   accountId?: string;
 }): boolean {
   const channelConfig = params.cfg.channels?.whatsapp as
-    | WhatsAppMessageReceivedHookConfig
-    | undefined;
+    WhatsAppMessageReceivedHookConfig | undefined;
   const accountConfig =
     params.accountId && channelConfig?.accounts
       ? channelConfig.accounts[params.accountId]

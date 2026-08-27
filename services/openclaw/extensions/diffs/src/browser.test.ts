@@ -141,8 +141,7 @@ describe("PlaywrightDiffScreenshotter", () => {
     expect(pages).toHaveLength(1);
     expect(pages[0]?.pdf).toHaveBeenCalledTimes(1);
     const pdfCall = firstMockCall(pages[0]?.pdf, "PDF render")[0] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (!pdfCall) {
       throw new Error("expected PDF render call");
     }

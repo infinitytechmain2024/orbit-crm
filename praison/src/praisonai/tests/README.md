@@ -35,6 +35,7 @@ tests/
 ## 🧪 Test Categories
 
 ### 1. Unit Tests (`tests/unit/`)
+
 Fast, isolated tests for core functionality:
 
 - **Core Agents** (`test_core_agents.py`)
@@ -56,6 +57,7 @@ Fast, isolated tests for core functionality:
   - API endpoint simulation
 
 ### 2. Integration Tests (`tests/integration/`)
+
 Complex tests for integrated systems:
 
 - **MCP Integration** (`test_mcp_integration.py`)
@@ -78,6 +80,7 @@ Complex tests for integrated systems:
 ## 🚀 Running Tests
 
 ### Quick Start
+
 ```bash
 # Run all tests with the comprehensive test runner
 python tests/test_runner.py
@@ -95,7 +98,9 @@ python tests/test_runner.py --markers "not slow"
 ### Alternative Test Runners
 
 #### Simple Test Runner (No pytest dependency at import)
+
 If you encounter pytest import issues, use the simple test runner:
+
 ```bash
 # Run all tests via subprocess (works without pytest import)
 python tests/simple_test_runner.py
@@ -108,7 +113,9 @@ python tests/simple_test_runner.py --unit
 ```
 
 #### Basic Diagnostic Tests
+
 For quick system validation:
+
 ```bash
 # Run basic Python and import tests
 python tests/test_basic.py
@@ -117,21 +124,24 @@ python tests/test_basic.py
 ### 🔧 Troubleshooting Test Issues
 
 #### Pytest Import Errors
+
 If you see `ModuleNotFoundError: No module named 'pytest'`:
 
 1. **Use the simple test runner** (recommended):
+
    ```bash
    python tests/simple_test_runner.py --fast
    ```
 
 2. **Install pytest in your environment**:
+
    ```bash
    # For UV (if using UV virtual env)
    uv pip install pytest pytest-asyncio
-   
+
    # For pip
    pip install pytest pytest-asyncio
-   
+
    # For conda
    conda install pytest pytest-asyncio
    ```
@@ -142,7 +152,9 @@ If you see `ModuleNotFoundError: No module named 'pytest'`:
    ```
 
 #### Environment Setup Issues
+
 The test runners have been designed to handle common environment issues:
+
 - **Automatic fallback**: If pytest import fails, falls back to subprocess
 - **Path handling**: Automatically sets up Python paths for imports
 - **Mock environments**: Sets up test API keys and configurations
@@ -151,13 +163,15 @@ The test runners have been designed to handle common environment issues:
 #### Known Test Issues and Solutions
 
 ##### 1. LiteLLM Attribute Errors
+
 **Issue**: `AttributeError: <module 'praisonaiagents.llm.llm'> does not have the attribute 'litellm'`
 
 **Cause**: Some tests attempt to mock `praisonaiagents.llm.llm.litellm` but this attribute path may not exist in the current codebase structure.
 
 **Solution**: These are primarily in integration tests for base URL mapping. The tests may need updates to match the current code structure.
 
-##### 2. Agent Attribute Errors  
+##### 2. Agent Attribute Errors
+
 **Issue**: `AttributeError: 'Agent' object has no attribute 'llm'` or missing `knowledge_config`
 
 **Cause**: Test expectations don't match the current Agent class implementation.
@@ -165,6 +179,7 @@ The test runners have been designed to handle common environment issues:
 **Solution**: Tests may need updating to reflect the current Agent class API.
 
 ##### 3. DuckDuckGo Rate Limiting
+
 **Issue**: `Error during DuckDuckGo search: https://lite.duckduckgo.com/lite/ 202 Ratelimit`
 
 **Cause**: External API rate limiting during test execution.
@@ -172,6 +187,7 @@ The test runners have been designed to handle common environment issues:
 **Solution**: Tests include proper mocking to avoid external dependencies.
 
 ##### 4. Legacy Test Output Format
+
 **Issue**: `TypeError: argument of type 'NoneType' is not iterable` in legacy tests
 
 **Cause**: Some example functions return `None` instead of expected string outputs.
@@ -195,6 +211,7 @@ pytest tests/unit/agent/test_mini_agents_fix.py -v
 ```
 
 ### Using Pytest Directly
+
 ```bash
 # Run all unit tests
 pytest tests/unit/ -v
@@ -214,7 +231,9 @@ pytest tests/ -m "not slow" -v
 ```
 
 ### GitHub Actions
+
 The comprehensive test suite runs automatically on push/pull request with:
+
 - Multiple Python versions (3.9, 3.10, 3.11)
 - All test categories
 - Coverage reporting
@@ -222,6 +241,7 @@ The comprehensive test suite runs automatically on push/pull request with:
 - Example script validation
 
 **Note**: GitHub Actions may show some test failures due to:
+
 - External API rate limits
 - Evolving codebase with comprehensive test coverage
 - Integration tests for experimental features
@@ -231,12 +251,14 @@ The key indicator is that core functionality tests pass and the build completes 
 ## 🔧 Key Features Tested
 
 ### Core Functionality
+
 - ✅ Agent creation and configuration
 - ✅ Task management and execution
 - ✅ LLM integrations (OpenAI, Anthropic, Gemini, Ollama, DeepSeek)
 - ✅ Multi-agent workflows (sequential, hierarchical, workflow)
 
 ### Advanced Features
+
 - ✅ **Async Operations**: Async agents, tasks, and tools
 - ✅ **RAG (Retrieval Augmented Generation)**: Knowledge bases, vector stores
 - ✅ **MCP (Model Context Protocol)**: Server connections and tool execution
@@ -244,12 +266,14 @@ The key indicator is that core functionality tests pass and the build completes 
 - ✅ **Multi-modal Tools**: Image, audio, and document processing
 
 ### Integrations
+
 - ✅ **Search Tools**: DuckDuckGo, web scraping
 - ✅ **UI Frameworks**: Gradio, Streamlit, Chainlit
 - ✅ **API Endpoints**: REST API simulation and testing
 - ✅ **Vector Stores**: ChromaDB, Pinecone, Weaviate support
 
 ### Error Handling & Performance
+
 - ✅ **Error Recovery**: Tool failures, connection errors
 - ✅ **Performance**: Agent creation, import speed
 - ✅ **Compatibility**: Base URL mapping, provider switching
@@ -257,7 +281,9 @@ The key indicator is that core functionality tests pass and the build completes 
 ## 📊 Test Configuration
 
 ### Fixtures (`conftest.py`)
+
 Common test fixtures available across all tests:
+
 - `mock_llm_response`: Mock LLM API responses
 - `sample_agent_config`: Standard agent configuration
 - `sample_task_config`: Standard task configuration
@@ -266,13 +292,17 @@ Common test fixtures available across all tests:
 - `temp_directory`: Temporary file system for tests
 
 ### Environment Variables
+
 Tests automatically set up mock environment variables:
+
 - `OPENAI_API_KEY=test-key`
 - `ANTHROPIC_API_KEY=test-key`
 - `GOOGLE_API_KEY=test-key`
 
 ### Markers
+
 Custom pytest markers for test organization:
+
 - `@pytest.mark.asyncio`: Async tests
 - `@pytest.mark.slow`: Long-running tests
 - `@pytest.mark.integration`: Integration tests
@@ -281,7 +311,9 @@ Custom pytest markers for test organization:
 ## 🔍 Adding New Tests
 
 ### 1. Unit Tests
+
 Add to `tests/unit/` for isolated functionality:
+
 ```python
 def test_new_feature(sample_agent_config):
     """Test new feature functionality."""
@@ -291,7 +323,9 @@ def test_new_feature(sample_agent_config):
 ```
 
 ### 2. Integration Tests
+
 Add to `tests/integration/` for complex workflows:
+
 ```python
 @pytest.mark.asyncio
 async def test_complex_workflow(mock_vector_store):
@@ -302,7 +336,9 @@ async def test_complex_workflow(mock_vector_store):
 ```
 
 ### 3. Async Tests
+
 Use the `@pytest.mark.asyncio` decorator:
+
 ```python
 @pytest.mark.asyncio
 async def test_async_functionality():
@@ -321,6 +357,7 @@ async def test_async_functionality():
 ## 📊 Interpreting Test Results
 
 ### Expected Test Status
+
 Due to the comprehensive nature of the test suite and some evolving APIs:
 
 - **✅ Always Pass**: Basic agent creation, type casting, async tools, UI configurations
@@ -328,17 +365,22 @@ Due to the comprehensive nature of the test suite and some evolving APIs:
 - **🔄 In Development**: MCP integration tests, advanced agent orchestration
 
 ### Success Criteria
+
 A successful test run should have:
+
 - ✅ Core agent functionality working
 - ✅ Basic task creation and execution
 - ✅ Tool integration capabilities
 - ✅ UI framework configurations
 
 ### Test Result Summary Example
+
 ```
 54 passed, 25 failed, 28 warnings
 ```
+
 This is **normal and expected** during development. The key metrics are:
+
 - Core functionality tests passing
 - No critical import or setup failures
 - Warnings are generally acceptable (deprecated dependencies, etc.)
@@ -346,15 +388,18 @@ This is **normal and expected** during development. The key metrics are:
 ## 🛠️ Dependencies
 
 ### Core Testing
+
 - `pytest`: Test framework
 - `pytest-asyncio`: Async test support
 - `pytest-cov`: Coverage reporting
 
 ### Mocking
+
 - `unittest.mock`: Built-in mocking
 - Mock external APIs and services
 
 ### Test Data
+
 - Temporary directories for file operations
 - Mock configurations for all integrations
 - Sample data for various scenarios
@@ -372,6 +417,7 @@ This is **normal and expected** during development. The key metrics are:
 ## 🔄 Continuous Integration
 
 The test suite integrates with GitHub Actions for:
+
 - Automated testing on all PRs
 - Multi-Python version compatibility
 - Performance regression detection
@@ -380,9 +426,11 @@ The test suite integrates with GitHub Actions for:
 ## ⚡ Recent Improvements
 
 ### Pytest Import Issue Fixes
+
 The testing framework has been enhanced to handle common import issues:
 
 #### Problem
+
 - Original `test_runner.py` had `import pytest` at the top level
 - When pytest wasn't available in the Python environment, tests failed immediately
 - Different package managers (uv, pip, conda) install packages in different locations
@@ -406,6 +454,7 @@ The testing framework has been enhanced to handle common import issues:
    - ✅ Provides detailed diagnostic information
 
 #### Backward Compatibility
+
 - ✅ All existing tests remain unchanged
 - ✅ GitHub Actions workflows continue to work
 - ✅ Legacy test.py still runs as before
@@ -414,6 +463,7 @@ The testing framework has been enhanced to handle common import issues:
 ## 📞 Support
 
 For questions about testing:
+
 1. Check this README for guidance
 2. Review existing tests for patterns
 3. Check the `conftest.py` for available fixtures
@@ -423,22 +473,25 @@ For questions about testing:
 ### Reporting Test Issues
 
 **When to report an issue:**
+
 - ✅ All tests fail due to import errors
 - ✅ Basic agent creation fails
 - ✅ Core functionality completely broken
 - ✅ Test runner scripts don't execute
 
 **Normal behavior (not issues):**
+
 - ❌ Some integration tests fail (25-30% failure rate expected)
 - ❌ External API rate limiting (DuckDuckGo, etc.)
 - ❌ LiteLLM attribute errors in specific tests
 - ❌ Deprecation warnings from dependencies
 
 **Quick Health Check:**
+
 ```bash
 # This should work without major issues
 python tests/simple_test_runner.py --fast
 
 # If this fails, there may be a real problem
 python tests/test_basic.py
-``` 
+```

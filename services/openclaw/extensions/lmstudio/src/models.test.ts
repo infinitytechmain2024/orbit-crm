@@ -350,8 +350,7 @@ describe("lmstudio-models", () => {
       ([url]) => url === "http://localhost:1234/api/v1/models",
     );
     const modelsRequestOptions = modelsRequest?.[1] as
-      | { headers?: Record<string, string>; signal?: unknown }
-      | undefined;
+      { headers?: Record<string, string>; signal?: unknown } | undefined;
     expect(modelsRequestOptions?.headers).toEqual({
       Authorization: "Bearer lm-token",
     });

@@ -1,6 +1,7 @@
 ---
 description: Set up and start the local Google Maps scraper (Docker)
 ---
+
 Set up the Google Maps scraper on this computer:
 
 1. Confirm Docker is installed and running: `docker ps`. If it errors, tell the user to install/start **Docker Desktop** (link in `SETUP.md` §0) and stop here.

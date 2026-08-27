@@ -920,8 +920,7 @@ describe("imessage message actions", () => {
         }
       | undefined {
       const call = runtimeMock.sendRichMessage.mock.calls.at(-1)?.[0] as
-        | { attachment?: { kind: string; buffer?: Uint8Array; filename?: string } }
-        | undefined;
+        { attachment?: { kind: string; buffer?: Uint8Array; filename?: string } } | undefined;
       return call?.attachment;
     }
 

@@ -45,8 +45,7 @@ export type MattermostInteractionResponse = {
 };
 
 type MattermostInteractionAuthorizationResult =
-  | { ok: true }
-  | { ok: false; statusCode?: number; response?: MattermostInteractionResponse };
+  { ok: true } | { ok: false; statusCode?: number; response?: MattermostInteractionResponse };
 
 export type MattermostInteractiveButtonInput = {
   id?: string;

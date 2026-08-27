@@ -2,9 +2,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
 export type TelegramMessageProcessingResult =
-  | { kind: "completed" }
-  | { kind: "skipped" }
-  | { kind: "failed-retryable"; error: unknown };
+  { kind: "completed" } | { kind: "skipped" } | { kind: "failed-retryable"; error: unknown };
 
 type TelegramUpdateProcessingFrame = {
   result?: TelegramMessageProcessingResult;
@@ -137,8 +135,7 @@ export function createTelegramSpooledReplayDeferredParticipant(
 }
 
 export function getTelegramSpooledReplayDeferredParticipant():
-  | TelegramSpooledReplayDeferredParticipant
-  | undefined {
+  TelegramSpooledReplayDeferredParticipant | undefined {
   return telegramSpooledReplayFrames.getStore()?.deferredWork;
 }
 

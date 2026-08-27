@@ -11,9 +11,7 @@ const RESEED_USER_BOUNDARY = "\n</conversation_history>\n\n<next_user_message>\n
 const RESEED_USER_CLOSE = "\n</next_user_message>";
 
 type ParsedCliReseedPrompt =
-  | { kind: "none" }
-  | { kind: "legacy"; userMessage: string }
-  | { kind: "invalid" };
+  { kind: "none" } | { kind: "legacy"; userMessage: string } | { kind: "invalid" };
 
 export function hashCliReseedPrompt(text: string): string {
   return crypto.createHash("sha256").update(text).digest("hex");

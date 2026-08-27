@@ -14,8 +14,7 @@ export type StdioMcpServerLaunchConfig = {
 };
 
 type StdioMcpServerLaunchResult =
-  | { ok: true; config: StdioMcpServerLaunchConfig }
-  | { ok: false; reason: string };
+  { ok: true; config: StdioMcpServerLaunchConfig } | { ok: false; reason: string };
 
 /** Resolve raw MCP server config into a stdio launch config. */
 export function resolveStdioMcpServerLaunchConfig(

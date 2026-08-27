@@ -88,12 +88,10 @@ describe("codex plugin", () => {
     const providerRegistration = mockCallArg(registerProvider) as Record<string, unknown>;
     const agentHarnessRegistration = mockCallArg(registerAgentHarness) as Record<string, unknown>;
     const mediaProviderRegistration = mockCallArg(registerMediaUnderstandingProvider) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const inboundClaimRegistration = mockCall(on) as [unknown, unknown] | undefined;
     const bindingResolvedRegistration = mockCall(onConversationBindingResolved) as
-      | [unknown]
-      | undefined;
+      [unknown] | undefined;
 
     expect(providerRegistration.id).toBe("codex");
     expect(providerRegistration.label).toBe("Codex");
@@ -109,8 +107,7 @@ describe("codex plugin", () => {
     expect(typeof mediaProviderRegistration?.describeImage).toBe("function");
     expect(typeof mediaProviderRegistration?.describeImages).toBe("function");
     const webSearchRegistration = mockCallArg(registerWebSearchProvider) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(webSearchRegistration?.id).toBe("codex");
     expect(webSearchRegistration?.label).toBe("Codex Hosted Search");
     expect(webSearchRegistration?.requiresCredential).toBe(false);
@@ -121,8 +118,7 @@ describe("codex plugin", () => {
       "Inspect and control the Codex app-server harness",
     );
     const migrationRegistration = mockCallArg(registerMigrationProvider) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(migrationRegistration?.id).toBe("codex");
     expect(migrationRegistration?.label).toBe("Codex");
     expect(registerTool).toHaveBeenCalledWith(expect.any(Function), { name: "codex_threads" });

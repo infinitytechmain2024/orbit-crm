@@ -1,4 +1,4 @@
-import { Agent, PraisonAIAgents } from 'praisonai';
+import { Agent, PraisonAIAgents } from "praisonai";
 
 // Create recipe agent
 const recipeAgent = new Agent({
@@ -12,7 +12,7 @@ Each recipe should include:
 
 Format your response in markdown.`,
   name: "RecipeAgent",
-  verbose: true
+  verbose: true,
 });
 
 // Create blog agent
@@ -30,28 +30,26 @@ Here are the recipes to write about:
 
 Format your response in markdown.`,
   name: "BlogAgent",
-  verbose: true
+  verbose: true,
 });
 
 // Create PraisonAIAgents instance with tasks
 const agents = new PraisonAIAgents({
   agents: [recipeAgent, blogAgent],
-  tasks: [
-    "Create 5 healthy and delicious recipes",
-    "Write a blog post about the recipes"
-  ],
-  verbose: true
+  tasks: ["Create 5 healthy and delicious recipes", "Write a blog post about the recipes"],
+  verbose: true,
 });
 
 // Chat with agents
-agents.chat()
-  .then(results => {
-    console.log('\nFinal Results:');
-    console.log('\nRecipe Task Results:');
+agents
+  .chat()
+  .then((results) => {
+    console.log("\nFinal Results:");
+    console.log("\nRecipe Task Results:");
     console.log(results[0]);
-    console.log('\nBlog Task Results:');
+    console.log("\nBlog Task Results:");
     console.log(results[1]);
   })
-  .catch(error => {
-    console.error('Error:', error);
+  .catch((error) => {
+    console.error("Error:", error);
   });

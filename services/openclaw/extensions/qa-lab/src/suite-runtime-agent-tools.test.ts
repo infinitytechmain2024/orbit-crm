@@ -23,21 +23,17 @@ const stdioTransportMock = vi.hoisted(() =>
 );
 
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: vi
-    .fn()
-    .mockImplementation(
-      function Client(this: {
-        connect?: typeof connectMock;
-        listTools?: typeof listToolsMock;
-        callTool?: typeof callToolMock;
-        close?: typeof closeMock;
-      }) {
-        this.connect = connectMock;
-        this.listTools = listToolsMock;
-        this.callTool = callToolMock;
-        this.close = closeMock;
-      },
-    ),
+  Client: vi.fn().mockImplementation(function Client(this: {
+    connect?: typeof connectMock;
+    listTools?: typeof listToolsMock;
+    callTool?: typeof callToolMock;
+    close?: typeof closeMock;
+  }) {
+    this.connect = connectMock;
+    this.listTools = listToolsMock;
+    this.callTool = callToolMock;
+    this.close = closeMock;
+  }),
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
@@ -217,8 +213,7 @@ describe("qa suite runtime agent tools helpers", () => {
     });
     callToolMock.mockImplementationOnce(async () => {
       const stderrListener = stderrOnMock.mock.calls[0]?.[1] as
-        | ((chunk: unknown) => void)
-        | undefined;
+        ((chunk: unknown) => void) | undefined;
       stderrListener?.(Buffer.from(`old stderr${"x".repeat(12_000)}\nrecent MCP stderr tail`));
       throw new Error("tool call failed");
     });
@@ -250,8 +245,7 @@ describe("qa suite runtime agent tools helpers", () => {
   it("keeps plugin-tools MCP stderr on startup failures", async () => {
     connectMock.mockImplementationOnce(async () => {
       const stderrListener = stderrOnMock.mock.calls[0]?.[1] as
-        | ((chunk: unknown) => void)
-        | undefined;
+        ((chunk: unknown) => void) | undefined;
       stderrListener?.(
         Buffer.from("Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@openclaw/example'\n"),
       );

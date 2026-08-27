@@ -91,7 +91,11 @@ export function TaskCalendar({ onCreateDate, onSelectTask }: TaskCalendarProps) 
   const [filters, setFilters] = useState<TaskFilters>({ ...DEFAULT_TASK_FILTERS });
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [quickTaskModal, setQuickTaskModal] = useState<{ open: boolean; date: string; hour?: number }>({
+  const [quickTaskModal, setQuickTaskModal] = useState<{
+    open: boolean;
+    date: string;
+    hour?: number;
+  }>({
     open: false,
     date: todayLocalIsoDate(),
   });
@@ -538,7 +542,14 @@ type SharedViewProps = {
   onCellClick?: (date: string, hour?: number) => void;
 };
 
-function MonthView({ currentDate, tasks, today, isMutating, onCellClick, ...rest }: SharedViewProps) {
+function MonthView({
+  currentDate,
+  tasks,
+  today,
+  isMutating,
+  onCellClick,
+  ...rest
+}: SharedViewProps) {
   const monthStart = startOfMonth(currentDate);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: WEEK_STARTS_ON });
   const gridEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: WEEK_STARTS_ON });
@@ -610,7 +621,15 @@ function MonthView({ currentDate, tasks, today, isMutating, onCellClick, ...rest
   );
 }
 
-function WeekView({ currentDate, tasks, today, isMutating, onCellClick, onTimeDrop, ...rest }: SharedViewProps) {
+function WeekView({
+  currentDate,
+  tasks,
+  today,
+  isMutating,
+  onCellClick,
+  onTimeDrop,
+  ...rest
+}: SharedViewProps) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: WEEK_STARTS_ON });
   const days = eachDayOfInterval({
     start: weekStart,
@@ -702,7 +721,15 @@ function getTaskHour(task: Task): number {
   return 9;
 }
 
-function DayView({ currentDate, tasks, today, isMutating, onCellClick, onTimeDrop, ...rest }: SharedViewProps) {
+function DayView({
+  currentDate,
+  tasks,
+  today,
+  isMutating,
+  onCellClick,
+  onTimeDrop,
+  ...rest
+}: SharedViewProps) {
   const dayDate = localDateStr(currentDate);
   const isToday = dayDate === today;
   const tasksHere = tasks.filter((task) => taskMatchesDate(task, dayDate));

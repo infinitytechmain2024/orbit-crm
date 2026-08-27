@@ -82,9 +82,7 @@ export type CachedTokenEntry = {
 };
 
 export type FoundryProviderApi =
-  | typeof DEFAULT_API
-  | typeof DEFAULT_GPT5_API
-  | typeof ANTHROPIC_MESSAGES_API;
+  typeof DEFAULT_API | typeof DEFAULT_GPT5_API | typeof ANTHROPIC_MESSAGES_API;
 
 type FoundryDeploymentConfigInput = {
   name: string;

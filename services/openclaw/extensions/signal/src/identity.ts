@@ -4,13 +4,10 @@ import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
 import { looksLikeUuid } from "./uuid.js";
 
 export type SignalSender =
-  | { kind: "phone"; raw: string; e164: string }
-  | { kind: "uuid"; raw: string };
+  { kind: "phone"; raw: string; e164: string } | { kind: "uuid"; raw: string };
 
 type SignalAllowEntry =
-  | { kind: "any" }
-  | { kind: "phone"; e164: string }
-  | { kind: "uuid"; raw: string };
+  { kind: "any" } | { kind: "phone"; e164: string } | { kind: "uuid"; raw: string };
 
 export { looksLikeUuid } from "./uuid.js";
 

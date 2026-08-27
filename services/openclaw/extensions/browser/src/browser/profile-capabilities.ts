@@ -7,10 +7,7 @@
 import type { ResolvedBrowserProfile } from "./config.js";
 
 type BrowserProfileMode =
-  | "local-managed"
-  | "local-existing-session"
-  | "local-extension"
-  | "remote-cdp";
+  "local-managed" | "local-existing-session" | "local-extension" | "remote-cdp";
 
 type BrowserProfileCapabilities = {
   mode: BrowserProfileMode;

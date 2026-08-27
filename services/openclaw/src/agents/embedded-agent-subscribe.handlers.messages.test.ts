@@ -978,8 +978,7 @@ describe("handleMessageUpdate commentary phase", () => {
     // reply-text buffers stay untouched.
     expect(onAgentEvent).toHaveBeenCalledTimes(1);
     const commentaryEvent = firstMockArg(onAgentEvent, "agent event") as
-      | { stream?: string; data?: { delta?: string; phase?: string } }
-      | undefined;
+      { stream?: string; data?: { delta?: string; phase?: string } } | undefined;
     expect(commentaryEvent?.stream).toBe("assistant");
     expect(commentaryEvent?.data?.phase).toBe("commentary");
     expect(commentaryEvent?.data?.delta).toBe("Working...");
@@ -1002,8 +1001,7 @@ describe("handleMessageUpdate commentary phase", () => {
 
     expect(onAgentEvent).toHaveBeenCalledTimes(2);
     const event = onAgentEvent.mock.calls[1]?.[0] as
-      | { stream?: string; data?: { text?: string; delta?: string } }
-      | undefined;
+      { stream?: string; data?: { text?: string; delta?: string } } | undefined;
     expect(event?.stream).toBe("assistant");
     expect(event?.data?.text).toBe("Done.");
     expect(event?.data?.delta).toBe("Done.");
@@ -1508,8 +1506,7 @@ describe("handleMessageEnd", () => {
 
     expect(onAgentEvent).toHaveBeenCalledTimes(1);
     const event = firstMockArg(onAgentEvent, "agent event") as
-      | { stream?: string; data?: { text?: string; delta?: string; replace?: boolean } }
-      | undefined;
+      { stream?: string; data?: { text?: string; delta?: string; replace?: boolean } } | undefined;
     expect(event?.stream).toBe("assistant");
     expect(event?.data?.text).toBe("Done.");
     expect(event?.data?.delta).toBe("");

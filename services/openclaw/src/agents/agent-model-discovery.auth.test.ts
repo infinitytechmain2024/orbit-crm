@@ -99,8 +99,7 @@ describe("discoverAuthStorage", () => {
       key: "sk-ant-runtime",
     });
     const codexCredential = credentials["openai"] as
-      | { type?: string; access?: string; refresh?: string }
-      | undefined;
+      { type?: string; access?: string; refresh?: string } | undefined;
     expect(codexCredential?.type).toBe("oauth");
     expect(codexCredential?.access).toBe("oauth-access");
     expect(codexCredential?.refresh).toBe("oauth-refresh");

@@ -1401,8 +1401,7 @@ describe("microsoft-foundry plugin", () => {
     });
 
     const provider = result.configPatch?.models?.providers?.["microsoft-foundry"] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(provider?.authHeader).toBeUndefined();
     expect(Object.hasOwn(provider ?? {}, "apiKey")).toBe(true);
     expect(Object.hasOwn(provider ?? {}, "authHeader")).toBe(true);
@@ -1521,13 +1520,7 @@ describe("microsoft-foundry plugin", () => {
           params: { canonicalModelId: modelName },
         }),
       ).toMatchObject({
-        levels: [
-          { id: "off" },
-          { id: "minimal" },
-          { id: "low" },
-          { id: "medium" },
-          { id: "high" },
-        ],
+        levels: [{ id: "off" }, { id: "minimal" }, { id: "low" }, { id: "medium" }, { id: "high" }],
       });
     }
     expect(

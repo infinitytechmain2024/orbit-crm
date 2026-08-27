@@ -9,8 +9,7 @@ import {
 export type QaChannelDriverRuntime = QaTransportAdapterFactoryResult;
 
 export type QaChannelDriverLifecycleState =
-  | { status: "stopped" }
-  | { runtime: QaChannelDriverRuntime; status: "running" };
+  { status: "stopped" } | { runtime: QaChannelDriverRuntime; status: "running" };
 
 export type QaChannelDriverLifecycle = {
   readonly state: QaChannelDriverLifecycleState;
@@ -20,17 +19,12 @@ export type QaChannelDriverLifecycle = {
 };
 
 export type QaChannelDriverLifecycleScenarioId =
-  | "cold-start"
-  | "idempotent-start"
-  | "restart"
-  | "stop"
-  | "resume";
+  "cold-start" | "idempotent-start" | "restart" | "stop" | "resume";
 
 type QaChannelDriverLifecycleDeps = {
   createAdapter?: typeof createQaTransportAdapter;
   listAdapterFactories?: () =>
-    | readonly QaTransportAdapterFactory[]
-    | Promise<readonly QaTransportAdapterFactory[]>;
+    readonly QaTransportAdapterFactory[] | Promise<readonly QaTransportAdapterFactory[]>;
 };
 
 async function listAdapterFactories(): Promise<readonly QaTransportAdapterFactory[]> {

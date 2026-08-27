@@ -60,9 +60,7 @@ function isAgentRunTimeoutAbortReason(value: unknown): boolean {
 export function resolveAgentRunAbortLifecycleFields(signal: AbortSignal | undefined): {
   aborted?: true;
   stopReason?:
-    | typeof AGENT_RUN_ABORTED_STOP_REASON
-    | typeof AGENT_RUN_RESTART_ABORT_STOP_REASON
-    | "timeout";
+    typeof AGENT_RUN_ABORTED_STOP_REASON | typeof AGENT_RUN_RESTART_ABORT_STOP_REASON | "timeout";
 } {
   if (!signal?.aborted) {
     return {};
@@ -100,9 +98,7 @@ export function resolveAgentRunErrorLifecycleFields(
 ): {
   aborted?: true;
   stopReason?:
-    | typeof AGENT_RUN_ABORTED_STOP_REASON
-    | typeof AGENT_RUN_RESTART_ABORT_STOP_REASON
-    | "timeout";
+    typeof AGENT_RUN_ABORTED_STOP_REASON | typeof AGENT_RUN_RESTART_ABORT_STOP_REASON | "timeout";
   timeoutPhase?: AgentRunTimeoutPhase;
 } {
   const abortFields = resolveAgentRunAbortLifecycleFields(signal);

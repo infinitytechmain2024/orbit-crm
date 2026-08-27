@@ -12,13 +12,10 @@ import { isSenderAllowed, type NormalizedAllowFrom } from "./bot-access.js";
 import { firstDefined } from "./bot-access.js";
 
 type TelegramGroupBaseBlockReason =
-  | "group-disabled"
-  | "topic-disabled"
-  | "group-override-unauthorized";
+  "group-disabled" | "topic-disabled" | "group-override-unauthorized";
 
 type TelegramGroupBaseAccessResult =
-  | { allowed: true }
-  | { allowed: false; reason: TelegramGroupBaseBlockReason };
+  { allowed: true } | { allowed: false; reason: TelegramGroupBaseBlockReason };
 
 function isGroupAllowOverrideAuthorized(params: {
   effectiveGroupAllow: NormalizedAllowFrom;

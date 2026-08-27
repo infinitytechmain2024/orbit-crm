@@ -1455,8 +1455,7 @@ export async function runCodexAppServerAttempt(
   const projectorRef: { current?: CodexAppServerEventProjector } = {};
   let nativePreToolUseFailureFallbackActive = false;
   let nativePreToolUseFailureFallbackTerminalReason:
-    | CodexNativePreToolUseFailure["disposition"]
-    | undefined;
+    CodexNativePreToolUseFailure["disposition"] | undefined;
   const emitNativePreToolUseFailure = (failure: CodexNativePreToolUseFailure) => {
     emitCodexNativePreToolUseFailureDiagnostic({
       agentId: sessionAgentId,
@@ -1539,8 +1538,7 @@ export async function runCodexAppServerAttempt(
   let codexExecutionCwd = effectiveCwd;
   let codexSandboxPolicy: CodexSandboxPolicy | undefined;
   let restartContextEngineCodexThread:
-    | (() => Promise<CodexAppServerThreadLifecycleBinding>)
-    | undefined;
+    (() => Promise<CodexAppServerThreadLifecycleBinding>) | undefined;
   const startupTimeoutMs = resolveCodexStartupTimeoutMs({
     timeoutMs: params.timeoutMs,
     timeoutFloorMs: options.startupTimeoutFloorMs,

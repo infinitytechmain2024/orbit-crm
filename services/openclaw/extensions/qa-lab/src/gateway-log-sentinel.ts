@@ -14,17 +14,10 @@ export type GatewayLogSentinelKind =
   | "live-quota-or-subscription";
 
 export type GatewayLogSentinelVerdict =
-  | "product-bug"
-  | "qa-harness-bug"
-  | "fixture-bug"
-  | "environment-blocked";
+  "product-bug" | "qa-harness-bug" | "fixture-bug" | "environment-blocked";
 
 export type GatewayLogSentinelOwner =
-  | "plugin"
-  | "openclaw-routing"
-  | "codex-runtime"
-  | "openclaw-cron"
-  | "environment";
+  "plugin" | "openclaw-routing" | "codex-runtime" | "openclaw-cron" | "environment";
 
 export type GatewayLogSentinelFinding = {
   kind: GatewayLogSentinelKind;

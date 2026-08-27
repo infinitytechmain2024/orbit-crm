@@ -36,7 +36,10 @@ async function geocodeLocation(place: string): Promise<{ lat: number; lon: numbe
     if (!resp.ok) return null;
     const data = await resp.json();
     if (!data?.length) return null;
-    const result = { lat: parseFloat(data[0].lat as string), lon: parseFloat(data[0].lon as string) };
+    const result = {
+      lat: parseFloat(data[0].lat as string),
+      lon: parseFloat(data[0].lon as string),
+    };
     GEOCODE_CACHE.set(place, result);
     return result;
   } catch {
@@ -99,7 +102,7 @@ async function searchWithGoogleAPI(
   }
 
   const leads: LeadResult[] = [];
-  for (const place of (data.results as Array<Record<string, unknown>> || []).slice(0, limit)) {
+  for (const place of ((data.results as Array<Record<string, unknown>>) || []).slice(0, limit)) {
     const placeId = String(place["place_id"] || "");
     const details = await fetchPlaceDetails(apiKey, placeId);
     leads.push({
@@ -109,7 +112,9 @@ async function searchWithGoogleAPI(
       phone: details?.international_phone_number || "",
       email: "",
       website: details?.website || "",
-      category: Array.isArray(place["types"]) ? String(place["types"][0] || "").replace(/_/g, " ") : "",
+      category: Array.isArray(place["types"])
+        ? String(place["types"][0] || "").replace(/_/g, " ")
+        : "",
       rating: Number(place["rating"] || 0),
       reviews: Number(place["user_ratings_total"] || 0),
       source: "google_maps",
@@ -196,7 +201,7 @@ async function searchWithOverpass(
 
   if (!resp.ok) throw new Error(`Overpass API error: ${resp.status}`);
   const data = await resp.json();
-  const elements = (data.elements as Array<Record<string, unknown>> || []).slice(0, limit);
+  const elements = ((data.elements as Array<Record<string, unknown>>) || []).slice(0, limit);
 
   const leads: LeadResult[] = [];
   for (const el of elements) {
@@ -209,9 +214,10 @@ async function searchWithOverpass(
     leads.push({
       id: `osm-${String(el["id"])}`,
       business_name: tags["name"] || tags["name:en"] || tags["name:uk"] || "",
-      address: [tags["addr:housenumber"], tags["addr:street"], tags["addr:city"]]
-        .filter(Boolean)
-        .join(" ") || "",
+      address:
+        [tags["addr:housenumber"], tags["addr:street"], tags["addr:city"]]
+          .filter(Boolean)
+          .join(" ") || "",
       phone: tags["phone"] || tags["contact:phone"] || tags["contact:mobile"] || "",
       email: tags["email"] || tags["contact:email"] || "",
       website: tags["website"] || tags["contact:website"] || "",
@@ -248,16 +254,12 @@ async function enrichLeadsWithWebScraping(leads: LeadResult[]): Promise<LeadResu
       if (!resp.ok) continue;
 
       const html = await resp.text();
-      const emailMatch = html.match(
-        /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
-      );
+      const emailMatch = html.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
       if (emailMatch?.[1]) {
         enriched[i] = { ...lead, email: emailMatch[1] };
       }
 
-      const phoneMatch = html.match(
-        /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/,
-      );
+      const phoneMatch = html.match(/(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/);
       if (phoneMatch?.[0] && !lead.phone) {
         enriched[i] = { ...lead, phone: phoneMatch[0] };
       }
@@ -302,17 +304,16 @@ async function searchWithBrowser(
     throw new Error(`Backend browser search failed: ${resp.status}`);
   }
 
-  const data = await resp.json() as { job_id: string };
+  const data = (await resp.json()) as { job_id: string };
   const jobId = data.job_id;
 
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 3000));
-    const statusResp = await fetch(
-      `${backendUrl.replace(/\/$/, "")}/api/leads/search/${jobId}`,
-      { signal: AbortSignal.timeout(10000) },
-    );
+    const statusResp = await fetch(`${backendUrl.replace(/\/$/, "")}/api/leads/search/${jobId}`, {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!statusResp.ok) continue;
-    const status = await statusResp.json() as {
+    const status = (await statusResp.json()) as {
       status: string;
       leads?: Array<Record<string, unknown>>;
       error?: string;
@@ -342,7 +343,7 @@ async function searchWithBrowser(
 
 async function handleLeadSearch(request: Request): Promise<Response> {
   try {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       niche?: string;
       city?: string;
       country?: string;
@@ -351,10 +352,7 @@ async function handleLeadSearch(request: Request): Promise<Response> {
     const { niche, city, country, limit = 20 } = body;
 
     if (!niche || !city || !country) {
-      return Response.json(
-        { error: "niche, city, and country are required" },
-        { status: 400 },
-      );
+      return Response.json({ error: "niche, city, and country are required" }, { status: 400 });
     }
 
     const cappedLimit = Math.min(Math.max(1, limit), 100);

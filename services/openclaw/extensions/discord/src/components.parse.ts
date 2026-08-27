@@ -439,9 +439,7 @@ export function readDiscordComponentSpec(raw: unknown): DiscordComponentMessageS
       typeof obj.container === "object" && obj.container && !Array.isArray(obj.container)
         ? {
             accentColor: (obj.container as { accentColor?: unknown }).accentColor as
-              | string
-              | number
-              | undefined,
+              string | number | undefined,
             spoiler:
               typeof (obj.container as { spoiler?: unknown }).spoiler === "boolean"
                 ? ((obj.container as { spoiler?: boolean }).spoiler as boolean)

@@ -47,15 +47,7 @@ type CrabboxInspect = {
 type Options = {
   crabboxClass: string;
   command:
-    | "finish"
-    | "probe"
-    | "publish"
-    | "run"
-    | "screenshot"
-    | "send"
-    | "start"
-    | "status"
-    | "view";
+    "finish" | "probe" | "publish" | "run" | "screenshot" | "send" | "start" | "status" | "view";
   crabboxBin: string;
   desktopChatTitle: string;
   dryRun: boolean;

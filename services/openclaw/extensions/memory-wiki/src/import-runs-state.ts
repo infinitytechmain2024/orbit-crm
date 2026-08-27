@@ -53,8 +53,7 @@ type MemoryWikiImportRunPathStateRecord = {
 };
 
 type MemoryWikiImportRunStateRecord =
-  | MemoryWikiImportRunMetaStateRecord
-  | MemoryWikiImportRunPathStateRecord;
+  MemoryWikiImportRunMetaStateRecord | MemoryWikiImportRunPathStateRecord;
 
 export const MEMORY_WIKI_IMPORT_RUN_STATE_NAMESPACE = "import-runs";
 export const MEMORY_WIKI_IMPORT_RUN_STATE_MAX_ENTRIES = 20_000;
@@ -281,25 +280,21 @@ function toPathRecords(
   record: ChatGptImportRunRecord,
 ): MemoryWikiImportRunPathStateRecord[] {
   return [
-    ...record.createdPaths.map(
-      (entryPath, index): MemoryWikiImportRunPathStateRecord => ({
-        kind: "created-path",
-        vaultRootKey,
-        runId: record.runId,
-        index,
-        path: entryPath,
-      }),
-    ),
-    ...record.updatedPaths.map(
-      (entry, index): MemoryWikiImportRunPathStateRecord => ({
-        kind: "updated-path",
-        vaultRootKey,
-        runId: record.runId,
-        index,
-        path: entry.path,
-        ...(entry.snapshotPath ? { snapshotPath: entry.snapshotPath } : {}),
-      }),
-    ),
+    ...record.createdPaths.map((entryPath, index): MemoryWikiImportRunPathStateRecord => ({
+      kind: "created-path",
+      vaultRootKey,
+      runId: record.runId,
+      index,
+      path: entryPath,
+    })),
+    ...record.updatedPaths.map((entry, index): MemoryWikiImportRunPathStateRecord => ({
+      kind: "updated-path",
+      vaultRootKey,
+      runId: record.runId,
+      index,
+      path: entry.path,
+      ...(entry.snapshotPath ? { snapshotPath: entry.snapshotPath } : {}),
+    })),
   ];
 }
 

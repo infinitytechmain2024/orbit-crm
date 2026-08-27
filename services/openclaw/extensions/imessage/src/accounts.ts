@@ -105,8 +105,7 @@ function mergeIMessageAccountConfig(cfg: OpenClawConfig, accountId: string): IMe
   const merged = resolveMergedAccountConfig<IMessageAccountConfig>({
     channelConfig: cfg.channels?.imessage as IMessageAccountConfig | undefined,
     accounts: cfg.channels?.imessage?.accounts as
-      | Record<string, Partial<IMessageAccountConfig>>
-      | undefined,
+      Record<string, Partial<IMessageAccountConfig>> | undefined,
     accountId,
   });
   const streaming = mergeIMessageStreamingConfig(

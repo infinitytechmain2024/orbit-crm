@@ -835,8 +835,7 @@ describe("shouldSkipLocalCliCredentialEpoch", () => {
       cleanup = context.preparedBackend.cleanup;
 
       const prepareExecutionArg = prepareExecution.mock.calls[0]?.[0] as
-        | { env?: Record<string, string> }
-        | undefined;
+        { env?: Record<string, string> } | undefined;
       const generatedSystemSettingsPath = prepareExecutionArg?.env?.GEMINI_CLI_SYSTEM_SETTINGS_PATH;
       expect(typeof generatedSystemSettingsPath).toBe("string");
       expect(generatedSystemSettingsPath).not.toBe(profileSystemSettingsPath);
@@ -1681,8 +1680,7 @@ describe("shouldSkipLocalCliCredentialEpoch", () => {
         [unknown, unknown]
       >;
       const promptContext = beforePromptBuildCalls[0]?.[1] as
-        | { channel?: string; chatId?: string; senderId?: string }
-        | undefined;
+        { channel?: string; chatId?: string; senderId?: string } | undefined;
       expect(promptContext?.channel).toBe("discord");
       expect(promptContext?.chatId).toBe("room-1");
       expect(promptContext?.senderId).toBe("user-789");
@@ -1690,8 +1688,7 @@ describe("shouldSkipLocalCliCredentialEpoch", () => {
         [unknown, unknown]
       >;
       const legacyContext = beforeAgentStartCalls[0]?.[1] as
-        | { channel?: string; chatId?: string; senderId?: string }
-        | undefined;
+        { channel?: string; chatId?: string; senderId?: string } | undefined;
       expect(legacyContext?.channel).toBe("discord");
       expect(legacyContext?.chatId).toBe("room-1");
       expect(legacyContext?.senderId).toBe("user-789");

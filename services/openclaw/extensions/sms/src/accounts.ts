@@ -90,15 +90,15 @@ export function resolveSmsAccount(
   const accountConfig = resolveAccountEntry(channelCfg.accounts, id);
   const channelConfig: Record<string, unknown> & SmsChannelConfig = { ...channelCfg };
   const accountEntries:
-    | Record<string, Partial<Record<string, unknown> & SmsChannelConfig>>
-    | undefined = channelCfg.accounts
-    ? Object.fromEntries(
-        Object.entries(channelCfg.accounts).map(([accountKey, account]) => [
-          accountKey,
-          { ...account },
-        ]),
-      )
-    : undefined;
+    Record<string, Partial<Record<string, unknown> & SmsChannelConfig>> | undefined =
+    channelCfg.accounts
+      ? Object.fromEntries(
+          Object.entries(channelCfg.accounts).map(([accountKey, account]) => [
+            accountKey,
+            { ...account },
+          ]),
+        )
+      : undefined;
   const merged = resolveMergedAccountConfig<Record<string, unknown> & SmsChannelConfig>({
     channelConfig,
     accounts: accountEntries,

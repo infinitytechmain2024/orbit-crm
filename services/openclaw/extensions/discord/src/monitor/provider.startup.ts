@@ -216,9 +216,7 @@ export async function fetchDiscordBotIdentity(params: {
   }
 
   const botUserRecord = botUser as
-    | { id?: unknown; username?: unknown; globalName?: unknown }
-    | null
-    | undefined;
+    { id?: unknown; username?: unknown; globalName?: unknown } | null | undefined;
   const botUserId = normalizeOptionalString(botUserRecord?.id);
   const botUserName =
     normalizeOptionalString(botUserRecord?.username) ??

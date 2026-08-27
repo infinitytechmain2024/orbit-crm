@@ -84,18 +84,18 @@ them.
 Use this matrix for pre-release signoff. Record pass/fail, run URL/Testbox ID,
 package SHA/version, and skipped-live reason.
 
-| Surface | Proof | Preferred runner |
-| --- | --- | --- |
-| Package artifact | Package Acceptance `suite_profile=package` or custom lanes | GitHub Actions |
-| Bundled lifecycle | 8-shard `test:docker:bundled-plugin-install-uninstall` | Testbox or release Docker |
-| External plugins | `test:docker:plugins` and `plugins-offline` | Testbox/package acceptance |
-| Update no-op | `test:docker:plugin-update` | Testbox/package acceptance |
-| Channel runtime deps | `test:docker:bundled-channel-deps:fast` plus key channels | Testbox/package acceptance |
-| Doctor/fix | seeded bad configs + `doctor --fix --non-interactive` | new Docker/Testbox harness |
-| Config round-trip | `config set/get`, inspect, doctor, reload, diff hash | new Docker/Testbox harness |
-| Gateway bootstrap | clean `HOME`, plugin groups enabled/disabled, status JSON | new Docker/Testbox harness |
-| SDK compatibility | directory, tgz, and `file:` external plugins using SDK subpaths | `test:docker:plugins` plus new smoke |
-| Live-ish | redacted provider/channel probes only for present env | Testbox live lanes |
+| Surface              | Proof                                                           | Preferred runner                     |
+| -------------------- | --------------------------------------------------------------- | ------------------------------------ |
+| Package artifact     | Package Acceptance `suite_profile=package` or custom lanes      | GitHub Actions                       |
+| Bundled lifecycle    | 8-shard `test:docker:bundled-plugin-install-uninstall`          | Testbox or release Docker            |
+| External plugins     | `test:docker:plugins` and `plugins-offline`                     | Testbox/package acceptance           |
+| Update no-op         | `test:docker:plugin-update`                                     | Testbox/package acceptance           |
+| Channel runtime deps | `test:docker:bundled-channel-deps:fast` plus key channels       | Testbox/package acceptance           |
+| Doctor/fix           | seeded bad configs + `doctor --fix --non-interactive`           | new Docker/Testbox harness           |
+| Config round-trip    | `config set/get`, inspect, doctor, reload, diff hash            | new Docker/Testbox harness           |
+| Gateway bootstrap    | clean `HOME`, plugin groups enabled/disabled, status JSON       | new Docker/Testbox harness           |
+| SDK compatibility    | directory, tgz, and `file:` external plugins using SDK subpaths | `test:docker:plugins` plus new smoke |
+| Live-ish             | redacted provider/channel probes only for present env           | Testbox live lanes                   |
 
 ## Package Acceptance Plan
 

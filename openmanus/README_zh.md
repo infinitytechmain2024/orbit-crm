@@ -85,6 +85,7 @@ uv pip install -r requirements.txt
 ```
 
 ### 浏览器自动化工具（可选）
+
 ```bash
 playwright install
 ```
@@ -128,6 +129,7 @@ python main.py
 然后通过终端输入你的创意！
 
 如需使用 MCP 工具版本，可运行：
+
 ```bash
 python run_mcp.py
 ```
@@ -141,13 +143,14 @@ python run_flow.py
 ## 添加自定义多智能体
 
 目前除了通用的 OpenManus Agent, 我们还内置了DataAnalysis Agent，适用于数据分析和数据可视化任务，你可以在`config.toml`中将这个智能体加入到`run_flow`中
+
 ```toml
 # run-flow可选配置
 [runflow]
 use_data_analysis_agent = true     # 默认关闭，将其改为true则为激活
 ```
-除此之外，你还需要安装相关的依赖来确保智能体正常运行：[具体安装指南](app/tool/chart_visualization/README_zh.md##安装)
 
+除此之外，你还需要安装相关的依赖来确保智能体正常运行：[具体安装指南](app/tool/chart_visualization/README_zh.md##安装)
 
 ## 贡献指南
 
@@ -169,9 +172,10 @@ use_data_analysis_agent = true     # 默认关闭，将其改为true则为激活
 
 [![Star History Chart](https://api.star-history.com/svg?repos=FoundationAgents/OpenManus&type=Date)](https://star-history.com/#FoundationAgents/OpenManus&Date)
 
-
 ## 赞助商
+
 感谢[PPIO](https://ppinfra.com/user/register?invited_by=OCPKCN&utm_source=github_openmanus&utm_medium=github_readme&utm_campaign=link) 提供的算力支持。
+
 > PPIO派欧云：一键调用高性价比的开源模型API和GPU容器
 
 ## 致谢
@@ -186,6 +190,7 @@ use_data_analysis_agent = true     # 默认关闭，将其改为true则为激活
 OpenManus 由 MetaGPT 社区的贡献者共同构建，感谢这个充满活力的智能体开发者社区！
 
 ## 引用
+
 ```bibtex
 @misc{openmanus2025,
   author = {Xinbin Liang and Jinyu Xiang and Zhaoyang Yu and Jiayi Zhang and Sirui Hong and Sheng Fan and Xiao Tang},

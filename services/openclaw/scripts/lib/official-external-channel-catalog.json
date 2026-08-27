@@ -174,9 +174,7 @@
           "docsPath": "/channels/clickclack",
           "docsLabel": "clickclack",
           "blurb": "self-hosted chat via first-class ClickClack bot tokens.",
-          "envVars": [
-            "CLICKCLACK_BOT_TOKEN"
-          ],
+          "envVars": ["CLICKCLACK_BOT_TOKEN"],
           "systemImage": "bubble.left.and.bubble.right",
           "markdownCapable": true,
           "preferSessionLookupForAnnounceTarget": true,
@@ -309,9 +307,7 @@
           "docsPath": "/channels/irc",
           "docsLabel": "irc",
           "blurb": "classic IRC networks with DM/channel routing and pairing controls.",
-          "aliases": [
-            "internet-relay-chat"
-          ],
+          "aliases": ["internet-relay-chat"],
           "envVars": [
             "IRC_HOST",
             "IRC_PORT",
@@ -373,10 +369,7 @@
           "docsPath": "/channels/mattermost",
           "docsLabel": "mattermost",
           "blurb": "self-hosted Slack-style chat; install the plugin to enable.",
-          "envVars": [
-            "MATTERMOST_BOT_TOKEN",
-            "MATTERMOST_URL"
-          ],
+          "envVars": ["MATTERMOST_BOT_TOKEN", "MATTERMOST_URL"],
           "order": 65
         },
         "install": {

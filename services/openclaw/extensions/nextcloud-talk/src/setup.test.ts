@@ -176,8 +176,7 @@ describe("nextcloud talk setup", () => {
     const next = nextcloudTalkDmPolicy.setPolicy(base, "open");
     expect(next.channels?.["nextcloud-talk"]?.dmPolicy).toBe("disabled");
     const workAccount = next.channels?.["nextcloud-talk"]?.accounts?.work as
-      | { dmPolicy?: string; allowFrom?: Array<string | number> }
-      | undefined;
+      { dmPolicy?: string; allowFrom?: Array<string | number> } | undefined;
     expect(workAccount?.dmPolicy).toBe("open");
   });
 
@@ -202,8 +201,7 @@ describe("nextcloud talk setup", () => {
 
     expect(next.channels?.["nextcloud-talk"]?.dmPolicy).toBeUndefined();
     const workAccount = next.channels?.["nextcloud-talk"]?.accounts?.work as
-      | { dmPolicy?: string; allowFrom?: Array<string | number> }
-      | undefined;
+      { dmPolicy?: string; allowFrom?: Array<string | number> } | undefined;
     expect(workAccount?.dmPolicy).toBe("open");
     expect(workAccount?.allowFrom).toEqual(["alice", "*"]);
   });

@@ -440,8 +440,7 @@ describeLive("openai plugin live", () => {
 
     try {
       let description:
-        | Awaited<ReturnType<NonNullable<typeof mediaProvider.describeImage>>>
-        | undefined;
+        Awaited<ReturnType<NonNullable<typeof mediaProvider.describeImage>>> | undefined;
       try {
         description = await mediaProvider.describeImage?.({
           buffer: createReferencePng(),

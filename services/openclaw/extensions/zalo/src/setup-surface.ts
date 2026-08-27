@@ -187,8 +187,7 @@ export const zaloSetupWizard: ChannelSetupWizard = {
                     ...currentCfg.channels?.zalo?.accounts,
                     [accountId]: {
                       ...(currentCfg.channels?.zalo?.accounts?.[accountId] as
-                        | Record<string, unknown>
-                        | undefined),
+                        Record<string, unknown> | undefined),
                       enabled: true,
                       botToken: value,
                     },

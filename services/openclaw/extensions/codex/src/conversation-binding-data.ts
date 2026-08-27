@@ -44,8 +44,7 @@ export type CodexCliNodeConversationBindingData = {
 };
 
 export type CodexConversationBindingData =
-  | CodexAppServerConversationBindingData
-  | CodexCliNodeConversationBindingData;
+  CodexAppServerConversationBindingData | CodexCliNodeConversationBindingData;
 
 export function createCodexConversationBindingData(params: {
   bindingId?: string;

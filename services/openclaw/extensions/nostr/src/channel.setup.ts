@@ -41,8 +41,7 @@ type ResolvedNostrSetupAccount = {
 
 function getNostrConfig(cfg: OpenClawConfig): NostrAccountConfig | undefined {
   return (cfg.channels as Record<string, unknown> | undefined)?.nostr as
-    | NostrAccountConfig
-    | undefined;
+    NostrAccountConfig | undefined;
 }
 
 function listSetupNostrAccountIds(cfg: OpenClawConfig): string[] {

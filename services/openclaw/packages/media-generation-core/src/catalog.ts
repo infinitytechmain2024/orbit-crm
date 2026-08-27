@@ -5,9 +5,7 @@ import { uniqueTrimmedStrings } from "./string.js";
 
 /** Catalog kind for generated media model entries. */
 export type MediaGenerationCatalogKind =
-  | "image_generation"
-  | "video_generation"
-  | "music_generation";
+  "image_generation" | "video_generation" | "music_generation";
 
 /** Source for a media generation catalog entry. */
 export type MediaGenerationCatalogSource = "static" | "live" | "cache" | "configured";

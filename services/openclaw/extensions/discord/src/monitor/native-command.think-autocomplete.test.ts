@@ -208,10 +208,11 @@ describe("discord native /think autocomplete", () => {
     providerThinkingMocks.resolveProviderBinaryThinking.mockReturnValue(undefined);
     providerThinkingMocks.resolveProviderDefaultThinkingLevel.mockReturnValue(undefined);
     providerThinkingMocks.resolveProviderThinkingProfile.mockReturnValue(undefined);
-    providerThinkingMocks.resolveProviderXHighThinking.mockImplementation(({ provider, context }) =>
-      provider === "openai" && ["gpt-5.4", "gpt-5.4-pro"].includes(context.modelId)
-        ? true
-        : undefined,
+    providerThinkingMocks.resolveProviderXHighThinking.mockImplementation(
+      ({ provider, context }) =>
+        provider === "openai" && ["gpt-5.4", "gpt-5.4-pro"].includes(context.modelId)
+          ? true
+          : undefined,
     );
     buildModelsProviderDataMock.mockResolvedValue({
       byProvider: new Map<string, Set<string>>(),
@@ -243,10 +244,11 @@ describe("discord native /think autocomplete", () => {
     providerThinkingMocks.resolveProviderThinkingProfile.mockReset();
     providerThinkingMocks.resolveProviderThinkingProfile.mockReturnValue(undefined);
     providerThinkingMocks.resolveProviderXHighThinking.mockReset();
-    providerThinkingMocks.resolveProviderXHighThinking.mockImplementation(({ provider, context }) =>
-      provider === "openai" && ["gpt-5.4", "gpt-5.4-pro"].includes(context.modelId)
-        ? true
-        : undefined,
+    providerThinkingMocks.resolveProviderXHighThinking.mockImplementation(
+      ({ provider, context }) =>
+        provider === "openai" && ["gpt-5.4", "gpt-5.4-pro"].includes(context.modelId)
+          ? true
+          : undefined,
     );
     installProviderThinkingRegistryForTest();
     await saveSessionOverride({

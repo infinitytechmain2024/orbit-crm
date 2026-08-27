@@ -25,7 +25,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface QuickTaskModalProps {
   open: boolean;
@@ -35,7 +41,13 @@ interface QuickTaskModalProps {
   onSaved: (task: TaskInput) => void;
 }
 
-export function QuickTaskModal({ open, onClose, initialDate, initialHour = 9, onSaved }: QuickTaskModalProps) {
+export function QuickTaskModal({
+  open,
+  onClose,
+  initialDate,
+  initialHour = 9,
+  onSaved,
+}: QuickTaskModalProps) {
   const { projects, members, addTask, isMutating } = useCrm();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -119,7 +131,9 @@ export function QuickTaskModal({ open, onClose, initialDate, initialHour = 9, on
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="title">Название <span className="text-destructive">*</span></Label>
+            <Label htmlFor="title">
+              Название <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="title"
               value={title}
@@ -183,11 +197,13 @@ export function QuickTaskModal({ open, onClose, initialDate, initialHour = 9, on
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Без проекта</SelectItem>
-                  {projects.filter((p) => !p.archivedAt).map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
+                  {projects
+                    .filter((p) => !p.archivedAt)
+                    .map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

@@ -104,8 +104,7 @@ describe("agent tool definition adapter logging", () => {
     );
 
     const details = result.details as
-      | { status?: string; deniedReason?: string; reason?: string }
-      | undefined;
+      { status?: string; deniedReason?: string; reason?: string } | undefined;
     expect(details?.status).toBe("blocked");
     expect(details?.deniedReason).toBe("plugin-before-tool-call");
     expect(details?.reason).toBe("blocked by policy");
@@ -302,8 +301,7 @@ describe("agent tool definition adapter logging", () => {
     );
 
     const details = result.details as
-      | { status?: string; tool?: string; error?: string }
-      | undefined;
+      { status?: string; tool?: string; error?: string } | undefined;
     expect(details?.status).toBe("error");
     expect(details?.tool).toBe("web_search");
     expect(details?.error).toBe("This operation was aborted");

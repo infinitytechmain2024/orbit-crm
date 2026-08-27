@@ -94,8 +94,7 @@ function resolveTestAgentWorkspace(cfg: Record<string, unknown>, agentId: string
 
 function getRegisteredRun() {
   return hoisted.registerSubagentRunMock.mock.calls.at(0)?.[0] as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
 }
 
 function findLastSessionDeleteCall() {

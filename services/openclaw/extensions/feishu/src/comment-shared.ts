@@ -206,12 +206,7 @@ type ParsedCommentMention = {
 };
 
 type ParsedCommentLinkedDocumentKind =
-  | CommentFileType
-  | "wiki"
-  | "mindnote"
-  | "bitable"
-  | "base"
-  | "unknown";
+  CommentFileType | "wiki" | "mindnote" | "bitable" | "base" | "unknown";
 
 type ParsedCommentResolvedDocumentType = Exclude<
   ParsedCommentLinkedDocumentKind,

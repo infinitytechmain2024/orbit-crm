@@ -367,8 +367,7 @@ async function emitSlackModalLifecycleEvent(params: {
   }
 
   let pluginDispatch:
-    | Awaited<ReturnType<typeof dispatchSlackModalPluginInteractiveHandler>>
-    | undefined;
+    Awaited<ReturnType<typeof dispatchSlackModalPluginInteractiveHandler>> | undefined;
   try {
     pluginDispatch = await dispatchSlackModalPluginInteractiveHandler({
       ctx: params.ctx,

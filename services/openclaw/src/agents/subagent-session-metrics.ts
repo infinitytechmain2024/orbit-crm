@@ -30,9 +30,7 @@ export function getSubagentSessionStartedAt(
 /** Computes accumulated runtime including the current live run when still active. */
 export function getSubagentSessionRuntimeMs(
   entry:
-    | Pick<SubagentRunRecord, "startedAt" | "endedAt" | "accumulatedRuntimeMs">
-    | null
-    | undefined,
+    Pick<SubagentRunRecord, "startedAt" | "endedAt" | "accumulatedRuntimeMs"> | null | undefined,
   now = Date.now(),
 ): number | undefined {
   if (!entry) {

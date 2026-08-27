@@ -1794,8 +1794,7 @@ describe("MatrixClient crypto bootstrapping", () => {
     await client.start();
 
     const startOpts = matrixJsClient.startClient.mock.calls.at(0)?.[0] as
-      | { filter?: { getDefinition?: () => unknown } }
-      | undefined;
+      { filter?: { getDefinition?: () => unknown } } | undefined;
     expect(startOpts?.filter?.getDefinition?.()).toEqual({
       room: {
         ephemeral: {
@@ -1819,8 +1818,7 @@ describe("MatrixClient crypto bootstrapping", () => {
 
     expect(databasesSpy).toHaveBeenCalled();
     const intervalCall = setIntervalSpy.mock.calls.find((call) => call[1] === 60_000) as
-      | unknown[]
-      | undefined;
+      unknown[] | undefined;
     if (!intervalCall) {
       throw new Error("expected Matrix IDB snapshot interval");
     }

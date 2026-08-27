@@ -105,8 +105,7 @@ const DEFAULT_QUEUE_OWNER_TTL_SECONDS = 0.1;
 const DEFAULT_STRICT_WINDOWS_CMD_WRAPPER = true;
 
 type ParseResult =
-  | { ok: true; value: AcpxPluginConfig | undefined }
-  | { ok: false; message: string };
+  { ok: true; value: AcpxPluginConfig | undefined } | { ok: false; message: string };
 
 function parseAcpxPluginConfig(value: unknown): ParseResult {
   if (value === undefined) {

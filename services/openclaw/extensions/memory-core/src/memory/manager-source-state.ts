@@ -27,8 +27,7 @@ export function loadMemorySourceFileState(params: {
   hashes: Map<string, string>;
 } {
   const rows = params.db.prepare(MEMORY_SOURCE_FILE_STATE_SQL).all(params.source) as
-    | MemorySourceFileStateRow[]
-    | undefined;
+    MemorySourceFileStateRow[] | undefined;
   const normalizedRows = rows ?? [];
   return {
     rows: normalizedRows,
@@ -47,7 +46,6 @@ export function resolveMemorySourceExistingHash(params: {
   }
   return (
     params.db.prepare(MEMORY_SOURCE_FILE_HASH_SQL).get(params.path, params.source) as
-      | { hash: string }
-      | undefined
+      { hash: string } | undefined
   )?.hash;
 }

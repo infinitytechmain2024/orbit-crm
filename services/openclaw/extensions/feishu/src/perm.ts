@@ -8,15 +8,7 @@ import { createFeishuToolClient, resolveAnyEnabledFeishuToolsConfig } from "./to
 import { toolExecutionErrorResult, unknownToolActionResult } from "./tool-result.js";
 
 type ListTokenType =
-  | "doc"
-  | "sheet"
-  | "file"
-  | "wiki"
-  | "bitable"
-  | "docx"
-  | "mindnote"
-  | "minutes"
-  | "slides";
+  "doc" | "sheet" | "file" | "wiki" | "bitable" | "docx" | "mindnote" | "minutes" | "slides";
 type CreateTokenType =
   | "doc"
   | "sheet"

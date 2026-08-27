@@ -21,15 +21,13 @@ const browserClientMocks = vi.hoisted(() => ({
   browserProfiles: vi.fn(
     async (..._args: unknown[]): Promise<Array<Record<string, unknown>>> => [],
   ),
-  browserSnapshot: vi.fn(
-    async (..._args: unknown[]): Promise<Record<string, unknown>> => ({
-      ok: true,
-      format: "ai",
-      targetId: "t1",
-      url: "https://example.com",
-      snapshot: "ok",
-    }),
-  ),
+  browserSnapshot: vi.fn(async (..._args: unknown[]): Promise<Record<string, unknown>> => ({
+    ok: true,
+    format: "ai",
+    targetId: "t1",
+    url: "https://example.com",
+    snapshot: "ok",
+  })),
   browserStart: vi.fn(async (..._args: unknown[]) => ({})),
   browserStatus: vi.fn(async (..._args: unknown[]) => ({
     ok: true,
@@ -129,12 +127,10 @@ const nodesUtilsMocks = vi.hoisted(() => ({
 }));
 
 const gatewayMocks = vi.hoisted(() => ({
-  callGatewayTool: vi.fn(
-    async (): Promise<Record<string, unknown>> => ({
-      ok: true,
-      payload: { result: { ok: true, running: true } },
-    }),
-  ),
+  callGatewayTool: vi.fn(async (): Promise<Record<string, unknown>> => ({
+    ok: true,
+    payload: { result: { ok: true, running: true } },
+  })),
 }));
 
 const configMocks = vi.hoisted(() => ({

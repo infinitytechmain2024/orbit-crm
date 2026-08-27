@@ -47,12 +47,7 @@ import { runAgentHarnessAfterToolCallHook } from "./hook-helpers.js";
 import { runAgentHarnessBeforeAgentFinalizeHook } from "./lifecycle-hook-helpers.js";
 
 export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 const NATIVE_HOOK_RELAY_EVENTS = [
   "pre_tool_use",
@@ -241,9 +236,7 @@ function resolveNativeHookRelayExpiresAtMs(ttlMs: number | undefined): number | 
 type NativeHookRelayPermissionDecision = "allow" | "deny";
 
 type NativeHookRelayPermissionApprovalResult =
-  | NativeHookRelayPermissionDecision
-  | "allow-always"
-  | "defer";
+  NativeHookRelayPermissionDecision | "allow-always" | "defer";
 
 type NativeHookRelaySharedState = {
   relays: Map<string, ActiveNativeHookRelayRegistration>;
@@ -1355,8 +1348,7 @@ function postNativeHookRelayBridgeRecord(params: {
           }
           try {
             const parsed = JSON.parse(responseText) as
-              | { ok: true; result: NativeHookRelayProcessResponse }
-              | { ok: false; error?: string };
+              { ok: true; result: NativeHookRelayProcessResponse } | { ok: false; error?: string };
             if (parsed.ok) {
               resolveOnce(parsed.result);
               return;

@@ -98,8 +98,7 @@ function getThreadBindingsState(): TelegramThreadBindingsState {
   if (!threadBindingsState) {
     const globalStore = globalThis as Record<PropertyKey, unknown>;
     threadBindingsState = (globalStore[TELEGRAM_THREAD_BINDINGS_STATE_KEY] as
-      | TelegramThreadBindingsState
-      | undefined) ?? {
+      TelegramThreadBindingsState | undefined) ?? {
       managersByAccountId: new Map<string, TelegramThreadBindingManager>(),
       bindingsByAccountConversation: new Map<string, TelegramThreadBindingRecord>(),
       persistQueueByAccountId: new Map<string, Promise<void>>(),

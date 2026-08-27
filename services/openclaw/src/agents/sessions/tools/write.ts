@@ -454,8 +454,7 @@ export function createWriteToolDefinition(
     },
     renderCall(args, theme, context) {
       const renderArgs = args as
-        | { path?: string; file_path?: string; content?: string }
-        | undefined;
+        { path?: string; file_path?: string; content?: string } | undefined;
       const rawPath = str(renderArgs?.file_path ?? renderArgs?.path);
       const fileContent = str(renderArgs?.content);
       const component =

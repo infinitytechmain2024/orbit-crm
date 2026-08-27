@@ -271,8 +271,7 @@ export function handleAgentEnd(
   };
 
   const runBeforeTerminalDelivery = ():
-    | BeforeTerminalDeliveryDecision
-    | Promise<BeforeTerminalDeliveryDecision> => {
+    BeforeTerminalDeliveryDecision | Promise<BeforeTerminalDeliveryDecision> => {
     const result = ctx.params.onBeforeTerminalDelivery?.({
       messages: evt?.messages ?? [],
       willRetry: evt?.willRetry === true,
@@ -361,8 +360,7 @@ export function handleAgentEnd(
   };
 
   let beforeTerminalDelivery:
-    | BeforeTerminalDeliveryDecision
-    | Promise<BeforeTerminalDeliveryDecision>;
+    BeforeTerminalDeliveryDecision | Promise<BeforeTerminalDeliveryDecision>;
   try {
     beforeTerminalDelivery = runBeforeTerminalDelivery();
   } catch (error) {

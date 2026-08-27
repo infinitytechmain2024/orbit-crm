@@ -74,8 +74,7 @@ function resolveTelegramBody(overrides: Partial<TelegramInboundBodyParams>) {
 
 function transcribeCallContext(index = 0): Record<string, unknown> {
   const arg = transcribeFirstAudioMock.mock.calls[index]?.[0] as
-    | { ctx?: Record<string, unknown> }
-    | undefined;
+    { ctx?: Record<string, unknown> } | undefined;
   if (!arg?.ctx) {
     throw new Error(`Expected transcribe call ${index} context`);
   }
@@ -834,8 +833,7 @@ describe("resolveTelegramInboundBody", () => {
 
     expect(result).toBeNull();
     const event = triggerInternalHookMock.mock.calls[0]?.[0] as
-      | { context?: { conversationId?: string; metadata?: Record<string, unknown> } }
-      | undefined;
+      { context?: { conversationId?: string; metadata?: Record<string, unknown> } } | undefined;
     expect(event?.context).toEqual(
       expect.objectContaining({
         conversationId: "telegram:-1001234567890:topic:99",

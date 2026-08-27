@@ -27,8 +27,7 @@ function mergeZalouserAccountConfig(cfg: OpenClawConfig, accountId: string): Zal
   const merged = resolveMergedAccountConfig<ZalouserAccountConfig>({
     channelConfig: cfg.channels?.zalouser as ZalouserAccountConfig | undefined,
     accounts: (cfg.channels?.zalouser as ZalouserConfig | undefined)?.accounts as
-      | Record<string, Partial<ZalouserAccountConfig>>
-      | undefined,
+      Record<string, Partial<ZalouserAccountConfig>> | undefined,
     accountId,
     omitKeys: ["defaultAccount"],
   });

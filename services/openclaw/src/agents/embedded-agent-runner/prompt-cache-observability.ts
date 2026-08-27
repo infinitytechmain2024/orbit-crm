@@ -5,12 +5,7 @@ import crypto from "node:crypto";
 import type { NormalizedUsage } from "../usage.js";
 
 type PromptCacheChangeCode =
-  | "cacheRetention"
-  | "model"
-  | "streamStrategy"
-  | "systemPrompt"
-  | "tools"
-  | "transport";
+  "cacheRetention" | "model" | "streamStrategy" | "systemPrompt" | "tools" | "transport";
 
 export type PromptCacheChange = {
   code: PromptCacheChangeCode;

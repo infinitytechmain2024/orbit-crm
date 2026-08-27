@@ -43,6 +43,7 @@ from backend.routers.openclaw_goals import router as openclaw_goals_router
 from backend.routers.controlled_learning import router as controlled_learning_router
 from backend.routers.selfdev import router as selfdev_router
 from backend.routers.whisper_router import router as whisper_router
+from backend.routers.receipt_router import router as receipt_router
 from backend.routers.stripe_router import router as stripe_router
 from backend.middleware.rate_limit import WorkflowRateLimitMiddleware
 from backend.middleware.correlation import CorrelationMiddleware
@@ -177,6 +178,7 @@ app.include_router(ceo_router)
 app.include_router(ai_router)
 app.include_router(websocket_router)
 app.include_router(stripe_router)
+app.include_router(receipt_router)
 
 
 # ============================

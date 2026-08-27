@@ -11,25 +11,13 @@ export type AgentRuntimeTransport = "sse" | "websocket" | "auto";
 
 /** Thinking levels accepted by runtime-plan extra-param preparation. */
 export type AgentRuntimeThinkLevel =
-  | "off"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh"
-  | "adaptive"
-  | "max";
+  "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "max";
 
 /** System prompt rendering mode selected for one attempt. */
 export type AgentRuntimePromptMode = "full" | "minimal" | "none";
 /** Trigger source that can alter provider system prompt contributions. */
 export type AgentRuntimePromptTrigger =
-  | "cron"
-  | "heartbeat"
-  | "manual"
-  | "memory"
-  | "overflow"
-  | "user";
+  "cron" | "heartbeat" | "manual" | "memory" | "overflow" | "user";
 
 /** Normalized failure reason used by model fallback classification. */
 export type AgentRuntimeFailoverReason =
@@ -174,11 +162,7 @@ export type AgentRuntimeInteractiveReply = {
 
 /** Portable reply presentation severity/style hint. */
 export type AgentRuntimeMessagePresentationTone =
-  | "info"
-  | "success"
-  | "warning"
-  | "danger"
-  | "neutral";
+  "info" | "success" | "warning" | "danger" | "neutral";
 
 /** Portable structured reply block rendered or downgraded by channels. */
 export type AgentRuntimeMessagePresentationBlock =
@@ -263,9 +247,7 @@ export type AgentRuntimeReplyPayload = {
 
 /** Stable section IDs for provider system prompt overrides. */
 export type AgentRuntimeSystemPromptSectionId =
-  | "interaction_style"
-  | "tool_call_style"
-  | "execution_bias";
+  "interaction_style" | "tool_call_style" | "execution_bias";
 
 /** Provider-owned system prompt contribution and section overrides. */
 export type AgentRuntimeSystemPromptContribution = {

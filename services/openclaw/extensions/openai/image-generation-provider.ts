@@ -881,9 +881,7 @@ export function buildOpenAIImageGenerationProvider(): ImageGenerationProvider {
         !explicitDirectOpenAIConfig &&
         hasCodexResponseTransportProfileConfigured(req);
       let preResolvedImageAuth:
-        | NonNullable<Awaited<ReturnType<typeof resolveApiKeyForProvider>>>
-        | null
-        | undefined;
+        NonNullable<Awaited<ReturnType<typeof resolveApiKeyForProvider>>> | null | undefined;
       if (explicitOpenAIApiKeyConfig) {
         const directAuth = await resolveOptionalApiKeyForProvider({
           provider: "openai",
@@ -912,9 +910,7 @@ export function buildOpenAIImageGenerationProvider(): ImageGenerationProvider {
       }
 
       let imageAuth:
-        | NonNullable<Awaited<ReturnType<typeof resolveApiKeyForProvider>>>
-        | null
-        | undefined =
+        NonNullable<Awaited<ReturnType<typeof resolveApiKeyForProvider>>> | null | undefined =
         preResolvedImageAuth !== undefined
           ? preResolvedImageAuth
           : await resolveOptionalApiKeyForProvider({

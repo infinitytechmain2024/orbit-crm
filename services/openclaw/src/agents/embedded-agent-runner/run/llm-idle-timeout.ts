@@ -156,8 +156,7 @@ function findConfiguredProviderConfig(
     return undefined;
   }
   const providers = cfg?.models?.providers as
-    | Record<string, IdleTimeoutProviderConfig | undefined>
-    | undefined;
+    Record<string, IdleTimeoutProviderConfig | undefined> | undefined;
   const exact = providers?.[normalizedProvider];
   if (exact) {
     return exact;

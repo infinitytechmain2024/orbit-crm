@@ -1779,8 +1779,7 @@ describe("iMessage monitor last-route updates", () => {
     });
 
     const debouncerOptions = createChannelInboundDebouncerMock.mock.calls.at(-1)?.[0] as
-      | { debounceMsOverride?: number }
-      | undefined;
+      { debounceMsOverride?: number } | undefined;
     expect(debouncerOptions?.debounceMsOverride).toBe(7000);
     expect(dispatchInboundMessageMock).toHaveBeenCalledTimes(1);
     const mergedBody = dispatchInboundMessageMock.mock.calls[0]?.[0].ctx.Body ?? "";
@@ -2153,8 +2152,7 @@ describe("iMessage monitor last-route updates", () => {
     });
 
     const debouncerOptions = createChannelInboundDebouncerMock.mock.calls.at(-1)?.[0] as
-      | { debounceMsOverride?: number }
-      | undefined;
+      { debounceMsOverride?: number } | undefined;
     expect(debouncerOptions?.debounceMsOverride).toBeUndefined();
   });
 });

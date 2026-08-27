@@ -27,7 +27,7 @@ packing: false
 max_seq_length: 2048
 load_in_4bit: true
 lora_r: 16
-lora_target_modules: 
+lora_target_modules:
   - "q_proj"
   - "k_proj"
   - "v_proj"
@@ -56,5 +56,5 @@ lr_scheduler_type: "linear"
 seed: 3407
 output_dir: "outputs"
 
-quantization_method: 
+quantization_method:
   - "q4_k_m"

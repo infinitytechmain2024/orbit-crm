@@ -268,8 +268,7 @@ describe("openclaw-tools: subagents (sessions_spawn lifecycle)", () => {
 
     // First call: subagent spawn
     const first = agentCalls[0]?.params as
-      | { disableMessageTool?: boolean; lane?: string }
-      | undefined;
+      { disableMessageTool?: boolean; lane?: string } | undefined;
     expect(first?.lane).toBe("subagent");
     expect(first?.disableMessageTool).toBe(true);
 
@@ -594,8 +593,7 @@ describe("openclaw-tools: subagents (sessions_spawn lifecycle)", () => {
     const agentCalls = ctx.calls.filter((call) => call.method === "agent");
     expect(agentCalls).toHaveLength(2);
     const announceParams = agentCalls[1]?.params as
-      | { accountId?: string; channel?: string; deliver?: boolean }
-      | undefined;
+      { accountId?: string; channel?: string; deliver?: boolean } | undefined;
     expect(announceParams?.deliver).toBe(false);
     expect(announceParams?.channel).toBeUndefined();
     expect(announceParams?.accountId).toBeUndefined();

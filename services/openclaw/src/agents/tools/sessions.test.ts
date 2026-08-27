@@ -290,8 +290,7 @@ async function executeFireAndForgetA2AFrom(requesterSessionKey: string) {
 
 function getFirstListedSession(result: SessionsListResult) {
   const details = result.details as
-    | { sessions?: Array<{ key?: string; transcriptPath?: string }> }
-    | undefined;
+    { sessions?: Array<{ key?: string; transcriptPath?: string }> } | undefined;
   return details?.sessions?.[0];
 }
 

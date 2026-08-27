@@ -90,13 +90,8 @@
             "id": "arcee",
             "name": "Arcee AI",
             "docs": "/providers/arcee",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "ARCEEAI_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["ARCEEAI_API_KEY"],
             "authChoices": [
               {
                 "method": "arcee-platform",
@@ -110,9 +105,7 @@
                 "cliFlag": "--arceeai-api-key",
                 "cliOption": "--arceeai-api-key <key>",
                 "cliDescription": "Arcee AI API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "openrouter",
@@ -126,9 +119,7 @@
                 "cliFlag": "--openrouter-api-key",
                 "cliOption": "--openrouter-api-key <key>",
                 "cliDescription": "OpenRouter API key for Arcee AI models",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -154,9 +145,7 @@
         "providerEndpoints": [
           {
             "endpointClass": "cerebras-native",
-            "hosts": [
-              "api.cerebras.ai"
-            ]
+            "hosts": ["api.cerebras.ai"]
           }
         ],
         "providers": [
@@ -164,13 +153,8 @@
             "id": "cerebras",
             "name": "Cerebras",
             "docs": "/providers/cerebras",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "CEREBRAS_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["CEREBRAS_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -183,9 +167,7 @@
                 "cliFlag": "--cerebras-api-key",
                 "cliOption": "--cerebras-api-key <key>",
                 "cliDescription": "Cerebras API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -211,9 +193,7 @@
         "providerEndpoints": [
           {
             "endpointClass": "chutes-native",
-            "hosts": [
-              "llm.chutes.ai"
-            ]
+            "hosts": ["llm.chutes.ai"]
           }
         ],
         "providers": [
@@ -221,14 +201,8 @@
             "id": "chutes",
             "name": "Chutes",
             "docs": "/providers/chutes",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "CHUTES_API_KEY",
-              "CHUTES_OAUTH_TOKEN"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["CHUTES_API_KEY", "CHUTES_OAUTH_TOKEN"],
             "authChoices": [
               {
                 "method": "oauth",
@@ -238,9 +212,7 @@
                 "groupId": "chutes",
                 "groupLabel": "Chutes",
                 "groupHint": "OAuth + API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "api-key",
@@ -254,9 +226,7 @@
                 "cliFlag": "--chutes-api-key",
                 "cliOption": "--chutes-api-key <key>",
                 "cliDescription": "Chutes API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -284,10 +254,7 @@
             "id": "cohere",
             "name": "Cohere",
             "docs": "/providers/cohere",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
+            "categories": ["cloud", "llm"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -300,9 +267,7 @@
                 "cliFlag": "--cohere-api-key",
                 "cliOption": "--cohere-api-key <key>",
                 "cliDescription": "Cohere API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -330,13 +295,8 @@
             "id": "cloudflare-ai-gateway",
             "name": "Cloudflare AI Gateway",
             "docs": "/providers/cloudflare-ai-gateway",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "CLOUDFLARE_AI_GATEWAY_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["CLOUDFLARE_AI_GATEWAY_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -350,9 +310,7 @@
                 "cliFlag": "--cloudflare-ai-gateway-api-key",
                 "cliOption": "--cloudflare-ai-gateway-api-key <key>",
                 "cliDescription": "Cloudflare AI Gateway API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -419,9 +377,7 @@
         "providerEndpoints": [
           {
             "endpointClass": "deepinfra-native",
-            "hosts": [
-              "api.deepinfra.com"
-            ]
+            "hosts": ["api.deepinfra.com"]
           }
         ],
         "providers": [
@@ -429,13 +385,8 @@
             "id": "deepinfra",
             "name": "DeepInfra",
             "docs": "/providers/deepinfra",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "DEEPINFRA_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["DEEPINFRA_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -449,29 +400,17 @@
                 "cliFlag": "--deepinfra-api-key",
                 "cliOption": "--deepinfra-api-key <key>",
                 "cliDescription": "DeepInfra API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
         ],
         "contracts": {
-          "mediaUnderstandingProviders": [
-            "deepinfra"
-          ],
-          "memoryEmbeddingProviders": [
-            "deepinfra"
-          ],
-          "imageGenerationProviders": [
-            "deepinfra"
-          ],
-          "speechProviders": [
-            "deepinfra"
-          ],
-          "videoGenerationProviders": [
-            "deepinfra"
-          ]
+          "mediaUnderstandingProviders": ["deepinfra"],
+          "memoryEmbeddingProviders": ["deepinfra"],
+          "imageGenerationProviders": ["deepinfra"],
+          "speechProviders": ["deepinfra"],
+          "videoGenerationProviders": ["deepinfra"]
         },
         "install": {
           "clawhubSpec": "clawhub:@openclaw/deepinfra-provider",
@@ -494,9 +433,7 @@
         "providerEndpoints": [
           {
             "endpointClass": "deepseek-native",
-            "hosts": [
-              "api.deepseek.com"
-            ]
+            "hosts": ["api.deepseek.com"]
           }
         ],
         "providers": [
@@ -504,13 +441,8 @@
             "id": "deepseek",
             "name": "DeepSeek",
             "docs": "/providers/deepseek",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "DEEPSEEK_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["DEEPSEEK_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -523,9 +455,7 @@
                 "cliFlag": "--deepseek-api-key",
                 "cliOption": "--deepseek-api-key <key>",
                 "cliDescription": "DeepSeek API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -553,13 +483,8 @@
             "id": "featherless",
             "name": "Featherless AI",
             "docs": "/providers/featherless",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "FEATHERLESS_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["FEATHERLESS_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -573,9 +498,7 @@
                 "cliFlag": "--featherless-api-key",
                 "cliOption": "--featherless-api-key <key>",
                 "cliDescription": "Featherless AI API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -601,9 +524,7 @@
         "providerEndpoints": [
           {
             "endpointClass": "gmi-native",
-            "hosts": [
-              "api.gmi-serving.com"
-            ]
+            "hosts": ["api.gmi-serving.com"]
           }
         ],
         "providers": [
@@ -744,9 +665,7 @@
         "providerEndpoints": [
           {
             "endpointClass": "groq-native",
-            "hosts": [
-              "api.groq.com"
-            ]
+            "hosts": ["api.groq.com"]
           }
         ],
         "providers": [
@@ -754,13 +673,8 @@
             "id": "groq",
             "name": "Groq",
             "docs": "/providers/groq",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "GROQ_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["GROQ_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -773,17 +687,13 @@
                 "cliFlag": "--groq-api-key",
                 "cliOption": "--groq-api-key <key>",
                 "cliDescription": "Groq API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
         ],
         "contracts": {
-          "mediaUnderstandingProviders": [
-            "groq"
-          ]
+          "mediaUnderstandingProviders": ["groq"]
         },
         "install": {
           "clawhubSpec": "clawhub:@openclaw/groq-provider",
@@ -808,13 +718,8 @@
             "id": "kilocode",
             "name": "Kilo Gateway",
             "docs": "/providers/kilocode",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "KILOCODE_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["KILOCODE_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -828,9 +733,7 @@
                 "cliFlag": "--kilocode-api-key",
                 "cliOption": "--kilocode-api-key <key>",
                 "cliDescription": "Kilo Gateway API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -856,19 +759,11 @@
         "providers": [
           {
             "id": "kimi",
-            "aliases": [
-              "kimi-coding"
-            ],
+            "aliases": ["kimi-coding"],
             "name": "Kimi Coding",
             "docs": "/providers/moonshot",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "KIMI_API_KEY",
-              "KIMICODE_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["KIMI_API_KEY", "KIMICODE_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -881,9 +776,7 @@
                 "cliFlag": "--kimi-code-api-key",
                 "cliOption": "--kimi-code-api-key <key>",
                 "cliDescription": "Kimi Code API key (subscription)",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -952,13 +845,8 @@
             "id": "qianfan",
             "name": "Qianfan",
             "docs": "/providers/qianfan",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "QIANFAN_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["QIANFAN_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -971,9 +859,7 @@
                 "cliFlag": "--qianfan-api-key",
                 "cliOption": "--qianfan-api-key <key>",
                 "cliDescription": "QIANFAN API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -1008,37 +894,22 @@
           },
           {
             "endpointClass": "qwen-portal-native",
-            "baseUrls": [
-              "https://portal.qwen.ai/v1"
-            ]
+            "baseUrls": ["https://portal.qwen.ai/v1"]
           }
         ],
         "providers": [
           {
             "id": "qwen",
-            "aliases": [
-              "qwencloud",
-              "modelstudio",
-              "dashscope"
-            ],
+            "aliases": ["qwencloud", "modelstudio", "dashscope"],
             "name": "Qwen Cloud",
             "docs": "/providers/qwen",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "QWEN_API_KEY",
-              "MODELSTUDIO_API_KEY",
-              "DASHSCOPE_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["QWEN_API_KEY", "MODELSTUDIO_API_KEY", "DASHSCOPE_API_KEY"],
             "authChoices": [
               {
                 "method": "standard-api-key-cn",
                 "choiceId": "qwen-standard-api-key-cn",
-                "deprecatedChoiceIds": [
-                  "modelstudio-standard-api-key-cn"
-                ],
+                "deprecatedChoiceIds": ["modelstudio-standard-api-key-cn"],
                 "choiceLabel": "Standard API Key for China (pay-as-you-go)",
                 "choiceHint": "Endpoint: dashscope.aliyuncs.com",
                 "groupId": "qwen",
@@ -1048,16 +919,12 @@
                 "cliFlag": "--modelstudio-standard-api-key-cn",
                 "cliOption": "--modelstudio-standard-api-key-cn <key>",
                 "cliDescription": "Qwen Cloud standard API key (China)",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "standard-api-key",
                 "choiceId": "qwen-standard-api-key",
-                "deprecatedChoiceIds": [
-                  "modelstudio-standard-api-key"
-                ],
+                "deprecatedChoiceIds": ["modelstudio-standard-api-key"],
                 "choiceLabel": "Standard API Key for Global/Intl (pay-as-you-go)",
                 "choiceHint": "Endpoint: dashscope-intl.aliyuncs.com",
                 "groupId": "qwen",
@@ -1067,16 +934,12 @@
                 "cliFlag": "--modelstudio-standard-api-key",
                 "cliOption": "--modelstudio-standard-api-key <key>",
                 "cliDescription": "Qwen Cloud standard API key (Global/Intl)",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "api-key-cn",
                 "choiceId": "qwen-api-key-cn",
-                "deprecatedChoiceIds": [
-                  "modelstudio-api-key-cn"
-                ],
+                "deprecatedChoiceIds": ["modelstudio-api-key-cn"],
                 "choiceLabel": "Coding Plan API Key for China (subscription)",
                 "choiceHint": "Endpoint: coding.dashscope.aliyuncs.com",
                 "groupId": "qwen",
@@ -1086,16 +949,12 @@
                 "cliFlag": "--modelstudio-api-key-cn",
                 "cliOption": "--modelstudio-api-key-cn <key>",
                 "cliDescription": "Qwen Cloud Coding Plan API key (China)",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "api-key",
                 "choiceId": "qwen-api-key",
-                "deprecatedChoiceIds": [
-                  "modelstudio-api-key"
-                ],
+                "deprecatedChoiceIds": ["modelstudio-api-key"],
                 "choiceLabel": "Coding Plan API Key for Global/Intl (subscription)",
                 "choiceHint": "Endpoint: coding-intl.dashscope.aliyuncs.com",
                 "groupId": "qwen",
@@ -1105,27 +964,17 @@
                 "cliFlag": "--modelstudio-api-key",
                 "cliOption": "--modelstudio-api-key <key>",
                 "cliDescription": "Qwen Cloud Coding Plan API key (Global/Intl)",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           },
           {
             "id": "qwen-oauth",
-            "aliases": [
-              "qwen-portal",
-              "qwen-cli"
-            ],
+            "aliases": ["qwen-portal", "qwen-cli"],
             "name": "Qwen Cloud qwen oauth",
             "docs": "/providers/qwen",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "QWEN_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["QWEN_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1139,20 +988,14 @@
                 "cliFlag": "--qwen-oauth-token",
                 "cliOption": "--qwen-oauth-token <token>",
                 "cliDescription": "Qwen OAuth token",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
         ],
         "contracts": {
-          "mediaUnderstandingProviders": [
-            "qwen"
-          ],
-          "videoGenerationProviders": [
-            "qwen"
-          ]
+          "mediaUnderstandingProviders": ["qwen"],
+          "videoGenerationProviders": ["qwen"]
         },
         "install": {
           "clawhubSpec": "clawhub:@openclaw/qwen-provider",
@@ -1175,18 +1018,11 @@
         "providers": [
           {
             "id": "fireworks",
-            "aliases": [
-              "fireworks-ai"
-            ],
+            "aliases": ["fireworks-ai"],
             "name": "Fireworks",
             "docs": "/providers/fireworks",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "FIREWORKS_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["FIREWORKS_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1200,9 +1036,7 @@
                 "cliFlag": "--fireworks-api-key",
                 "cliOption": "--fireworks-api-key <key>",
                 "cliDescription": "Fireworks API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -1228,29 +1062,17 @@
         "providerEndpoints": [
           {
             "endpointClass": "moonshot-native",
-            "baseUrls": [
-              "https://api.moonshot.ai/v1",
-              "https://api.moonshot.cn/v1"
-            ]
+            "baseUrls": ["https://api.moonshot.ai/v1", "https://api.moonshot.cn/v1"]
           }
         ],
         "providers": [
           {
             "id": "moonshot",
-            "aliases": [
-              "moonshotai",
-              "moonshot-ai"
-            ],
+            "aliases": ["moonshotai", "moonshot-ai"],
             "name": "Moonshot",
             "docs": "/providers/moonshot",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "MOONSHOT_API_KEY",
-              "KIMI_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1264,9 +1086,7 @@
                 "cliFlag": "--moonshot-api-key",
                 "cliOption": "--moonshot-api-key <key>",
                 "cliDescription": "Moonshot API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "api-key-cn",
@@ -1280,34 +1100,23 @@
                 "cliFlag": "--moonshot-api-key",
                 "cliOption": "--moonshot-api-key <key>",
                 "cliDescription": "Moonshot API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
         ],
         "contracts": {
-          "mediaUnderstandingProviders": [
-            "moonshot"
-          ],
-          "webSearchProviders": [
-            "kimi"
-          ]
+          "mediaUnderstandingProviders": ["moonshot"],
+          "webSearchProviders": ["kimi"]
         },
         "webSearchProviders": [
           {
             "id": "kimi",
             "label": "Kimi (Moonshot)",
             "hint": "Requires Moonshot / Kimi API key · Moonshot web search",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "credentialLabel": "Moonshot / Kimi API key",
-            "envVars": [
-              "KIMI_API_KEY",
-              "MOONSHOT_API_KEY"
-            ],
+            "envVars": ["KIMI_API_KEY", "MOONSHOT_API_KEY"],
             "placeholder": "sk-...",
             "signupUrl": "https://platform.moonshot.cn/",
             "docsUrl": "https://docs.openclaw.ai/tools/web",
@@ -1338,13 +1147,8 @@
             "id": "tencent-tokenhub",
             "name": "Tencent TokenHub",
             "docs": "/providers/tencent",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "TOKENHUB_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["TOKENHUB_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1358,9 +1162,7 @@
                 "cliFlag": "--tokenhub-api-key",
                 "cliOption": "--tokenhub-api-key <key>",
                 "cliDescription": "Tencent TokenHub API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           },
@@ -1368,13 +1170,8 @@
             "id": "tencent-tokenplan",
             "name": "Tencent TokenPlan",
             "docs": "/providers/tencent",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "TOKENPLAN_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["TOKENPLAN_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1388,9 +1185,7 @@
                 "cliFlag": "--tokenplan-api-key",
                 "cliOption": "--tokenplan-api-key <key>",
                 "cliDescription": "Tencent TokenPlan API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -1418,13 +1213,8 @@
             "id": "venice",
             "name": "Venice",
             "docs": "/providers/venice",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "VENICE_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["VENICE_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1438,9 +1228,7 @@
                 "cliFlag": "--venice-api-key",
                 "cliOption": "--venice-api-key <key>",
                 "cliDescription": "Venice API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -1468,13 +1256,8 @@
             "id": "vercel-ai-gateway",
             "name": "Vercel AI Gateway",
             "docs": "/providers/vercel-ai-gateway",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "AI_GATEWAY_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["AI_GATEWAY_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1488,9 +1271,7 @@
                 "cliFlag": "--ai-gateway-api-key",
                 "cliOption": "--ai-gateway-api-key <key>",
                 "cliDescription": "Vercel AI Gateway API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
@@ -1516,28 +1297,17 @@
         "providerEndpoints": [
           {
             "endpointClass": "zai-native",
-            "hosts": [
-              "api.z.ai"
-            ]
+            "hosts": ["api.z.ai"]
           }
         ],
         "providers": [
           {
             "id": "zai",
-            "aliases": [
-              "z-ai",
-              "z.ai"
-            ],
+            "aliases": ["z-ai", "z.ai"],
             "name": "Z.AI",
             "docs": "/providers/zai",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "ZAI_API_KEY",
-              "Z_AI_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["ZAI_API_KEY", "Z_AI_API_KEY"],
             "authChoices": [
               {
                 "method": "api-key",
@@ -1550,9 +1320,7 @@
                 "cliFlag": "--zai-api-key",
                 "cliOption": "--zai-api-key <key>",
                 "cliDescription": "Z.AI API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "coding-global",
@@ -1566,9 +1334,7 @@
                 "cliFlag": "--zai-api-key",
                 "cliOption": "--zai-api-key <key>",
                 "cliDescription": "Z.AI API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "coding-cn",
@@ -1582,9 +1348,7 @@
                 "cliFlag": "--zai-api-key",
                 "cliOption": "--zai-api-key <key>",
                 "cliDescription": "Z.AI API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "global",
@@ -1598,9 +1362,7 @@
                 "cliFlag": "--zai-api-key",
                 "cliOption": "--zai-api-key <key>",
                 "cliDescription": "Z.AI API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "cn",
@@ -1614,17 +1376,13 @@
                 "cliFlag": "--zai-api-key",
                 "cliOption": "--zai-api-key <key>",
                 "cliDescription": "Z.AI API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }
         ],
         "contracts": {
-          "mediaUnderstandingProviders": [
-            "zai"
-          ]
+          "mediaUnderstandingProviders": ["zai"]
         },
         "install": {
           "clawhubSpec": "clawhub:@openclaw/zai-provider",
@@ -1649,13 +1407,8 @@
             "id": "stepfun",
             "name": "StepFun",
             "docs": "/providers/stepfun",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "STEPFUN_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["STEPFUN_API_KEY"],
             "authChoices": [
               {
                 "method": "standard-api-key-cn",
@@ -1669,9 +1422,7 @@
                 "cliFlag": "--stepfun-api-key",
                 "cliOption": "--stepfun-api-key <key>",
                 "cliDescription": "StepFun API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "standard-api-key-intl",
@@ -1685,9 +1436,7 @@
                 "cliFlag": "--stepfun-api-key",
                 "cliOption": "--stepfun-api-key <key>",
                 "cliDescription": "StepFun API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           },
@@ -1695,13 +1444,8 @@
             "id": "stepfun-plan",
             "name": "StepFun stepfun plan",
             "docs": "/providers/stepfun",
-            "categories": [
-              "cloud",
-              "llm"
-            ],
-            "envVars": [
-              "STEPFUN_API_KEY"
-            ],
+            "categories": ["cloud", "llm"],
+            "envVars": ["STEPFUN_API_KEY"],
             "authChoices": [
               {
                 "method": "plan-api-key-cn",
@@ -1715,9 +1459,7 @@
                 "cliFlag": "--stepfun-api-key",
                 "cliOption": "--stepfun-api-key <key>",
                 "cliDescription": "StepFun API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               },
               {
                 "method": "plan-api-key-intl",
@@ -1731,9 +1473,7 @@
                 "cliFlag": "--stepfun-api-key",
                 "cliOption": "--stepfun-api-key <key>",
                 "cliDescription": "StepFun API key",
-                "onboardingScopes": [
-                  "text-inference"
-                ]
+                "onboardingScopes": ["text-inference"]
               }
             ]
           }

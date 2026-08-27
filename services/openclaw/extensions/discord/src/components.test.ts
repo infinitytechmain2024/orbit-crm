@@ -137,8 +137,7 @@ describe("discord components", () => {
 
     const result = buildDiscordComponentMessage({ spec });
     const serialized = result.components[0]?.serialize() as
-      | { components?: Array<{ components?: Array<Record<string, unknown>> }> }
-      | undefined;
+      { components?: Array<{ components?: Array<Record<string, unknown>> }> } | undefined;
     const button = serialized?.components?.[0]?.components?.[0];
 
     expect(button).toMatchObject({
@@ -567,16 +566,14 @@ describe("discord component registry", () => {
     expect(modalRegister).toHaveBeenCalledTimes(1);
 
     const persistedComponent = componentRegister.mock.calls[0]?.[1] as
-      | { entry: Record<string, unknown> }
-      | undefined;
+      { entry: Record<string, unknown> } | undefined;
     expect(persistedComponent?.entry.callbackData).toBe("approve");
     expect(persistedComponent?.entry).not.toHaveProperty("modalId");
     expect(persistedComponent?.entry).not.toHaveProperty("sessionKey");
     expect(persistedComponent?.entry).not.toHaveProperty("messageId");
 
     const modalPayload = modalRegister.mock.calls[0]?.[1] as
-      | { entry: { fields?: Array<Record<string, unknown>> } }
-      | undefined;
+      { entry: { fields?: Array<Record<string, unknown>> } } | undefined;
     expect(modalPayload?.entry.fields?.[0]).not.toHaveProperty("description");
     expect(modalPayload?.entry.fields?.[0]).not.toHaveProperty("placeholder");
     expect(modalPayload?.entry).not.toHaveProperty("sessionKey");

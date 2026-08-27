@@ -59,8 +59,7 @@ function getState(): FeishuThreadBindingsState {
   if (!state) {
     const globalStore = globalThis as Record<PropertyKey, unknown>;
     state = (globalStore[FEISHU_THREAD_BINDINGS_STATE_KEY] as
-      | FeishuThreadBindingsState
-      | undefined) ?? {
+      FeishuThreadBindingsState | undefined) ?? {
       managersByAccountId: new Map(),
       bindingsByAccountConversation: new Map(),
     };

@@ -138,8 +138,7 @@ describe("web auto-reply last-route", () => {
 
     expect(updateLastRouteInBackgroundMock).toHaveBeenCalledTimes(1);
     const updateParams = updateLastRouteInBackgroundMock.mock.calls.at(0)?.[0] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(updateParams?.cfg).toBe(cfg);
     expect(updateParams?.backgroundTasks).toBe(backgroundTasks);
     expect(updateParams?.warn).toBeTypeOf("function");
@@ -216,8 +215,7 @@ describe("web auto-reply last-route", () => {
 
     expect(updateLastRouteInBackgroundMock).toHaveBeenCalledTimes(1);
     const updateParams = updateLastRouteInBackgroundMock.mock.calls.at(0)?.[0] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(updateParams?.cfg).toBe(cfg);
     expect(updateParams?.backgroundTasks).toBe(backgroundTasks);
     expect(updateParams?.warn).toBeTypeOf("function");

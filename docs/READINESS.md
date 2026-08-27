@@ -5,20 +5,20 @@
 
 ## Проверенные критерии
 
-| Критерий | Статус | Фактическое доказательство |
-|---|---|---|
-| Frontend build (сборка клиентской части) | PASS | Локальная и Vercel Preview сборки завершены успешно |
-| Backend tests (серверные тесты) | PASS | 24/24 unit/integration tests (модульных/интеграционных теста) |
-| Browser smoke (браузерная проверка) | PARTIAL | 6/6 Playwright tests; проверяют загрузку/login shell, но не рабочий сценарий с реальными данными |
-| Vercel Preview | PASS | Frontend `200`, анонимный backend proxy (серверный прокси) `401` |
-| RLS двух организаций | PASS/PARTIAL | Транзакционно подтверждена изоляция project/update/Storage; в production существует только один Auth user (пользователь), поэтому сценарий двух реальных пользователей не проверен |
-| Webhook protection/idempotency (защита/идемпотентность вебхука) | PASS | Backend security tests подтверждают invalid token rejection и stable idempotency key (стабильный ключ идемпотентности) |
-| Calendar queue/Cron (очередь/планировщик календаря) | PASS | `orbit-calendar-reminders` активен каждую минуту, backlog (накопление) равен 0 |
-| OpenClaw health/task execution | FAIL | Vercel proxy получает `404 Cannot GET`; сквозное выполнение задания не подтверждено |
-| Workflow durable queue (надёжная очередь процессов) | FAIL, P0 | В production отсутствуют `public.ai_tasks`, `public.workflow_runs` и `public.workflow_jobs` |
-| Backup/rollback (резервная копия/откат) | PARTIAL | Процедура отката документирована; фактическая политика backup/PITR (восстановления на момент времени) не подтверждена |
-| Alerts (оповещения) | FAIL | Нет подтверждённых alert rules (правил оповещения) для 5xx, authorization failures и queue backlog |
-| Security Advisor (проверка безопасности) | PARTIAL | RLS-проблем высокого уровня нет; leaked-password protection (проверка скомпрометированных паролей) отключена |
+| Критерий                                                        | Статус       | Фактическое доказательство                                                                                                                                                         |
+| --------------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend build (сборка клиентской части)                        | PASS         | Локальная и Vercel Preview сборки завершены успешно                                                                                                                                |
+| Backend tests (серверные тесты)                                 | PASS         | 24/24 unit/integration tests (модульных/интеграционных теста)                                                                                                                      |
+| Browser smoke (браузерная проверка)                             | PARTIAL      | 6/6 Playwright tests; проверяют загрузку/login shell, но не рабочий сценарий с реальными данными                                                                                   |
+| Vercel Preview                                                  | PASS         | Frontend `200`, анонимный backend proxy (серверный прокси) `401`                                                                                                                   |
+| RLS двух организаций                                            | PASS/PARTIAL | Транзакционно подтверждена изоляция project/update/Storage; в production существует только один Auth user (пользователь), поэтому сценарий двух реальных пользователей не проверен |
+| Webhook protection/idempotency (защита/идемпотентность вебхука) | PASS         | Backend security tests подтверждают invalid token rejection и stable idempotency key (стабильный ключ идемпотентности)                                                             |
+| Calendar queue/Cron (очередь/планировщик календаря)             | PASS         | `orbit-calendar-reminders` активен каждую минуту, backlog (накопление) равен 0                                                                                                     |
+| OpenClaw health/task execution                                  | FAIL         | Vercel proxy получает `404 Cannot GET`; сквозное выполнение задания не подтверждено                                                                                                |
+| Workflow durable queue (надёжная очередь процессов)             | FAIL, P0     | В production отсутствуют `public.ai_tasks`, `public.workflow_runs` и `public.workflow_jobs`                                                                                        |
+| Backup/rollback (резервная копия/откат)                         | PARTIAL      | Процедура отката документирована; фактическая политика backup/PITR (восстановления на момент времени) не подтверждена                                                              |
+| Alerts (оповещения)                                             | FAIL         | Нет подтверждённых alert rules (правил оповещения) для 5xx, authorization failures и queue backlog                                                                                 |
+| Security Advisor (проверка безопасности)                        | PARTIAL      | RLS-проблем высокого уровня нет; leaked-password protection (проверка скомпрометированных паролей) отключена                                                                       |
 
 ## Фактические production-данные
 

@@ -8,7 +8,17 @@
     "width": 1200,
     "height": 1200,
     "aliases": ["drakeposting", "drake"],
-    "tags": ["choice", "preference", "reject", "accept", "before after", "api", "local", "cache", "better option"],
+    "tags": [
+      "choice",
+      "preference",
+      "reject",
+      "accept",
+      "before after",
+      "api",
+      "local",
+      "cache",
+      "better option"
+    ],
     "use": "Reject one option and endorse a better one.",
     "fields": ["rejected option", "preferred option"],
     "boxes": [

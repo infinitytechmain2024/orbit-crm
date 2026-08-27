@@ -1,17 +1,18 @@
-import { Agent, PraisonAIAgents } from 'praisonai';
+import { Agent, PraisonAIAgents } from "praisonai";
 
 const storyAgent = new Agent({
-  instructions: "Generate a very short story (2-3 sentences) about artificial intelligence with emojis.",
-  name: "StoryAgent"
+  instructions:
+    "Generate a very short story (2-3 sentences) about artificial intelligence with emojis.",
+  name: "StoryAgent",
 });
 
 const summaryAgent = new Agent({
   instructions: "Summarize the provided AI story in one sentence with emojis.",
-  name: "SummaryAgent"
+  name: "SummaryAgent",
 });
 
 const agents = new PraisonAIAgents({
-  agents: [storyAgent, summaryAgent]
+  agents: [storyAgent, summaryAgent],
 });
 
-agents.start()
+agents.start();

@@ -155,22 +155,16 @@
           "label": "Exa"
         },
         "contracts": {
-          "webSearchProviders": [
-            "exa"
-          ]
+          "webSearchProviders": ["exa"]
         },
         "webSearchProviders": [
           {
             "id": "exa",
             "label": "Exa Search",
             "hint": "Neural + keyword search with date filters and content extraction",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "credentialLabel": "Exa API key",
-            "envVars": [
-              "EXA_API_KEY"
-            ],
+            "envVars": ["EXA_API_KEY"],
             "placeholder": "exa-...",
             "signupUrl": "https://exa.ai/",
             "docsUrl": "https://docs.openclaw.ai/tools/web",
@@ -197,29 +191,18 @@
           "label": "Firecrawl"
         },
         "contracts": {
-          "webFetchProviders": [
-            "firecrawl"
-          ],
-          "webSearchProviders": [
-            "firecrawl"
-          ],
-          "tools": [
-            "firecrawl_search",
-            "firecrawl_scrape"
-          ]
+          "webFetchProviders": ["firecrawl"],
+          "webSearchProviders": ["firecrawl"],
+          "tools": ["firecrawl_search", "firecrawl_scrape"]
         },
         "webSearchProviders": [
           {
             "id": "firecrawl",
             "label": "Firecrawl Search",
             "hint": "Structured results with optional result scraping",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "credentialLabel": "Firecrawl API key",
-            "envVars": [
-              "FIRECRAWL_API_KEY"
-            ],
+            "envVars": ["FIRECRAWL_API_KEY"],
             "placeholder": "fc-...",
             "signupUrl": "https://www.firecrawl.dev/",
             "docsUrl": "https://docs.openclaw.ai/tools/firecrawl",
@@ -263,9 +246,7 @@
           "label": "Gradium"
         },
         "contracts": {
-          "speechProviders": [
-            "gradium"
-          ]
+          "speechProviders": ["gradium"]
         },
         "install": {
           "clawhubSpec": "clawhub:@openclaw/gradium-speech",
@@ -286,9 +267,7 @@
           "label": "Inworld"
         },
         "contracts": {
-          "speechProviders": [
-            "inworld"
-          ]
+          "speechProviders": ["inworld"]
         },
         "install": {
           "clawhubSpec": "clawhub:@openclaw/inworld-speech",
@@ -380,23 +359,16 @@
           "label": "Parallel"
         },
         "contracts": {
-          "webSearchProviders": [
-            "parallel",
-            "parallel-free"
-          ]
+          "webSearchProviders": ["parallel", "parallel-free"]
         },
         "webSearchProviders": [
           {
             "id": "parallel",
             "label": "Parallel Search",
             "hint": "LLM-optimized dense excerpts from web sources",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "credentialLabel": "Parallel API key",
-            "envVars": [
-              "PARALLEL_API_KEY"
-            ],
+            "envVars": ["PARALLEL_API_KEY"],
             "placeholder": "par-...",
             "signupUrl": "https://platform.parallel.ai",
             "docsUrl": "https://docs.openclaw.ai/tools/parallel-search",
@@ -407,9 +379,7 @@
             "id": "parallel-free",
             "label": "Parallel Search (Free)",
             "hint": "Free web search via Parallel's hosted Search MCP — no API key required",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "requiresCredential": false,
             "envVars": [],
             "placeholder": "(no key needed)",
@@ -437,23 +407,16 @@
           "label": "Perplexity"
         },
         "contracts": {
-          "webSearchProviders": [
-            "perplexity"
-          ]
+          "webSearchProviders": ["perplexity"]
         },
         "webSearchProviders": [
           {
             "id": "perplexity",
             "label": "Perplexity Search",
             "hint": "Requires Perplexity API key or OpenRouter API key · structured results",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "credentialLabel": "Perplexity API key",
-            "envVars": [
-              "PERPLEXITY_API_KEY",
-              "OPENROUTER_API_KEY"
-            ],
+            "envVars": ["PERPLEXITY_API_KEY", "OPENROUTER_API_KEY"],
             "placeholder": "pplx-...",
             "signupUrl": "https://www.perplexity.ai/settings/api",
             "docsUrl": "https://docs.openclaw.ai/perplexity",
@@ -498,23 +461,17 @@
           "label": "SearXNG"
         },
         "contracts": {
-          "webSearchProviders": [
-            "searxng"
-          ]
+          "webSearchProviders": ["searxng"]
         },
         "webSearchProviders": [
           {
             "id": "searxng",
             "label": "SearXNG Search",
             "hint": "Self-hosted meta-search with no API key required",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "requiresCredential": true,
             "credentialLabel": "SearXNG Base URL",
-            "envVars": [
-              "SEARXNG_BASE_URL"
-            ],
+            "envVars": ["SEARXNG_BASE_URL"],
             "placeholder": "http://localhost:8080",
             "signupUrl": "https://docs.searxng.org/",
             "docsUrl": "https://docs.openclaw.ai/tools/searxng-search",
@@ -542,26 +499,17 @@
           "label": "Tavily"
         },
         "contracts": {
-          "webSearchProviders": [
-            "tavily"
-          ],
-          "tools": [
-            "tavily_search",
-            "tavily_extract"
-          ]
+          "webSearchProviders": ["tavily"],
+          "tools": ["tavily_search", "tavily_extract"]
         },
         "webSearchProviders": [
           {
             "id": "tavily",
             "label": "Tavily Search",
             "hint": "Structured results with domain filters and AI answer summaries",
-            "onboardingScopes": [
-              "text-inference"
-            ],
+            "onboardingScopes": ["text-inference"],
             "credentialLabel": "Tavily API key",
-            "envVars": [
-              "TAVILY_API_KEY"
-            ],
+            "envVars": ["TAVILY_API_KEY"],
             "placeholder": "tvly-...",
             "signupUrl": "https://tavily.com/",
             "docsUrl": "https://docs.openclaw.ai/tools/tavily",

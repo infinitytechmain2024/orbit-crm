@@ -25,21 +25,21 @@ ready-to-run scripts, and a **Claude skill** so Claude knows exactly how to use 
 ## What you get
 
 - 🐳 **One-command local setup** — `docker compose up -d` runs the scraper at `http://localhost:8080`.
-- 🤖 **A Claude skill** — open this folder in Claude Code and just say *"scrape coffee shops in Austin"*. Claude does create → poll → download → clean results, following best practices automatically.
+- 🤖 **A Claude skill** — open this folder in Claude Code and just say _"scrape coffee shops in Austin"_. Claude does create → poll → download → clean results, following best practices automatically.
 - 🛠️ **Standalone scripts** — `scripts/scrape.sh` (bash) and `scripts/scrape.py` (Python, no dependencies) if you'd rather not use Claude.
 - 🔒 **Safe by default** — the scraper binds to `127.0.0.1` only, secrets are git-ignored, and the skill enforces rate-limit / legal / data-handling guardrails.
 
 ## What it scrapes (and what it doesn't)
 
 - ✅ **Google Maps business listings** → a clean **lead list** by default: `name, phone, email, website, category, address, rating, review count`. The scraper captures ~34 raw fields, but the kit **strips the noise** (geo coordinates, IDs, hours, images, review blobs) so you only get data you can actually use for outreach. Want everything? `scrape.py --full`.
-- ➕ **Optional socials** (`--socials`): also pulls each business's **Instagram / Facebook / LinkedIn** by scanning its website. **Token cost: 0** — it runs in code (HTTP + regex), no AI. It only adds ~40–50 tokens *per business* if you later load the rows into an AI chat (≈+2k for 50 leads; nothing if you keep the file on disk). It's slower (one fetch per site) and coverage is partial (only businesses that link socials on their site).
+- ➕ **Optional socials** (`--socials`): also pulls each business's **Instagram / Facebook / LinkedIn** by scanning its website. **Token cost: 0** — it runs in code (HTTP + regex), no AI. It only adds ~40–50 tokens _per business_ if you later load the rows into an AI chat (≈+2k for 50 leads; nothing if you keep the file on disk). It's slower (one fetch per site) and coverage is partial (only businesses that link socials on their site).
 - ❌ **Not** a social-media scraper. It cannot touch Instagram / TikTok / YouTube.
 
 ## Why use this instead of asking an AI to "just scrape Google Maps"
 
 Tested head-to-head: a chat AI fetching `maps.google.com` directly hits a **consent wall** and
 **JavaScript-rendered** content, so it returns **~0 structured results**. This kit reliably returns
-**dozens–hundreds of clean rows per query**. For Google Maps, it's the difference between *can't* and *can*.
+**dozens–hundreds of clean rows per query**. For Google Maps, it's the difference between _can't_ and _can_.
 
 ---
 
@@ -66,16 +66,18 @@ Full instructions: **[SETUP.md](SETUP.md)**. How Claude uses it: **[.claude/skil
 ## Invoking it in Claude Code
 
 ### Slash commands
-| Command | What it does |
-|---|---|
-| `/scrape <business> in <city, ST> [depth]` | Run a scrape and get a clean table |
-| `/scrape-batch <keywords-file> [--city "City, ST"]` | Scrape many queries in one job |
-| `/scrape-setup` | Start the local scraper + health check |
-| `/scrape-jobs [list \| delete <id>]` | List or delete jobs |
+
+| Command                                             | What it does                           |
+| --------------------------------------------------- | -------------------------------------- |
+| `/scrape <business> in <city, ST> [depth]`          | Run a scrape and get a clean table     |
+| `/scrape-batch <keywords-file> [--city "City, ST"]` | Scrape many queries in one job         |
+| `/scrape-setup`                                     | Start the local scraper + health check |
+| `/scrape-jobs [list \| delete <id>]`                | List or delete jobs                    |
 
 Example: `/scrape dentists in Denver CO 10`
 
 ### Or just talk to it — the skill auto-triggers on phrases like:
+
 - "scrape coffee shops in Austin"
 - "find all gyms in Miami with phone numbers"
 - "build me a lead list of dentists in Denver, CO"
@@ -87,11 +89,12 @@ It intentionally **does not** trigger for social media (Instagram/TikTok) — th
 
 ## ⚠️ Rate limits, bans & responsible use
 
-The upstream project's guidance (and ours): *"Please use this scraper responsibly and in accordance with
-applicable laws and regulations. Unauthorized scraping may violate terms of service."* There's **no
+The upstream project's guidance (and ours): _"Please use this scraper responsibly and in accordance with
+applicable laws and regulations. Unauthorized scraping may violate terms of service."_ There's **no
 published ban threshold**, so be conservative.
 
 **What "over-use" looks like** and the risk:
+
 - Big jobs back-to-back, very high `depth`, many keywords at once, or scheduled runs **without proxies**.
 - Risk: Google **temporarily rate-limits/blocks your IP** (minutes–hours, then clears). Your Google
   **account is not banned**. While blocked, jobs come back `failed` or with empty/short results.
@@ -100,16 +103,19 @@ published ban threshold**, so be conservative.
 identical earlier run. If you see these, **slow down** — pause, lower `depth`, or add proxies.
 
 **Stay safe:**
+
 - One job at a time; start at `depth 5` and raise only as needed.
 - Turn on `email` extraction only when you need emails (it's much slower).
 - Treat results as **leads to verify**, not a redistributable dataset. Don't resell raw Google data.
 - Scraped phones/emails are **personal data** → follow GDPR/CCPA/CAN-SPAM if you store or contact them.
 
-**When to add proxies** (*"For larger scraping jobs, proxies help avoid rate limiting"*): large jobs, many
+**When to add proxies** (_"For larger scraping jobs, proxies help avoid rate limiting"_): large jobs, many
 keywords, repeated/scheduled runs, or after you hit block signals. Set the `proxies` array in the job body:
+
 ```json
 "proxies": ["socks5://user:pass@host:port", "http://host2:port2"]
 ```
+
 Types: `socks5`, `socks5h`, `http`, `https` (auth optional). The scraper rotates them automatically.
 For reference, upstream measures ~120 places/min at `-c 8 -depth 1`.
 

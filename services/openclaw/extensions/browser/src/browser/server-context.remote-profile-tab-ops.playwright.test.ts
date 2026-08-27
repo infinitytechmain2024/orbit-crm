@@ -112,8 +112,7 @@ describe("browser remote profile tab ops via Playwright", () => {
 
     await remote.focusTab("docs");
     const focusCall = (focusPageByTargetIdViaPlaywright.mock.calls as unknown[][])[0]?.[0] as
-      | { targetId?: unknown }
-      | undefined;
+      { targetId?: unknown } | undefined;
     expect(focusCall?.targetId).toBe("B");
   });
 

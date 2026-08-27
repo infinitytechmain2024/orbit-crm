@@ -178,8 +178,7 @@ function firstRespondCall(source: MockCallSource): RespondCall {
 
 function firstRuntimeConfig(): VoiceCallRuntime["config"] | undefined {
   const options = mockCall(vi.mocked(createVoiceCallRuntime))[0] as
-    | { config?: VoiceCallRuntime["config"] }
-    | undefined;
+    { config?: VoiceCallRuntime["config"] } | undefined;
   return options?.config;
 }
 
@@ -1079,8 +1078,7 @@ describe("voice-call plugin", () => {
       respond: startRespond,
     });
     const startPayload = firstRespondCall(startRespond)[1] as
-      | { operationId?: string; pollTimeoutMs?: number; status?: string }
-      | undefined;
+      { operationId?: string; pollTimeoutMs?: number; status?: string } | undefined;
     expect(startPayload?.operationId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu,
     );

@@ -16,12 +16,7 @@ import { isAnthropicBillingError, isApiKeyRateLimitError } from "./live-auth-key
 import { isModelNotFoundErrorMessage } from "./live-model-errors.js";
 
 type LiveProviderDriftReason =
-  | "auth"
-  | "billing"
-  | "model-not-found"
-  | "provider-unavailable"
-  | "rate-limit"
-  | "timeout";
+  "auth" | "billing" | "model-not-found" | "provider-unavailable" | "rate-limit" | "timeout";
 
 /** A normalized reason for skipping or soft-failing live provider drift. */
 type LiveProviderDriftDecision = {

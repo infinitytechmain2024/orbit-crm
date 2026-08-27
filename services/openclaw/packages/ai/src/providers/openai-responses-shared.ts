@@ -73,8 +73,7 @@ function sanitizeToolResultText(text: string, fallback: string): string {
 type ReplayableResponseOutputMessage = Omit<ResponseOutputMessage, "id"> & { id?: string };
 type ReplayableResponseReasoningItem = Omit<ResponseReasoningItem, "id"> & { id?: string };
 type ResponsesTextContentPart =
-  | ResponseOutputMessage["content"][number]
-  | AzureResponsesTextContentPart;
+  ResponseOutputMessage["content"][number] | AzureResponsesTextContentPart;
 type ResponsesStreamOutputMessage = Omit<ResponseOutputMessage, "content"> & {
   content: ResponsesTextContentPart[];
 };
@@ -658,10 +657,7 @@ export async function processResponsesStream<TApi extends Api>(
   options?: OpenAIResponsesProcessStreamOptions,
 ): Promise<void> {
   let currentItem:
-    | ResponseReasoningItem
-    | ResponsesStreamOutputMessage
-    | ResponseFunctionToolCall
-    | null = null;
+    ResponseReasoningItem | ResponsesStreamOutputMessage | ResponseFunctionToolCall | null = null;
   let currentBlock: ThinkingContent | TextContent | (ToolCall & { partialJson: string }) | null =
     null;
   let lastTextBlock: {
@@ -1007,9 +1003,7 @@ export async function processResponsesStream<TApi extends Api>(
       }
       if (response?.usage) {
         const inputTokenDetails = response.usage.input_tokens_details as
-          | ResponsesInputTokensDetails
-          | null
-          | undefined;
+          ResponsesInputTokensDetails | null | undefined;
         const cachedTokens = inputTokenDetails?.cached_tokens || 0;
         const cacheWriteTokens = inputTokenDetails?.cache_write_tokens || 0;
         output.usage = {

@@ -232,10 +232,7 @@ async function promptFoundryApi(
 
 type ManualFoundryModelFamilyChoice = "claude" | "reasoning-family" | "mai-image" | "other-chat";
 type ManualFoundryMaiImageModel =
-  | "MAI-Image-2.5-Flash"
-  | "MAI-Image-2.5"
-  | "MAI-Image-2e"
-  | "MAI-Image-2";
+  "MAI-Image-2.5-Flash" | "MAI-Image-2.5" | "MAI-Image-2e" | "MAI-Image-2";
 
 async function promptFoundryModelFamily(
   ctx: ProviderAuthContext,

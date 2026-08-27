@@ -569,8 +569,7 @@ export function buildGoogleVideoGenerationProvider(): VideoGenerationProvider {
       const videos = await Promise.all(
         generatedVideos.map(async (entry, index) => {
           const inline = entry.video as
-            | { videoBytes?: string; uri?: string; mimeType?: string }
-            | undefined;
+            { videoBytes?: string; uri?: string; mimeType?: string } | undefined;
           if (inline?.videoBytes) {
             const buffer = Buffer.from(inline.videoBytes, "base64");
             assertGeneratedVideoBufferWithinLimit(buffer, maxVideoBytes);

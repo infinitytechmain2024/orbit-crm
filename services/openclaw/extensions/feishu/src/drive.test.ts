@@ -307,8 +307,7 @@ describe("registerFeishuDriveTools", () => {
       "/open-apis/drive/v1/files/doc_1/comments/c1/replies?file_type=docx&user_id_type=open_id",
     );
     const repliesDetails = repliesResult.details as
-      | { replies?: Array<{ reply_id?: string; text?: string }> }
-      | undefined;
+      { replies?: Array<{ reply_id?: string; text?: string }> } | undefined;
     expect(repliesDetails?.replies).toHaveLength(1);
     expect(repliesDetails?.replies?.[0]?.reply_id).toBe("r3");
     expect(repliesDetails?.replies?.[0]?.text).toBe("reply from api");

@@ -1336,8 +1336,7 @@ describe("sessions tools", () => {
       }
       if (request.method === "send") {
         const params = request.params as
-          | { to?: string; channel?: string; message?: string }
-          | undefined;
+          { to?: string; channel?: string; message?: string } | undefined;
         sendParams = {
           to: params?.to,
           channel: params?.channel,

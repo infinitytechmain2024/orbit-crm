@@ -1566,8 +1566,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       dropThinkingBlocks: false,
     } as never);
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -1598,8 +1597,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       dropThinkingBlocks: false,
     } as never);
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -1635,8 +1633,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       } as never,
     );
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2193,8 +2190,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       { validateAnthropicTurns: true } as never,
     );
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2261,8 +2257,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       new Set(["admin.export"]),
     );
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2283,8 +2278,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["read"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2307,8 +2301,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["ReadFile"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2331,8 +2324,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["write"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2362,8 +2354,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never);
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2384,8 +2375,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["read"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2420,8 +2410,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["read"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2460,8 +2449,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["read"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2495,8 +2483,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["read"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2520,8 +2507,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       new Set(["exec", "exec2"]),
     );
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2557,8 +2543,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
 
     const wrapped = wrapStreamFnSanitizeMalformedToolCalls(baseFn as never, new Set(["read"]));
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2610,8 +2595,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       dropThinkingBlocks: false,
     });
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2657,8 +2641,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       dropThinkingBlocks: false,
     });
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2800,8 +2783,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
         dropThinkingBlocks: false,
       });
       const stream = wrapped({} as never, { messages } as never, {} as never) as
-        | FakeWrappedStream
-        | Promise<FakeWrappedStream>;
+        FakeWrappedStream | Promise<FakeWrappedStream>;
       await Promise.resolve(stream);
 
       expect(baseFn).toHaveBeenCalledTimes(1);
@@ -2842,8 +2824,7 @@ describe("wrapStreamFnSanitizeMalformedToolCalls", () => {
       dropThinkingBlocks: false,
     });
     const stream = wrapped({} as never, { messages } as never, {} as never) as
-      | FakeWrappedStream
-      | Promise<FakeWrappedStream>;
+      FakeWrappedStream | Promise<FakeWrappedStream>;
     await Promise.resolve(stream);
 
     expect(baseFn).toHaveBeenCalledTimes(1);
@@ -3286,8 +3267,7 @@ describe("buildAfterTurnRuntimeContext", () => {
       });
 
       const activeProcessSessions = legacy.activeProcessSessions as
-        | Array<{ sessionId?: string; command?: string; pid?: number }>
-        | undefined;
+        Array<{ sessionId?: string; command?: string; pid?: number }> | undefined;
       expect(activeProcessSessions).toHaveLength(1);
       const activeSession = requireRecord(activeProcessSessions?.[0], "active process session");
       expect(activeSession.sessionId).toBe("sess-session-id");

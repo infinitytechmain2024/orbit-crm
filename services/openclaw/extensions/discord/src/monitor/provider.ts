@@ -93,8 +93,7 @@ let createDiscordNativeCommandForTesting: typeof createDiscordNativeCommand | un
 let runDiscordGatewayLifecycleForTesting: typeof runDiscordGatewayLifecycle | undefined;
 let loadDiscordVoiceRuntimeForTesting: (() => Promise<DiscordVoiceRuntimeModule>) | undefined;
 let loadDiscordProviderSessionRuntimeForTesting:
-  | (() => Promise<DiscordProviderSessionRuntimeModule>)
-  | undefined;
+  (() => Promise<DiscordProviderSessionRuntimeModule>) | undefined;
 let createClientForTesting:
   | ((
       options: ConstructorParameters<typeof Client>[0],

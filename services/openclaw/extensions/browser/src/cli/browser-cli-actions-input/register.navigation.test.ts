@@ -57,11 +57,9 @@ describe("browser navigation commands", () => {
     );
 
     const request = mocks.callBrowserRequest.mock.calls.at(-1)?.[1] as
-      | { method?: string; path?: string; body?: Record<string, unknown> }
-      | undefined;
+      { method?: string; path?: string; body?: Record<string, unknown> } | undefined;
     const options = mocks.callBrowserRequest.mock.calls.at(-1)?.[2] as
-      | { timeoutMs?: number }
-      | undefined;
+      { timeoutMs?: number } | undefined;
     expect(request).toMatchObject({
       method: "POST",
       path: "/navigate",

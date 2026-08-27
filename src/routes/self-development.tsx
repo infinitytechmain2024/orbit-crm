@@ -1,13 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import {
-  BarChart3,
-  CheckCircle2,
-  Loader2,
-  RefreshCw,
-  ShieldCheck,
-  XCircle,
-} from "lucide-react";
+import { BarChart3, CheckCircle2, Loader2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { authenticatedFetch } from "@/lib/api-client";
 import { useCrm } from "@/lib/crm-store";

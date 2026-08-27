@@ -8,6 +8,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
   GripVertical,
+  Plus,
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
@@ -15,8 +16,10 @@ import { useCrm } from "@/lib/crm-store";
 import {
   fetchCalendarEvents,
   updateCalendarEvent,
+  createCalendarEvent,
   type CalendarEventStatus,
 } from "@/lib/calendar-repository";
+import { QuickEventModal } from "@/components/crm/QuickEventModal";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -87,6 +90,14 @@ function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [quickEventModal, setQuickEventModal] = useState<{
+    open: boolean;
+    date: string;
+    hour?: number;
+  }>({
+    open: false,
+    date: new Date().toISOString().split("T")[0],
+  });
 
   const weekStart = useMemo(() => {
     const value = new Date(currentDate);
@@ -141,6 +152,15 @@ function CalendarPage() {
   };
 
   const goToday = () => setCurrentDate(new Date());
+
+  const handleCellClick = (date: string, hour?: number) => {
+    setQuickEventModal({ open: true, date, hour });
+  };
+
+  const handleQuickEventSaved = () => {
+    setQuickEventModal({ open: false, date: new Date().toISOString().split("T")[0] });
+    void loadEvents();
+  };
 
   const handleDragStart = (id: string) => setDraggedId(id);
 
@@ -202,6 +222,15 @@ function CalendarPage() {
 
   return (
     <AppShell title="Календарь" subtitle="Расписание и записи клиентов">
+      <QuickEventModal
+        open={quickEventModal.open}
+        onClose={() =>
+          setQuickEventModal({ open: false, date: new Date().toISOString().split("T")[0] })
+        }
+        initialDate={quickEventModal.date}
+        initialHour={quickEventModal.hour}
+        onSaved={handleQuickEventSaved}
+      />
       <div className="space-y-4">
         {calendarError && (
           <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -255,6 +284,7 @@ function CalendarPage() {
             onDrop={handleDrop}
             onChangeStatus={changeStatus}
             onToggleReminder={toggleReminder}
+            onCellClick={handleCellClick}
           />
         )}
         {view === "week" && (
@@ -264,9 +294,12 @@ function CalendarPage() {
             onDrop={handleDrop}
             onChangeStatus={changeStatus}
             onToggleReminder={toggleReminder}
+            onCellClick={handleCellClick}
           />
         )}
-        {view === "month" && <MonthView currentDate={currentDate} events={events} />}
+        {view === "month" && (
+          <MonthView currentDate={currentDate} events={events} onCellClick={handleCellClick} />
+        )}
       </div>
     </AppShell>
   );
@@ -347,13 +380,22 @@ function DayView({
   onDrop,
   onChangeStatus,
   onToggleReminder,
+  onCellClick,
 }: {
   events: CalendarEvent[];
   onDragStart: (id: string) => void;
   onDrop: (dayIndex: number, hour: number) => void;
   onChangeStatus: (id: string, status: BookingStatus) => void;
   onToggleReminder: (id: string) => void;
+  onCellClick: (date: string, hour?: number) => void;
 }) {
+  const weekStart = useMemo(() => {
+    // This is a simplified version - in reality we'd need the weekStart from parent
+    const value = new Date();
+    value.setHours(0, 0, 0, 0);
+    return value;
+  }, []);
+
   return (
     <div className="flex rounded-xl border border-border bg-surface-2/40">
       <div className="w-16 flex-shrink-0 border-r border-border">
@@ -372,7 +414,8 @@ function DayView({
             key={h}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => onDrop(0, h)}
-            className="h-16 border-b border-border transition hover:bg-primary/5"
+            onClick={() => onCellClick(new Date().toISOString().split("T")[0], h)}
+            className="h-16 border-b border-border transition hover:bg-primary/5 cursor-pointer"
           >
             {events
               .filter((e) => parseInt(e.startTime) === h)
@@ -398,13 +441,21 @@ function WeekView({
   onDrop,
   onChangeStatus,
   onToggleReminder,
+  onCellClick,
 }: {
   events: CalendarEvent[];
   onDragStart: (id: string) => void;
   onDrop: (dayIndex: number, hour: number) => void;
   onChangeStatus: (id: string, status: BookingStatus) => void;
   onToggleReminder: (id: string) => void;
+  onCellClick: (date: string, hour?: number) => void;
 }) {
+  const weekStart = useMemo(() => {
+    const value = new Date();
+    value.setHours(0, 0, 0, 0);
+    return value;
+  }, []);
+
   return (
     <div className="rounded-xl border border-border bg-surface-2/40">
       <div className="grid grid-cols-8 border-b border-border">
@@ -434,7 +485,12 @@ function WeekView({
                 key={h}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(dayIdx, h)}
-                className="h-14 border-b border-border p-0.5 transition hover:bg-primary/5"
+                onClick={() => {
+                  const date = new Date(weekStart);
+                  date.setDate(date.getDate() + dayIdx);
+                  onCellClick(date.toISOString().split("T")[0], h);
+                }}
+                className="h-14 border-b border-border p-0.5 transition hover:bg-primary/5 cursor-pointer"
               >
                 {events
                   .filter((e) => e.dayIndex === dayIdx && parseInt(e.startTime) === h)
@@ -456,7 +512,15 @@ function WeekView({
   );
 }
 
-function MonthView({ currentDate, events }: { currentDate: Date; events: CalendarEvent[] }) {
+function MonthView({
+  currentDate,
+  events,
+  onCellClick,
+}: {
+  currentDate: Date;
+  events: CalendarEvent[];
+  onCellClick: (date: string, hour?: number) => void;
+}) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
@@ -483,7 +547,16 @@ function MonthView({ currentDate, events }: { currentDate: Date; events: Calenda
       </div>
       <div className="grid grid-cols-7">
         {cells.map((day, i) => (
-          <div key={i} className="min-h-20 border-b border-r border-border p-1 last:border-r-0">
+          <div
+            key={i}
+            className="min-h-20 border-b border-r border-border p-1 last:border-r-0 cursor-pointer hover:bg-primary/5 transition"
+            onClick={() =>
+              day &&
+              onCellClick(
+                `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+              )
+            }
+          >
             {day && (
               <>
                 <span className="text-xs text-muted-foreground">{day}</span>

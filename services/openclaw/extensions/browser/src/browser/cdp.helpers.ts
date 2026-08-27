@@ -87,8 +87,7 @@ export function scopeCdpPolicyToConfiguredEndpoint(
 }
 
 type CdpEndpointSource =
-  | { source?: "configured" }
-  | { source: "discovered"; configuredUrl: string };
+  { source?: "configured" } | { source: "discovered"; configuredUrl: string };
 
 function cdpEndpointAuthority(url: string): string {
   const parsed = new URL(url);

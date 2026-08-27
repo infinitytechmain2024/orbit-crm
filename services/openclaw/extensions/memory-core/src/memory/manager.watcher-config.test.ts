@@ -845,8 +845,7 @@ describe("memory watcher config", () => {
 
     expect(watchMock.mock.calls.length).toBe(chokidarCallsBefore + 1);
     const newChokidarCall = watchMock.mock.calls[chokidarCallsBefore] as unknown as
-      | [string[], Record<string, unknown>]
-      | undefined;
+      [string[], Record<string, unknown>] | undefined;
     expect(newChokidarCall?.[0]).toStrictEqual([memoryDir]);
   });
 

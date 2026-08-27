@@ -30,15 +30,15 @@ export class BaseKnowledgeBase implements KnowledgeBase {
 
   searchKnowledge(query: string): Knowledge[] {
     // Basic implementation - should be enhanced with proper search logic
-    return Array.from(this.knowledge.values()).filter(k => 
-      JSON.stringify(k).toLowerCase().includes(query.toLowerCase())
+    return Array.from(this.knowledge.values()).filter((k) =>
+      JSON.stringify(k).toLowerCase().includes(query.toLowerCase()),
     );
   }
 
   updateKnowledge(id: string, update: Partial<Knowledge>): boolean {
     const existing = this.knowledge.get(id);
     if (!existing) return false;
-    
+
     this.knowledge.set(id, { ...existing, ...update });
     return true;
   }

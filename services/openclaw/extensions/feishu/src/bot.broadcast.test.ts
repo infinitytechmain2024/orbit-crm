@@ -340,8 +340,7 @@ describe("broadcast dispatch", () => {
     ]);
     expect(mockCreateFeishuReplyDispatcher).toHaveBeenCalledTimes(1);
     const dispatcherParams = mockCreateFeishuReplyDispatcher.mock.calls.at(0)?.[0] as
-      | { agentId?: string }
-      | undefined;
+      { agentId?: string } | undefined;
     expect(dispatcherParams?.agentId).toBe("main");
   });
 

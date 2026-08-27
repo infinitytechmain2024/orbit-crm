@@ -90,8 +90,7 @@ export const zaloDmPolicy: ChannelSetupDmPolicy = {
       };
     }
     const currentAccount = cfg.channels?.zalo?.accounts?.[resolvedAccountId] as
-      | ZaloAccountSetupConfig
-      | undefined;
+      ZaloAccountSetupConfig | undefined;
     return {
       ...cfg,
       channels: {

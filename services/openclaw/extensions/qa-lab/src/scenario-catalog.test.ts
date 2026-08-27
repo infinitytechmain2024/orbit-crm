@@ -146,11 +146,9 @@ describe("qa scenario catalog", () => {
     const fallbackConfig = readQaScenarioExecutionConfig("memory-failure-fallback");
     const bundledSkill = readQaScenarioById("bundled-plugin-skill-runtime");
     const bundledSkillConfig = readQaScenarioExecutionConfig("bundled-plugin-skill-runtime") as
-      | { pluginId?: string; expectedSkillName?: string }
-      | undefined;
+      { pluginId?: string; expectedSkillName?: string } | undefined;
     const fanoutConfig = readQaScenarioExecutionConfig("subagent-fanout-synthesis") as
-      | { expectedReplyGroups?: unknown[][] }
-      | undefined;
+      { expectedReplyGroups?: unknown[][] } | undefined;
 
     expect(discovery.title).toBe("Source and docs discovery report");
     expect((discoveryConfig?.requiredFiles as string[] | undefined)?.[0]).toBe(
@@ -691,8 +689,7 @@ describe("qa scenario catalog", () => {
 
   it("keeps provider-sensitive QA flow scenarios on their supported lanes", () => {
     const strandedConfig = readQaScenarioExecutionConfig("message-tool-stranded-final-reply") as
-      | { requiredChannelDriver?: string; requiredProviderMode?: string }
-      | undefined;
+      { requiredChannelDriver?: string; requiredProviderMode?: string } | undefined;
     const stranded = readQaScenarioById("message-tool-stranded-final-reply");
     const strandedFlow = JSON.stringify(stranded.execution.flow);
     const heartbeat = readQaScenarioById("commitments-heartbeat-target-none");
@@ -836,8 +833,7 @@ describe("qa scenario catalog", () => {
 
     for (const scenarioId of scenarioIds) {
       const config = readQaScenarioExecutionConfig(scenarioId) as
-        | { requiredChannelDriver?: string }
-        | undefined;
+        { requiredChannelDriver?: string } | undefined;
       expect(config?.requiredChannelDriver, scenarioId).toBe("qa-channel");
     }
   });
@@ -846,8 +842,7 @@ describe("qa scenario catalog", () => {
     for (const scenarioId of ["thread-follow-up", "thread-isolation"]) {
       const scenario = readQaScenarioById(scenarioId);
       const config = readQaScenarioExecutionConfig(scenarioId) as
-        | { requiredChannelDriver?: string }
-        | undefined;
+        { requiredChannelDriver?: string } | undefined;
 
       expect(scenario.execution.channel, scenarioId).toBe("matrix");
       expect(config?.requiredChannelDriver, scenarioId).toBeUndefined();
@@ -857,8 +852,7 @@ describe("qa scenario catalog", () => {
   it("keeps Matrix subagent thread spawn explicitly selectable", () => {
     const scenario = readQaScenarioById("subagent-thread-spawn");
     const config = readQaScenarioExecutionConfig("subagent-thread-spawn") as
-      | { requiredChannelDriver?: string }
-      | undefined;
+      { requiredChannelDriver?: string } | undefined;
 
     expect(scenario.execution.channel).toBe("matrix");
     expect(config?.requiredChannelDriver).toBe("live");
@@ -892,8 +886,7 @@ describe("qa scenario catalog", () => {
 
     for (const scenarioId of liveScenarioIds) {
       const config = readQaScenarioExecutionConfig(scenarioId) as
-        | { requiredChannelDriver?: string }
-        | undefined;
+        { requiredChannelDriver?: string } | undefined;
       expect(config?.requiredChannelDriver, scenarioId).toBe("live");
     }
   });

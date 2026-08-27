@@ -40,8 +40,7 @@ const ADD_ON_PREAUTH_MAX_BYTES = 16 * 1024;
 const ADD_ON_PREAUTH_TIMEOUT_MS = 3_000;
 
 type ParsedGoogleChatInboundPayload =
-  | { ok: true; event: GoogleChatEvent; addOnBearerToken: string }
-  | { ok: false };
+  { ok: true; event: GoogleChatEvent; addOnBearerToken: string } | { ok: false };
 type ParsedGoogleChatInboundSuccess = Extract<ParsedGoogleChatInboundPayload, { ok: true }>;
 
 function recordParamsToActionParameters(

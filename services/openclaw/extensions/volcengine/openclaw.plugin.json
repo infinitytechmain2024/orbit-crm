@@ -14,7 +14,12 @@
       },
       {
         "id": "volcengine-tts",
-        "envVars": ["VOLCENGINE_TTS_API_KEY", "BYTEPLUS_SEED_SPEECH_API_KEY", "VOLCENGINE_TTS_APPID", "VOLCENGINE_TTS_TOKEN"]
+        "envVars": [
+          "VOLCENGINE_TTS_API_KEY",
+          "BYTEPLUS_SEED_SPEECH_API_KEY",
+          "VOLCENGINE_TTS_APPID",
+          "VOLCENGINE_TTS_TOKEN"
+        ]
       }
     ]
   },

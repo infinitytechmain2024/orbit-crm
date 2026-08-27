@@ -217,8 +217,7 @@ export abstract class MemoryManagerEmbeddingOps extends MemoryManagerSyncOps {
       return;
     }
     const row = this.db.prepare(`SELECT COUNT(*) as c FROM ${EMBEDDING_CACHE_TABLE}`).get() as
-      | { c: number }
-      | undefined;
+      { c: number } | undefined;
     const count = row?.c ?? 0;
     if (count <= max) {
       return;

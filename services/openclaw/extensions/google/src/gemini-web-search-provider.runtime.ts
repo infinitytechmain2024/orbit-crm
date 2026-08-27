@@ -116,10 +116,7 @@ function resolveGeminiTimeRangeFilter(
   | { timeRangeFilter?: GeminiTimeRangeFilter; freshness?: "day" }
   | {
       error:
-        | "invalid_freshness"
-        | "invalid_date"
-        | "invalid_date_range"
-        | "conflicting_time_filters";
+        "invalid_freshness" | "invalid_date" | "invalid_date_range" | "conflicting_time_filters";
       message: string;
       docs: string;
     } {

@@ -310,8 +310,7 @@ export async function handleNextcloudTalkInbound(params: {
     },
     runtime: core.channel,
     sessionStore: (config.session as Record<string, unknown> | undefined)?.store as
-      | string
-      | undefined,
+      string | undefined,
   });
 
   const fromLabel = isGroup ? `room:${roomName || roomToken}` : senderName || `user:${senderId}`;

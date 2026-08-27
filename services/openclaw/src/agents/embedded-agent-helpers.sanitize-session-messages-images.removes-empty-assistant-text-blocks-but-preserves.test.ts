@@ -93,8 +93,7 @@ function expectSingleAssistantContentEntry(
 
 function expectContentBlock(
   block:
-    | { type?: string; text?: string; thinking?: string; thought_signature?: string }
-    | undefined,
+    { type?: string; text?: string; thinking?: string; thought_signature?: string } | undefined,
   expected: { type: string; text?: string; thinking?: string; thought_signature?: string },
 ) {
   expect(block?.type).toBe(expected.type);

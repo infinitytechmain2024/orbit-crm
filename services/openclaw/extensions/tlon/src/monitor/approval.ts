@@ -197,9 +197,7 @@ export function formatApprovalConfirmation(
 // ============================================================================
 
 export type AdminCommand =
-  | { type: "unblock"; ship: string }
-  | { type: "blocked" }
-  | { type: "pending" };
+  { type: "unblock"; ship: string } | { type: "blocked" } | { type: "pending" };
 
 /**
  * Parse an admin command from owner message.

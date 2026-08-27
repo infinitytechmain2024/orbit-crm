@@ -463,11 +463,9 @@ describe("resolveSlackReplyBlocks", () => {
     });
 
     const presentationButtonBlock = blocks?.[1] as
-      | { elements?: Array<{ action_id?: string }> }
-      | undefined;
+      { elements?: Array<{ action_id?: string }> } | undefined;
     const legacyButtonBlock = blocks?.[2] as
-      | { elements?: Array<{ action_id?: string }> }
-      | undefined;
+      { elements?: Array<{ action_id?: string }> } | undefined;
     expect(blocks?.[0]?.block_id).toBe("openclaw_reply_buttons_1");
     expect(blocks?.[1]?.block_id).toBe("openclaw_reply_buttons_2");
     expect(presentationButtonBlock?.elements?.[0]?.action_id).toBe("openclaw:reply_button:2:1");

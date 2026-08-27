@@ -194,8 +194,7 @@ describe("whatsapp setup wizard", () => {
     });
 
     const prompt = harness.text.mock.calls.at(0)?.[0] as
-      | { validate?: (value: string) => string | undefined }
-      | undefined;
+      { validate?: (value: string) => string | undefined } | undefined;
     if (!prompt?.validate) {
       throw new Error("expected owner number validator");
     }

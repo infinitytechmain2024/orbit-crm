@@ -10,8 +10,7 @@ const INLINE_REASONING_MAX_PENDING_CHARS = 512;
 const INLINE_REASONING_BOUNDARY_RE = /(^|\s)\uFE0F\s*/u;
 
 type InlineReasoningVisibleTextResolution =
-  | { kind: "visible"; text: string; bypassInlineReasoning?: boolean }
-  | { kind: "pending" };
+  { kind: "visible"; text: string; bypassInlineReasoning?: boolean } | { kind: "pending" };
 
 export function isOllamaCloudKimiModelRef(modelId: string): boolean {
   const normalizedModelId = normalizeLowercaseStringOrEmpty(modelId);

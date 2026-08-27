@@ -844,8 +844,7 @@ describe("handleAgentEnd", () => {
     await handleAgentEnd(ctx);
 
     const blockReplyOrder = vi.mocked(ctx.emitBlockReply).mock.invocationCallOrder[0] as
-      | number
-      | undefined;
+      number | undefined;
     const lifecycleOrder = onAgentEvent.mock.invocationCallOrder[0] as number | undefined;
 
     expect(ctx.emitBlockReply).toHaveBeenCalledTimes(1);

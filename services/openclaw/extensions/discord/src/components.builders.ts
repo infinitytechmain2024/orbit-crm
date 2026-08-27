@@ -110,11 +110,7 @@ function createSelectComponent(params: {
   componentId?: string;
 }): {
   component:
-    | StringSelectMenu
-    | UserSelectMenu
-    | RoleSelectMenu
-    | MentionableSelectMenu
-    | ChannelSelectMenu;
+    StringSelectMenu | UserSelectMenu | RoleSelectMenu | MentionableSelectMenu | ChannelSelectMenu;
   entry: DiscordComponentEntry;
 } {
   const type = normalizeLowercaseStringOrEmpty(
@@ -216,11 +212,7 @@ function createSelectComponent(params: {
 function isSelectComponent(
   component: unknown,
 ): component is
-  | StringSelectMenu
-  | UserSelectMenu
-  | RoleSelectMenu
-  | MentionableSelectMenu
-  | ChannelSelectMenu {
+  StringSelectMenu | UserSelectMenu | RoleSelectMenu | MentionableSelectMenu | ChannelSelectMenu {
   return (
     component instanceof StringSelectMenu ||
     component instanceof UserSelectMenu ||

@@ -94,9 +94,14 @@ async function proxyRequest(
       const reason = error instanceof Error ? error.message : "Unknown upstream error";
       const isTimeout = error instanceof DOMException && error.name === "AbortError";
 
-      if (attempt < maxAttempts && (isTimeout || reason.includes("ECONNREFUSED") || reason.includes("ETIMEDOUT"))) {
+      if (
+        attempt < maxAttempts &&
+        (isTimeout || reason.includes("ECONNREFUSED") || reason.includes("ETIMEDOUT"))
+      ) {
         attempt++;
-        logger.warn(`[backend proxy] retry attempt ${attempt}/${maxAttempts} after error: ${reason}`);
+        logger.warn(
+          `[backend proxy] retry attempt ${attempt}/${maxAttempts} after error: ${reason}`,
+        );
         await new Promise((r) => setTimeout(r, 2000));
         continue;
       }
@@ -115,8 +120,5 @@ async function proxyRequest(
   }
 
   // Final attempt failed
-  return Response.json(
-    { error: "Backend is unavailable after retries" },
-    { status: 502 },
-  );
+  return Response.json({ error: "Backend is unavailable after retries" }, { status: 502 });
 }

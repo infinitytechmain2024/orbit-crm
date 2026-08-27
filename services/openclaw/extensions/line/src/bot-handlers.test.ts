@@ -652,8 +652,7 @@ describe("handleLineWebhookEvents", () => {
 
     expect(processMessage).not.toHaveBeenCalled();
     const pairingRequest = (upsertPairingRequestMock.mock.calls as unknown[][])[0]?.[0] as
-      | { accountId?: string; channel?: string; id?: string }
-      | undefined;
+      { accountId?: string; channel?: string; id?: string } | undefined;
     expect(pairingRequest?.channel).toBe("line");
     expect(pairingRequest?.id).toBe("user-5");
     expect(pairingRequest?.accountId).toBe("default");
@@ -699,8 +698,7 @@ describe("handleLineWebhookEvents", () => {
     expect(readAllowFromStoreMock).toHaveBeenCalledWith("line", undefined, "work");
     expect(processMessage).not.toHaveBeenCalled();
     const pairingRequest = (upsertPairingRequestMock.mock.calls as unknown[][])[0]?.[0] as
-      | { accountId?: string; channel?: string; id?: string }
-      | undefined;
+      { accountId?: string; channel?: string; id?: string } | undefined;
     expect(pairingRequest?.channel).toBe("line");
     expect(pairingRequest?.id).toBe("cross-account-user");
     expect(pairingRequest?.accountId).toBe("work");

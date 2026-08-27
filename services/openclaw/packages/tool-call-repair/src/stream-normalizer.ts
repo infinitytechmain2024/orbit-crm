@@ -20,8 +20,7 @@ export type PlainTextToolCallNameMatcher = {
 
 /** Result of repairing the final message carried by a provider stream `done` event. */
 export type PlainTextToolCallMessageNormalization =
-  | { kind: "promoted" | "scrubbed"; message: Record<string, unknown> }
-  | undefined;
+  { kind: "promoted" | "scrubbed"; message: Record<string, unknown> } | undefined;
 
 /** Stream-level hooks used to promote leaked text tool calls into provider events. */
 export type PlainTextToolCallStreamNormalizerOptions = {

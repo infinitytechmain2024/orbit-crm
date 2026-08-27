@@ -2,6 +2,7 @@
 description: List or clean up Google Maps scrape jobs
 argument-hint: "[list | delete <job-id>]"
 ---
+
 Manage scrape jobs via the API. Request: **$ARGUMENTS** (default to "list" if empty).
 
 - **list** → `GET http://localhost:8080/api/v1/jobs`. Show a tidy table of `ID`, `Name`, `Status`, `Date` (newest first).

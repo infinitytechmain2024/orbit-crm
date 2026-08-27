@@ -1397,8 +1397,7 @@ describe("agentCommand – LiveSessionModelSwitchError retry", () => {
       }),
     );
     const lifecycleError = state.emitAcpLifecycleErrorMock.mock.calls[0]?.[0] as
-      | { abortSignal?: AbortSignal }
-      | undefined;
+      { abortSignal?: AbortSignal } | undefined;
     expect(lifecycleError?.abortSignal?.aborted).toBe(true);
     expect(lifecycleError?.abortSignal?.reason).toBe(controller.signal.reason);
     expect(state.persistAcpTurnTranscriptMock).toHaveBeenCalledTimes(1);

@@ -245,8 +245,7 @@ function expectDispatchedModelSelection(params: {
   runtime?: string;
 }) {
   const dispatchCall = firstMockArg(params.dispatchSpy, "dispatchCommandInteraction") as
-    | Parameters<DispatchDiscordCommandInteraction>[0]
-    | undefined;
+    Parameters<DispatchDiscordCommandInteraction>[0] | undefined;
   expect(dispatchCall?.prompt).toBe(
     params.runtime
       ? `/model ${params.model} --runtime ${params.runtime}`

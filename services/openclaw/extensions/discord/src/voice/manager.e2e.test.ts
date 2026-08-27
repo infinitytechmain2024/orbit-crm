@@ -140,9 +140,10 @@ const {
       (...args: unknown[]) => Promise<string | undefined>
     >(async () => undefined),
     transcribeAudioFileMock: vi.fn(async () => ({ text: "hello from voice" })),
-    textToSpeechStreamMock: vi.fn(
-      async (): Promise<unknown> => ({ success: false, error: "stream unavailable" }),
-    ),
+    textToSpeechStreamMock: vi.fn(async (): Promise<unknown> => ({
+      success: false,
+      error: "stream unavailable",
+    })),
     textToSpeechMock: vi.fn(async () => ({ success: true, audioPath: "/tmp/voice.mp3" })),
     logVerboseMock: vi.fn(),
     resolveConfiguredRealtimeVoiceProviderMock: vi.fn(() => ({
@@ -306,9 +307,8 @@ function createClient() {
     rest: {
       get: vi.fn(),
     },
-    fetchChannel: vi.fn(
-      async (channelId: string): Promise<VoiceChannelInfo | null> =>
-        createVoiceChannelInfo(channelId),
+    fetchChannel: vi.fn(async (channelId: string): Promise<VoiceChannelInfo | null> =>
+      createVoiceChannelInfo(channelId),
     ),
     fetchGuild: vi.fn(async (guildId: string) => ({
       id: guildId,
@@ -1871,8 +1871,7 @@ describe("DiscordVoiceManager", () => {
 
     expect(realtimeSessionMock.sendAudio).toHaveBeenCalledTimes(2);
     const trailingSilence = realtimeSessionMock.sendAudio.mock.calls.at(-1)?.[0] as
-      | Buffer
-      | undefined;
+      Buffer | undefined;
     expect(trailingSilence).toBeInstanceOf(Buffer);
     expect(trailingSilence?.length).toBe(33_600);
     expect(trailingSilence?.equals(Buffer.alloc(33_600))).toBe(true);
@@ -1915,8 +1914,7 @@ describe("DiscordVoiceManager", () => {
     turn?.close();
 
     const trailingSilence = realtimeSessionMock.sendAudio.mock.calls.at(-1)?.[0] as
-      | Buffer
-      | undefined;
+      Buffer | undefined;
     expect(trailingSilence).toBeInstanceOf(Buffer);
     expect(trailingSilence?.length).toBe(144_000);
     expect(trailingSilence?.equals(Buffer.alloc(144_000))).toBe(true);
@@ -2558,8 +2556,7 @@ describe("DiscordVoiceManager", () => {
     await vi.waitFor(() => expect(firstStream?.writableEnded).toBe(true));
 
     const idleHandler = player.on.mock.calls.find(([event]) => event === "idle")?.[1] as
-      | (() => void)
-      | undefined;
+      (() => void) | undefined;
     expect(idleHandler).toBeTypeOf("function");
     idleHandler?.();
 
@@ -2710,8 +2707,7 @@ describe("DiscordVoiceManager", () => {
       expectUserMessageIncludes("second answer");
 
       const idleHandler = player.on.mock.calls.find(([event]) => event === "idle")?.[1] as
-        | (() => void)
-        | undefined;
+        (() => void) | undefined;
       idleHandler?.();
       const thirdTurn = entry.realtime?.beginSpeakerTurn(
         { extraSystemPrompt: undefined, senderIsOwner: true, speakerLabel: "Owner" },
@@ -3966,8 +3962,7 @@ describe("DiscordVoiceManager", () => {
     expectUserMessageNotIncludes("second answer");
 
     const idleHandler = player.on.mock.calls.find(([event]) => event === "idle")?.[1] as
-      | (() => void)
-      | undefined;
+      (() => void) | undefined;
     idleHandler?.();
     expectUserMessageIncludes("second answer");
     expectUserMessageNotIncludes("third answer");
@@ -4048,8 +4043,7 @@ describe("DiscordVoiceManager", () => {
     expectUserMessageNotIncludes("second answer");
 
     const idleHandler = player.on.mock.calls.find(([event]) => event === "idle")?.[1] as
-      | (() => void)
-      | undefined;
+      (() => void) | undefined;
     idleHandler?.();
     expectUserMessageIncludes("second answer");
   });
@@ -4959,8 +4953,7 @@ describe("DiscordVoiceManager", () => {
     await manager.join({ guildId: "g1", channelId: "1001" });
 
     const entry = (manager as unknown as { sessions: Map<string, unknown> }).sessions.get("g1") as
-      | { guildName?: string }
-      | undefined;
+      { guildName?: string } | undefined;
     expect(entry?.guildName).toBe("Guild One");
   });
 
@@ -5095,8 +5088,7 @@ describe("DiscordVoiceManager", () => {
             on: ReturnType<typeof vi.fn>;
           }
         ).on.mock.calls.find(([event]) => event === "error")?.[1] as
-          | ((err: unknown) => void)
-          | undefined;
+          ((err: unknown) => void) | undefined;
         errorListener?.(err);
       },
     );
@@ -5471,8 +5463,7 @@ describe("DiscordVoiceManager", () => {
     await processVoiceSegment(manager, "u-guest");
 
     const commandArgs = lastAgentCommandArgs() as
-      | { allowModelOverride?: boolean; model?: string }
-      | undefined;
+      { allowModelOverride?: boolean; model?: string } | undefined;
 
     expect(commandArgs?.allowModelOverride).toBe(true);
     expect(commandArgs?.model).toBe("openai/gpt-5.4-mini");
@@ -5499,8 +5490,7 @@ describe("DiscordVoiceManager", () => {
     await processVoiceSegment(manager, "u-guest");
 
     const commandArgs = lastAgentCommandArgs() as
-      | { message?: string; messageChannel?: string; messageProvider?: string }
-      | undefined;
+      { message?: string; messageChannel?: string; messageProvider?: string } | undefined;
 
     expect(commandArgs?.messageChannel).toBe("discord");
     expect(commandArgs?.messageProvider).toBe("discord-voice");

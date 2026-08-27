@@ -1003,8 +1003,7 @@ function execApprovalsPolicyShapeFinding(
     );
   }
   for (const section of (allowDefaults ? ["defaults", "agents"] : ["agents"]) as readonly (
-    | "agents"
-    | "defaults"
+    "agents" | "defaults"
   )[]) {
     if (value[section] !== undefined && !isRecord(value[section])) {
       return policyShapeFinding(

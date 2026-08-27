@@ -71,8 +71,7 @@ describe("runCodexAppServerAttempt native hook relay", () => {
       ?.config;
     expect(startConfig?.["features.hooks"]).toBe(true);
     const preToolUseHooks = startConfig?.["hooks.PreToolUse"] as
-      | Array<{ hooks?: Array<{ command?: string; timeout?: number; type?: string }> }>
-      | undefined;
+      Array<{ hooks?: Array<{ command?: string; timeout?: number; type?: string }> }> | undefined;
     const preToolUseCommand = preToolUseHooks?.[0]?.hooks?.[0];
     expect(preToolUseCommand?.type).toBe("command");
     expect(preToolUseCommand?.timeout).toBe(9);
@@ -732,8 +731,7 @@ describe("runCodexAppServerAttempt native hook relay", () => {
       diagnosticEvents.push(event),
     );
     let reportPreToolUseFailure:
-      | NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]>
-      | undefined;
+      NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]> | undefined;
     const harness = createStartedThreadHarness(async (method) => {
       if (method === "turn/start") {
         const startRequest = harness.requests.find((request) => request.method === "thread/start");

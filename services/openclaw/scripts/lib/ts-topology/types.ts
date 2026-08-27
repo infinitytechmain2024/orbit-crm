@@ -4,14 +4,7 @@ import type ts from "typescript";
 export type UsageBucket = "internal" | "production" | "test";
 
 export type ConsumerScope =
-  | "src"
-  | "extension"
-  | "package"
-  | "app"
-  | "ui"
-  | "script"
-  | "test"
-  | "other";
+  "src" | "extension" | "package" | "app" | "ui" | "script" | "test" | "other";
 
 export type TopologyReportName =
   | "public-surface-usage"
@@ -21,13 +14,7 @@ export type TopologyReportName =
   | "consumer-topology";
 
 export type SymbolKind =
-  | "function"
-  | "class"
-  | "interface"
-  | "type"
-  | "enum"
-  | "variable"
-  | "unknown";
+  "function" | "class" | "interface" | "type" | "enum" | "variable" | "unknown";
 
 export type ProgramContext = {
   repoRoot: string;

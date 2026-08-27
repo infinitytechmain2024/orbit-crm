@@ -338,10 +338,7 @@ export function githubWorkflowRerunCommand(laneNames, ref, env = process.env) {
     );
   }
   if (env.OPENCLAW_DOCKER_E2E_BARE_IMAGE) {
-    fields.push(
-      "-f",
-      `docker_e2e_bare_image=${shellQuote(env.OPENCLAW_DOCKER_E2E_BARE_IMAGE)}`,
-    );
+    fields.push("-f", `docker_e2e_bare_image=${shellQuote(env.OPENCLAW_DOCKER_E2E_BARE_IMAGE)}`);
   }
   if (env.OPENCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE) {
     fields.push(
@@ -1234,7 +1231,7 @@ async function runLanePool(poolLanes, baseEnv, logDir, parallelism, options) {
     while (pending.length > 0 || running.size > 0) {
       let started = false;
       if (!options.failFast || failures.length === 0) {
-        for (let index = 0; index < pending.length; ) {
+        for (let index = 0; index < pending.length;) {
           const candidate = pending[index];
           if (!canStartLane(candidate)) {
             index += 1;

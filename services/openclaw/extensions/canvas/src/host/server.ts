@@ -243,8 +243,7 @@ function resolveDefaultWatchFactory(): ChokidarWatch {
 
   const require = createRequire(import.meta.url);
   const runtime = require("chokidar") as
-    | { watch?: ChokidarWatch; default?: { watch?: ChokidarWatch } }
-    | undefined;
+    { watch?: ChokidarWatch; default?: { watch?: ChokidarWatch } } | undefined;
   if (runtime && typeof runtime.watch === "function") {
     return runtime.watch.bind(runtime);
   }

@@ -79,8 +79,7 @@ describe("feishu quick-action launcher", () => {
     expect(handled).toBe(true);
     expect(sendCardFeishuMock).toHaveBeenCalledTimes(1);
     const sendArgs = sendCardFeishuMock.mock.calls.at(0)?.[0] as
-      | { accountId?: string; card?: unknown; cfg?: ClawdbotConfig; to?: string }
-      | undefined;
+      { accountId?: string; card?: unknown; cfg?: ClawdbotConfig; to?: string } | undefined;
     expect(Object.keys(sendArgs ?? {}).toSorted()).toEqual(["accountId", "card", "cfg", "to"]);
     expect(sendArgs?.cfg).toBe(cfg);
     expect(sendArgs?.to).toBe("user:u123");

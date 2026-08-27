@@ -127,8 +127,7 @@ type TranscriptUtteranceAttribution = {
 };
 
 type RecentAgentProxyConsultResult =
-  | { status: "fulfilled"; text: string }
-  | { status: "rejected"; error: string };
+  { status: "fulfilled"; text: string } | { status: "rejected"; error: string };
 
 type AgentProxyConsultState = {
   speaker: DiscordRealtimeSpeakerContext;
@@ -402,11 +401,9 @@ export class DiscordRealtimeVoiceSession implements VoiceRealtimeSession {
       }
     | undefined;
   private lastControlSpeech:
-    | { normalizedText: string; sentAt: number; assistantTranscriptCount: number }
-    | undefined;
+    { normalizedText: string; sentAt: number; assistantTranscriptCount: number } | undefined;
   private lastRealtimeError:
-    | { message: string; suppressed: number; lastLoggedAt: number }
-    | undefined;
+    { message: string; suppressed: number; lastLoggedAt: number } | undefined;
   private readonly playerIdleHandler = () => {
     const hadOutputAudio = this.isOutputAudioActive();
     this.resetOutputStream("player-idle");

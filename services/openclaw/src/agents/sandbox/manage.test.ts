@@ -54,8 +54,7 @@ beforeAll(async () => {
 
 function firstDescribeRuntimeInput(): { agentId?: string; entry?: { configLabelKind?: string } } {
   const input = backendMocks.describeRuntime.mock.calls[0]?.[0] as
-    | { agentId?: string; entry?: { configLabelKind?: string } }
-    | undefined;
+    { agentId?: string; entry?: { configLabelKind?: string } } | undefined;
   if (!input) {
     throw new Error("expected describe runtime input");
   }

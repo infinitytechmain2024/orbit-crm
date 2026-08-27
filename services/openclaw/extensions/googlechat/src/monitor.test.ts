@@ -548,8 +548,7 @@ describe("googlechat monitor direct messages", () => {
     );
     expect(buildContext).toHaveBeenCalledWith(expect.objectContaining({ timestamp: undefined }));
     const runArg = runTurn.mock.calls[0]?.[0] as
-      | { adapter?: { ingest?: () => { timestamp?: number } } }
-      | undefined;
+      { adapter?: { ingest?: () => { timestamp?: number } } } | undefined;
     expect(runArg?.adapter?.ingest?.().timestamp).toBeUndefined();
   });
 });

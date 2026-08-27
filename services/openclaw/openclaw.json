@@ -11,9 +11,7 @@
   },
   "skills": {
     "load": {
-      "extraDirs": [
-        "/opt/orbit-skills"
-      ]
+      "extraDirs": ["/opt/orbit-skills"]
     }
   }
 }

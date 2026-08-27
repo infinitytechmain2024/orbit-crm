@@ -155,10 +155,7 @@ function normalizeElevenLabsProviderConfig(
       normalizeElevenLabsTtsModelId(trimToUndefined(raw?.modelId)) ?? DEFAULT_ELEVENLABS_MODEL_ID,
     seed: normalizeElevenLabsSeed(raw?.seed),
     applyTextNormalization: trimToUndefined(raw?.applyTextNormalization) as
-      | "auto"
-      | "on"
-      | "off"
-      | undefined,
+      "auto" | "on" | "off" | undefined,
     languageCode: trimToUndefined(raw?.languageCode),
     voiceSettings: {
       ...DEFAULT_ELEVENLABS_VOICE_SETTINGS,

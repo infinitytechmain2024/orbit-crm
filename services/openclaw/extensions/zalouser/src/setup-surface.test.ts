@@ -305,8 +305,7 @@ describe("zalouser setup wizard", () => {
     const next = zalouserSetupWizard.dmPolicy?.setPolicy(cfg, "open");
     expect(next?.channels?.zalouser?.dmPolicy).toBe("disabled");
     const workAccount = next?.channels?.zalouser?.accounts?.work as
-      | { dmPolicy?: string; allowFrom?: Array<string | number> }
-      | undefined;
+      { dmPolicy?: string; allowFrom?: Array<string | number> } | undefined;
     expect(workAccount?.dmPolicy).toBe("open");
   });
 
@@ -330,8 +329,7 @@ describe("zalouser setup wizard", () => {
 
     expect(next?.channels?.zalouser?.dmPolicy).toBeUndefined();
     const workAccount = next?.channels?.zalouser?.accounts?.work as
-      | { dmPolicy?: string; allowFrom?: Array<string | number> }
-      | undefined;
+      { dmPolicy?: string; allowFrom?: Array<string | number> } | undefined;
     expect(workAccount?.dmPolicy).toBe("open");
     expect(workAccount?.allowFrom).toEqual(["123456789", "*"]);
   });

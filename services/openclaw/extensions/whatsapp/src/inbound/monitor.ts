@@ -695,8 +695,7 @@ export async function attachWebInboxToSocket(
   let reachoutTimeLockFetch: Promise<ReachoutTimelockState | undefined> | undefined;
   let reachoutTimeLockVersion = 0;
   let verifiedSendReady:
-    | { jid: string; sock: WASocket; reachoutTimeLockVersion: number }
-    | undefined;
+    { jid: string; sock: WASocket; reachoutTimeLockVersion: number } | undefined;
   const rememberReachoutTimeLock = (state: ReachoutTimelockState | undefined) => {
     reachoutTimeLock = state;
     reachoutTimeLockVersion += 1;

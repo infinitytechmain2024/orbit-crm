@@ -18,9 +18,7 @@ export type ExecWorkdirResolution =
   | { kind: "unavailable"; requestedCwd: string };
 
 type NormalizedWorkdirInput =
-  | { kind: "omitted" }
-  | { kind: "blank"; raw: string }
-  | { kind: "specified"; value: string };
+  { kind: "omitted" } | { kind: "blank"; raw: string } | { kind: "specified"; value: string };
 
 type SandboxWorkdir = {
   hostCwd: string;

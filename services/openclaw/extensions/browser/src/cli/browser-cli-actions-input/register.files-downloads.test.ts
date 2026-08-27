@@ -81,8 +81,7 @@ describe("browser action input file/download commands", () => {
       requestedPaths: ["/tmp/openclaw/uploads/a.pdf", "media://inbound/b"],
     });
     const request = mocks.callBrowserRequest.mock.calls.at(-1)?.[1] as
-      | { path?: string; body?: Record<string, unknown> }
-      | undefined;
+      { path?: string; body?: Record<string, unknown> } | undefined;
     expect(request).toMatchObject({
       path: "/hooks/file-chooser",
       body: {

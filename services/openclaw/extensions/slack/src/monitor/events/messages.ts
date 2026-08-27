@@ -179,8 +179,7 @@ export function registerSlackMessageEvents(params: {
         isSelfAttributedMessageChange({
           event: message as SlackMessageChangedEvent,
           message: asRecord((message as SlackMessageChangedEvent).message) as
-            | SlackAssistantMessageRecord
-            | undefined,
+            SlackAssistantMessageRecord | undefined,
           ctx,
         })
       ) {

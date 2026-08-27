@@ -38,7 +38,9 @@ async function workflowRequest<T>(
     }
 
     const status = response.status;
-    let userMessage = backendErrorMessages[status] || `Ошибка ${status}: ${payload.detail || payload.error || "неизвестная ошибка"}`;
+    let userMessage =
+      backendErrorMessages[status] ||
+      `Ошибка ${status}: ${payload.detail || payload.error || "неизвестная ошибка"}`;
 
     // Translate specific proxy messages to user-friendly Russian
     if (payload.detail) {

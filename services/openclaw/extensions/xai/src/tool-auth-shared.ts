@@ -27,9 +27,7 @@ export type XaiToolAuthContext = {
 };
 
 type ConfiguredRuntimeApiKeyResolution =
-  | { status: "available"; value: string }
-  | { status: "missing" }
-  | { status: "blocked" };
+  { status: "available"; value: string } | { status: "missing" } | { status: "blocked" };
 
 function readConfiguredOrManagedApiKey(value: unknown): string | undefined {
   const literal = normalizeSecretInputString(value);

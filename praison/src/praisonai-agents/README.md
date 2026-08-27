@@ -80,4 +80,4 @@ This pattern allows for decoupled processes where the MCP server can run indepen
 ## Customizing
 
 - To add more tools to the server, define new functions with the `@mcp.tool()` decorator in `server.py`
-- To change the client's behavior, update the instructions and query in `mcp-sse.py` 
+- To change the client's behavior, update the instructions and query in `mcp-sse.py`

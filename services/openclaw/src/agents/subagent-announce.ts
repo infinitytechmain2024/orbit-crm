@@ -318,8 +318,7 @@ export async function runSubagentAnnounceFlow(params: {
 
     let childCompletionFindings: string | undefined;
     let subagentRegistryRuntime:
-      | Awaited<ReturnType<typeof loadSubagentRegistryRuntime>>
-      | undefined;
+      Awaited<ReturnType<typeof loadSubagentRegistryRuntime>> | undefined;
     try {
       subagentRegistryRuntime = await subagentAnnounceDeps.loadSubagentRegistryRuntime();
       if (

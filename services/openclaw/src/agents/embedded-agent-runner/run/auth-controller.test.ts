@@ -197,8 +197,7 @@ describe("createEmbeddedRunAuthController", () => {
     await controller.initializeAuthProfile();
 
     const apiKeyParams = mocks.getApiKeyForModel.mock.calls.at(0)?.[0] as
-      | { agentDir?: string; workspaceDir?: string }
-      | undefined;
+      { agentDir?: string; workspaceDir?: string } | undefined;
     expect(apiKeyParams?.agentDir).toBe("/tmp/agent");
     expect(apiKeyParams?.workspaceDir).toBe("/tmp/workspace");
     expect(harness.runtimeModel.baseUrl).toBe("https://runtime.example.com/v1");

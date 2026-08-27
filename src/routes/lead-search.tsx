@@ -255,7 +255,10 @@ function LeadSearchPage() {
   const deleteSavedSearch = async (id: string) => {
     try {
       const supabase = getSupabaseClient();
-      const { error } = await supabase.from("saved_searches" as never).delete().eq("id", id);
+      const { error } = await supabase
+        .from("saved_searches" as never)
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       setSavedSearches((prev) => prev.filter((s) => s.id !== id));
       toast.success("Deleted");
@@ -290,7 +293,9 @@ function LeadSearchPage() {
       l.source,
       l.google_maps_url,
     ]);
-    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = [headers, ...rows]
+      .map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -463,7 +468,10 @@ function LeadSearchPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {lead.phone ? (
-                          <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-primary">
+                          <a
+                            href={`tel:${lead.phone}`}
+                            className="flex items-center gap-1 hover:text-primary"
+                          >
                             <Phone className="size-3" />
                             {lead.phone}
                           </a>
@@ -473,7 +481,10 @@ function LeadSearchPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {lead.email ? (
-                          <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-primary">
+                          <a
+                            href={`mailto:${lead.email}`}
+                            className="flex items-center gap-1 hover:text-primary"
+                          >
                             <Mail className="size-3" />
                             {lead.email}
                           </a>
@@ -484,7 +495,11 @@ function LeadSearchPage() {
                       <td className="px-4 py-3">
                         {lead.website ? (
                           <a
-                            href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`}
+                            href={
+                              lead.website.startsWith("http")
+                                ? lead.website
+                                : `https://${lead.website}`
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-xs text-primary hover:underline"
@@ -569,10 +584,7 @@ function LeadSearchPage() {
                   key={saved.id}
                   className="flex items-center justify-between rounded-lg border border-border bg-surface-2/40 px-3 py-2 transition hover:bg-surface-2/60"
                 >
-                  <button
-                    onClick={() => loadSavedSearch(saved)}
-                    className="flex-1 text-left"
-                  >
+                  <button onClick={() => loadSavedSearch(saved)} className="flex-1 text-left">
                     <div className="text-xs font-medium">{saved.name}</div>
                     <div className="text-[10px] text-muted-foreground">
                       {saved.total_found} leads &middot;{" "}

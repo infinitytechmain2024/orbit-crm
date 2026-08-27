@@ -147,8 +147,7 @@ describe("sendMessageIMessage receipts", () => {
     });
 
     const sendParams = getClientMocks(client).request.mock.calls[0]?.[1] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(sendParams).not.toHaveProperty("reply_to");
     expect(result.receipt.replyToId).toBeUndefined();
     expect(result.receipt.parts[0]?.replyToId).toBeUndefined();

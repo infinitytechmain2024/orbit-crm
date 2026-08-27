@@ -566,26 +566,31 @@ class OpenClawA2UIHost extends LitElement {
             ? `Failed: ${this.pendingAction.name}`
             : "";
 
-    return html` ${this.pendingAction && this.pendingAction.phase !== "error"
-        ? html`<div class="status">
-            <div class="spinner"></div>
-            <div>${statusText}</div>
-          </div>`
-        : ""}
-      ${this.toast
-        ? html`<div class="toast ${this.toast.kind === "error" ? "error" : ""}">
-            ${this.toast.text}
-          </div>`
-        : ""}
+    return html` ${
+        this.pendingAction && this.pendingAction.phase !== "error"
+          ? html`<div class="status">
+              <div class="spinner"></div>
+              <div>${statusText}</div>
+            </div>`
+          : ""
+      }
+      ${
+        this.toast
+          ? html`<div class="toast ${this.toast.kind === "error" ? "error" : ""}">
+              ${this.toast.text}
+            </div>`
+          : ""
+      }
       <section id="surfaces">
         ${repeat(
           this.surfaces,
           ([surfaceId]) => surfaceId,
-          ([surfaceId, surface]) => html`<a2ui-surface
-            .surfaceId=${surfaceId}
-            .surface=${surface}
-            .processor=${this.#processor}
-          ></a2ui-surface>`,
+          ([surfaceId, surface]) =>
+            html`<a2ui-surface
+              .surfaceId=${surfaceId}
+              .surface=${surface}
+              .processor=${this.#processor}
+            ></a2ui-surface>`,
         )}
       </section>`;
   }

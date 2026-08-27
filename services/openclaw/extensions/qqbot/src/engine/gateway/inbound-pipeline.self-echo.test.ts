@@ -156,60 +156,58 @@ function makeDeps(overrides: Partial<InboundPipelineDeps> = {}): InboundPipeline
         })),
       },
       access: {
-        resolveInboundAccess: vi.fn(
-          (input): QQBotInboundAccess => ({
-            state: {
-              channelId: "qqbot",
-              accountId: "qq-main",
-              conversationKind: input.isGroup ? "group" : "direct",
-              event: {
-                kind: "message",
-                authMode: "inbound",
-                mayPair: true,
-                hasOriginSubject: false,
-                originSubjectMatched: false,
-              },
-              routeFacts: [],
-              allowlists: {
-                dm: emptyAllowlist,
-                pairingStore: emptyAllowlist,
-                group: emptyAllowlist,
-                commandOwner: emptyAllowlist,
-                commandGroup: emptyAllowlist,
-              },
+        resolveInboundAccess: vi.fn((input): QQBotInboundAccess => ({
+          state: {
+            channelId: "qqbot",
+            accountId: "qq-main",
+            conversationKind: input.isGroup ? "group" : "direct",
+            event: {
+              kind: "message",
+              authMode: "inbound",
+              mayPair: true,
+              hasOriginSubject: false,
+              originSubjectMatched: false,
             },
-            ingress: {
-              admission: "dispatch",
-              decision: "allow",
-              decisiveGateId: "activation",
-              reasonCode: "activation_allowed",
-              graph: { gates: [] },
+            routeFacts: [],
+            allowlists: {
+              dm: emptyAllowlist,
+              pairingStore: emptyAllowlist,
+              group: emptyAllowlist,
+              commandOwner: emptyAllowlist,
+              commandGroup: emptyAllowlist,
             },
-            senderAccess: {
-              allowed: true,
-              decision: "allow",
-              reasonCode: input.isGroup ? "group_policy_allowed" : "dm_policy_open",
-              effectiveAllowFrom: [],
-              effectiveGroupAllowFrom: [],
-              providerMissingFallbackApplied: false,
-            },
-            commandAccess: {
-              requested: true,
-              authorized: true,
-              shouldBlockControlCommand: false,
-              reasonCode: "command_authorized",
-            },
-            routeAccess: {
-              allowed: true,
-            },
-            activationAccess: {
-              ran: false,
-              allowed: true,
-              shouldSkip: false,
-              reasonCode: "activation_allowed",
-            },
-          }),
-        ),
+          },
+          ingress: {
+            admission: "dispatch",
+            decision: "allow",
+            decisiveGateId: "activation",
+            reasonCode: "activation_allowed",
+            graph: { gates: [] },
+          },
+          senderAccess: {
+            allowed: true,
+            decision: "allow",
+            reasonCode: input.isGroup ? "group_policy_allowed" : "dm_policy_open",
+            effectiveAllowFrom: [],
+            effectiveGroupAllowFrom: [],
+            providerMissingFallbackApplied: false,
+          },
+          commandAccess: {
+            requested: true,
+            authorized: true,
+            shouldBlockControlCommand: false,
+            reasonCode: "command_authorized",
+          },
+          routeAccess: {
+            allowed: true,
+          },
+          activationAccess: {
+            ran: false,
+            allowed: true,
+            shouldSkip: false,
+            reasonCode: "activation_allowed",
+          },
+        })),
         resolveSlashCommandAuthorization: vi.fn(() => true),
       },
       audioConvert: {

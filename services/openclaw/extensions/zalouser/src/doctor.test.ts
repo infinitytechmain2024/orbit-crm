@@ -74,8 +74,7 @@ describe("zalouser doctor", () => {
     expect(
       (
         result.config.channels?.zalouser?.accounts?.work as
-          | { groups?: Record<string, unknown> }
-          | undefined
+          { groups?: Record<string, unknown> } | undefined
       )?.groups?.["group:legacy"],
     ).toEqual({
       enabled: false,

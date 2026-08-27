@@ -35,8 +35,7 @@ function missingCustomizeScopeError(): Error {
 
 function requirePostMessagePayload(client: SlackUnfurlTestClient, index = 0) {
   const payload = client.chat.postMessage.mock.calls[index]?.[0] as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (!payload) {
     throw new Error(`chat.postMessage call ${index} missing`);
   }

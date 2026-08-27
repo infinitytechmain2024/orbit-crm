@@ -20,10 +20,7 @@ export type HarnessVariant = {
 };
 
 export type HarnessParityDrift =
-  | RuntimeParityDrift
-  | "system-prompt"
-  | "tool-description"
-  | "tool-schema";
+  RuntimeParityDrift | "system-prompt" | "tool-description" | "tool-schema";
 
 export type HarnessParityPromptStats = {
   systemPromptChars: number;

@@ -96,8 +96,7 @@ async function postWithDeliveryMetadata(params: {
     threadTs: params.threadTs,
   });
   const request = params.client.chat.postMessage.mock.calls[0]?.[0] as
-    | ChatPostMessageArguments
-    | undefined;
+    ChatPostMessageArguments | undefined;
   expect(request?.metadata).toBeDefined();
   return request?.metadata as MessageMetadata;
 }

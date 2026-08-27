@@ -102,8 +102,7 @@ function deferred<T>() {
 
 function createFinalDeliveryFailureHandler(finalizeInboundContext: (ctx: unknown) => unknown) {
   let capturedOnError:
-    | ((err: unknown, info: { kind: "tool" | "block" | "final" }) => void)
-    | undefined;
+    ((err: unknown, info: { kind: "tool" | "block" | "final" }) => void) | undefined;
 
   return createMatrixHandlerTestHarness({
     historyLimit: 20,

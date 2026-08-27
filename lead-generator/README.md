@@ -80,18 +80,18 @@ chmod +x start.sh
 
 ## API Endpoints
 
-| Метод  | Путь                      | Описание                        |
-| ------ | ------------------------- | ------------------------------- |
-| `GET`  | `/api/health`             | Health check                    |
-| `GET`  | `/api/status`             | Статус системы (Ollama, Supabase)|
-| `POST` | `/api/search`             | Запуск поиска лидов             |
-| `GET`  | `/api/search/{job_id}`    | Статус + результаты задачи      |
-| `GET`  | `/api/search`             | Список всех задач               |
-| `GET`  | `/api/reports`            | Список отчётов                  |
-| `GET`  | `/api/reports/{filename}` | Чтение отчёта                   |
-| `GET`  | `/api/sessions`           | Список сохранённых поисков      |
-| `POST` | `/api/sessions`           | Сохранить результаты поиска      |
-| `GET`  | `/api/sessions/{id}`      | Загрузить сохранённый поиск     |
+| Метод  | Путь                      | Описание                          |
+| ------ | ------------------------- | --------------------------------- |
+| `GET`  | `/api/health`             | Health check                      |
+| `GET`  | `/api/status`             | Статус системы (Ollama, Supabase) |
+| `POST` | `/api/search`             | Запуск поиска лидов               |
+| `GET`  | `/api/search/{job_id}`    | Статус + результаты задачи        |
+| `GET`  | `/api/search`             | Список всех задач                 |
+| `GET`  | `/api/reports`            | Список отчётов                    |
+| `GET`  | `/api/reports/{filename}` | Чтение отчёта                     |
+| `GET`  | `/api/sessions`           | Список сохранённых поисков        |
+| `POST` | `/api/sessions`           | Сохранить результаты поиска       |
+| `GET`  | `/api/sessions/{id}`      | Загрузить сохранённый поиск       |
 
 ## Настройка Supabase
 

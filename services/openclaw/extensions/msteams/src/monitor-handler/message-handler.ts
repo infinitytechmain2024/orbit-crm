@@ -149,8 +149,7 @@ function buildStoredConversationReference(params: {
   const conversation = activity.conversation;
   const agent = activity.recipient;
   const clientInfo = activity.entities?.find((e) => e.type === "clientInfo") as
-    | { timezone?: string }
-    | undefined;
+    { timezone?: string } | undefined;
   // Bot Framework requires `tenantId` on outbound proactive activities so the
   // connector can route them to the correct Azure AD tenant; missing it causes
   // HTTP 403. Channel activities often leave `conversation.tenantId` unset, so
@@ -871,8 +870,7 @@ export function createMSTeamsMessageHandler(deps: MSTeamsMessageHandlerDeps) {
     // This ensures the agent knows the sender's timezone for time-aware responses
     // and proactive sends within the same session.
     const activityClientInfo = activity.entities?.find((e) => e.type === "clientInfo") as
-      | { timezone?: string }
-      | undefined;
+      { timezone?: string } | undefined;
     const senderTimezone = activityClientInfo?.timezone || conversationRef.timezone;
     const configOverride =
       senderTimezone && !cfg.agents?.defaults?.userTimezone
