@@ -18,7 +18,7 @@ async function proxyWorkflowRequest(
   const base =
     process.env["AI_WORKFLOW_BACKEND_URL"] ??
     process.env["RENDER_BACKEND_URL"] ??
-    process.env["VITE_API_URL"] ??
+    process.env["BACKEND_URL"] ??
     (process.env["NODE_ENV"] === "development" ? "http://127.0.0.1:8000" : "");
   if (!base) {
     return Response.json({ error: "AI Workflow backend URL is not configured" }, { status: 503 });
