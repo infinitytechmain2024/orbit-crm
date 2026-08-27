@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Sparkles, Copy, Check, Plus, Trash2, Wand2, ChevronDown, ChevronUp } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { cn } from "@/lib/utils";
@@ -122,8 +122,6 @@ function generatePrompt(form: PromptForm): string {
 function PromptGeneratorPage() {
   const [form, setForm] = useState<PromptForm>(DEFAULT_FORM);
   const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
-  const copyTimer = useRef<number | undefined>(undefined);
   const previewRef = useRef<HTMLPreElement>(null);
 
   const prompt = generatePrompt(form);
@@ -157,8 +155,6 @@ function PromptGeneratorPage() {
     try {
       await navigator.clipboard.writeText(prompt);
       setCopied(true);
-      clearTimeout(copyTimer.current);
-      copyTimer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       const textarea = document.createElement("textarea");
       textarea.value = prompt;
@@ -169,10 +165,14 @@ function PromptGeneratorPage() {
       document.execCommand("copy");
       document.body.removeChild(textarea);
       setCopied(true);
-      clearTimeout(copyTimer.current);
-      copyTimer.current = setTimeout(() => setCopied(false), 2000);
     }
   }, [prompt]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
 
   const handleReset = useCallback(() => {
     setForm(DEFAULT_FORM);
