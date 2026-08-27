@@ -118,20 +118,14 @@ export function WorkflowPlanCard({
             <ControlButton
               label="Resume"
               icon={Play}
-              onClick={() => {
-                setIsMutating(true);
-                onControl(root, "resume").then(() => setIsMutating(false));
-              }}
+              onClick={() => onControl(root, "resume")}
               disabled={isMutating}
             />
           ) : !["done", "cancelled", "approval_required"].includes(root.status) ? (
             <ControlButton
               label="Pause"
               icon={Pause}
-              onClick={() => {
-                setIsMutating(true);
-                onControl(root, "pause").then(() => setIsMutating(false));
-              }}
+              onClick={() => onControl(root, "pause")}
               disabled={isMutating}
             />
           ) : null}
@@ -139,10 +133,7 @@ export function WorkflowPlanCard({
             <ControlButton
               label="Retry"
               icon={RotateCcw}
-              onClick={() => {
-                setIsMutating(true);
-                onControl(root, "retry").then(() => setIsMutating(false));
-              }}
+              onClick={() => onControl(root, "retry")}
               disabled={isMutating}
             />
           )}
@@ -150,10 +141,7 @@ export function WorkflowPlanCard({
             <ControlButton
               label="Cancel"
               icon={Ban}
-              onClick={() => {
-                setIsMutating(true);
-                onControl(root, "cancel").then(() => setIsMutating(false));
-              }}
+              onClick={() => onControl(root, "cancel")}
               disabled={isMutating}
               danger
             />

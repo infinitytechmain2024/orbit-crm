@@ -387,11 +387,16 @@ function AIWorkflowPage() {
       return;
     }
     if (!accessToken) return;
-    await perform(async () => {
-      const response = await controlWorkflowTask(accessToken, task.id, organizationId, action);
-      workflow.prependTask(response.task);
-      await workflow.refresh(true);
-    }, successByAction[action]);
+    try {
+      await perform(async () => {
+        const response = await controlWorkflowTask(accessToken, task.id, organizationId, action);
+        workflow.prependTask(response.task);
+        await workflow.refresh(true);
+      }, successByAction[action]);
+      toast.success(successByAction[action]);
+    } catch (error) {
+      toast.error("Не удалось выполнить действие", { description: error.message });
+    }
   }
 
   async function handleApprove(task: WorkflowTask) {
@@ -596,6 +601,7 @@ function AIWorkflowPage() {
                 dependencies={overview.task_dependencies}
                 onOpen={setSelectedTask}
                 onControl={(task, action) => void handleControl(task, action)}
+                isMutating={isMutating}
               />
               <TeamMap
                 departments={overview.departments}
