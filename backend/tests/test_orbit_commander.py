@@ -11,6 +11,7 @@ from backend.services.orbit_commander import (
     critical_approval,
     fallback_plan,
     infer_risk,
+    _project_match_score,
 )
 from backend.services.openclaw_client import OpenClawHealth
 
@@ -113,6 +114,13 @@ class MemoryStore:
 
 
 class OrbitCommanderPolicyTests(unittest.TestCase):
+    def test_project_match_prefers_explicit_project_name(self):
+        text = "Разложи задачи по проекту Orbit CRM и сразу начни выполнение"
+        self.assertGreater(
+            _project_match_score("Orbit CRM", text),
+            _project_match_score("OSNOVA", text),
+        )
+
     def test_finance_feature_decomposes_to_backend_frontend_and_qa(self):
         plan = fallback_plan(
             "Добавь в CRM раздел финансов с доходами, расходами и связью с проектами",

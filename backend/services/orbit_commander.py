@@ -396,6 +396,20 @@ def infer_risk(text: str, priority: str) -> str:
     return "low"
 
 
+def _project_match_score(project_name: str, text: str) -> int:
+    """Score an explicit project mention without guessing from generic words."""
+    normalize = lambda value: re.sub(r"[^a-zа-яё0-9]+", " ", value.casefold()).strip()
+    name = normalize(project_name)
+    haystack = normalize(text)
+    if not name or not haystack:
+        return 0
+    if name in haystack:
+        return 100 + len(name)
+    meaningful = {token for token in name.split() if len(token) >= 3}
+    overlap = meaningful.intersection(haystack.split())
+    return len(overlap) * 10 if meaningful and overlap else 0
+
+
 def fallback_plan(title: str, description: str) -> dict[str, Any]:
     text = f"{title} {description}".casefold()
     steps: list[dict[str, Any]] = []
@@ -888,24 +902,66 @@ class OrbitCommander:
             return
 
         project = None
+        projects = await self.store.select(
+            "projects",
+            organization_id=root["organization_id"],
+            filters={"archived_at": "is.null"},
+            order="name.asc",
+        )
         if root.get("project_id"):
-            projects = await self.store.select(
-                "projects",
-                organization_id=root["organization_id"],
-                filters={"id": f"eq.{root['project_id']}"},
-                limit=1,
+            project = next((item for item in projects if item.get("id") == root["project_id"]), None)
+
+        input_data = dict(root.get("input_data") or {})
+        if project is None and input_data.get("auto_assign", True) and projects:
+            project_text = " ".join(
+                str(value or "")
+                for value in (
+                    input_data.get("project_hint"),
+                    root.get("title"),
+                    root.get("original_request"),
+                    root.get("description"),
+                )
             )
-            project = projects[0] if projects else None
+            ranked = sorted(
+                ((_project_match_score(str(item.get("name") or ""), project_text), item) for item in projects),
+                key=lambda pair: pair[0],
+                reverse=True,
+            )
+            if ranked and ranked[0][0] > 0:
+                project = ranked[0][1]
+            elif len(projects) == 1:
+                project = projects[0]
+            if project:
+                root = (
+                    await self.store.update(
+                        "ai_tasks",
+                        organization_id=root["organization_id"],
+                        filters={"id": f"eq.{root['id']}"},
+                        payload={"project_id": project["id"]},
+                    )
+                )[0]
+                await self.create_event(
+                    root,
+                    "project_assigned",
+                    f"Orbit Commander привязал задачу к проекту «{project['name']}».",
+                    metadata={"project_id": project["id"], "auto_assigned": True},
+                )
         context = {
             "project": {"id": project.get("id"), "name": project.get("name")} if project else None,
+            "available_projects": [
+                {"id": item.get("id"), "name": item.get("name")} for item in projects
+            ],
             "request": root.get("original_request") or root["title"],
             "description": root.get("description") or "",
+            "preferred_role": input_data.get("target_role"),
         }
         prompt = (
             "Ты Orbit Commander. Создай короткий execution plan и делегируй работу. "
+            "Если project ещё не выбран, проанализируй запрос и выбери project_id только из available_projects; "
+            "если подходящего проекта действительно нет, верни null. "
             "Доступные роли: Backend Engineer, Frontend Engineer, AI Engineer, DevOps / Ops Agent, "
             "QA Agent, Research Agent, Content Agent, Design Agent, Business Analyst. "
-            "Верни только JSON: {goal, summary, assumptions:[], acceptance_criteria:[], steps:[{key,role,title,description,acceptance_criteria:[],depends_on:[],phase}]}. "
+            "Верни только JSON: {project_id, goal, summary, assumptions:[], acceptance_criteria:[], steps:[{key,role,title,description,acceptance_criteria:[],depends_on:[],phase}]}. "
             "Последним шагом всегда должен быть QA Agent с phase=qa и зависимостью от рабочих шагов.\n\n"
             f"Контекст: {json.dumps(context, ensure_ascii=False)}"
         )
@@ -921,6 +977,29 @@ class OrbitCommander:
         plan = json_object(model_result.content) if model_result else None
         if not self._valid_plan(plan):
             plan = fallback_plan(root["title"], root.get("description") or "")
+
+        if project is None and isinstance(plan, dict):
+            planned_project_id = str(plan.get("project_id") or "")
+            planned_project = next(
+                (item for item in projects if str(item.get("id")) == planned_project_id),
+                None,
+            )
+            if planned_project:
+                project = planned_project
+                root = (
+                    await self.store.update(
+                        "ai_tasks",
+                        organization_id=root["organization_id"],
+                        filters={"id": f"eq.{root['id']}"},
+                        payload={"project_id": project["id"]},
+                    )
+                )[0]
+                await self.create_event(
+                    root,
+                    "project_assigned",
+                    f"Orbit Commander выбрал проект «{project['name']}» после анализа задачи.",
+                    metadata={"project_id": project["id"], "auto_assigned": True},
+                )
 
         text = f"{root['title']} {root.get('description') or ''}"
         approval = critical_approval(text)

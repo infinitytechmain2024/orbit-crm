@@ -1,5 +1,34 @@
 # Orbit CRM — Дорожная карта / Технический чек-лист
 
+## P0 — Автозапуск задач через Render
+
+Рабочий AI Workflow запускается на Render-сервисе `orbit-crm-backend`; локальный
+backend не является частью production-сценария.
+
+- [ ] Подготовить additive repair migration для отсутствующих `ai_tasks`,
+  `workflow_runs`, `workflow_jobs` и `claim_workflow_job`, не переигрывая старые
+  пересекающиеся миграции целиком.
+- [ ] Применить repair migration к подключённой Supabase-базе и проверить наличие
+  workflow-таблиц, RLS, grants, индексов и RPC.
+- [ ] Задеплоить текущие изменения dashboard/API/Orbit Commander в Render backend
+  и Vercel frontend.
+- [ ] Проверить в Render переменные `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `NVIDIA_API_KEY`,
+  `INTERNAL_API_TOKEN`, `AI_WORKFLOW_WORKER_ENABLED=true` и
+  `AI_WORKFLOW_AUTORUN=true`.
+- [ ] Убедиться, что Render health check `/api/health` проходит, backend не
+  перезапускается, а workflow worker забирает задания из очереди.
+- [ ] Проверить, что Vercel `AI_WORKFLOW_BACKEND_URL` указывает на публичный URL
+  `orbit-crm-backend.onrender.com`, а `INTERNAL_API_TOKEN` совпадает с Render.
+- [ ] Выполнить авторизованный smoke test: «Выгрузить мысли» → CRM task →
+  `ai_tasks` → `workflow_runs` → queued/leased `plan` → назначенный проект →
+  исполнитель начал работу.
+- [ ] Проверить негативный сценарий: при недоступности Render/Supabase интерфейс
+  показывает ошибку и не сообщает ложное «задача запущена».
+
+Критерий готовности: новая задача пользователя появляется в AI Workflow,
+получает существующий проект, план и исполнителя без ручного запуска.
+
 > **Стек проекта:** TanStack Start + TanStack Router + Vite 8 + React 19 + Tailwind CSS v4 + shadcn/ui (new-york) + Bun  
 > **Supabase:** Пока не интегрирован (mock-данные в `src/lib/crm-data.ts`, React Context в `src/lib/crm-store.tsx`)  
 > **Текущие роуты:** `/` (Dashboard), `/tasks` (Kanban/List/Graph), `/mail` (Email Hub), `/finance` (Finance)

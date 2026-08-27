@@ -241,8 +241,11 @@ function Dashboard() {
   const dispatchToAIWorkflow = async (
     crmTask: { id: string; title: string; description: string | null },
     meta: ParsedTask,
-  ) => {
-    if (!meta.dispatchToWorkflow || !organization || !session?.access_token) return;
+  ): Promise<{ ok: true; workflowTaskId: string } | { ok: false; error: string }> => {
+    if (!meta.dispatchToWorkflow) return { ok: false, error: "Задача не отмечена для автозапуска" };
+    if (!organization || !session?.access_token) {
+      return { ok: false, error: "Нет активной организации или сессии" };
+    }
     const priorityMap: Record<Priority, "low" | "medium" | "high" | "critical"> = {
       low: "low",
       med: "medium",
@@ -268,6 +271,8 @@ function Dashboard() {
           source_entity_id: crmTask.id,
           priority: workflowPriority,
           auto_assign: true,
+          project_hint: meta.projectHint,
+          target_role: meta.targetRole,
           requires_approval: workflowPriority === "high" ? undefined : undefined,
           related_entities: [
             { type: "crm_task", id: crmTask.id },
@@ -277,12 +282,18 @@ function Dashboard() {
       });
       if (!res.ok) {
         const err = await res.text();
-        console.warn("[BrainDump] AI Workflow dispatch failed:", res.status, err);
-      } else {
-        console.log("[BrainDump] Dispatched to AI Workflow:", meta.title, "→", meta.targetRole);
+        throw new Error(`AI Workflow ${res.status}: ${err}`);
       }
+      const payload = await res.json();
+      const workflowTaskId = String(payload?.task?.id || "");
+      if (!workflowTaskId || !payload?.queued_for_execution) {
+        throw new Error("AI Workflow не подтвердил постановку задачи в очередь");
+      }
+      console.log("[BrainDump] Dispatched to AI Workflow:", meta.title, "→", meta.targetRole);
+      return { ok: true, workflowTaskId };
     } catch (err) {
       console.warn("[BrainDump] AI Workflow dispatch error:", err);
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   };
 
@@ -326,9 +337,21 @@ function Dashboard() {
     const dispatchable = created.filter((c) => c.meta.dispatchToWorkflow);
     if (dispatchable.length) {
       setDispatchStatus(`Передаю ${dispatchable.length} задач в AI Workflow…`);
-      await Promise.all(dispatchable.map((c) => dispatchToAIWorkflow(c.crmTask, c.meta)));
-      const dispatchedCount = dispatchable.length;
-      setDispatchStatus(`Отправлено ${dispatchedCount} задач C-level агенту (Orbit Commander)`);
+      const results = await Promise.all(
+        dispatchable.map((c) => dispatchToAIWorkflow(c.crmTask, c.meta)),
+      );
+      const dispatchedCount = results.filter((result) => result.ok).length;
+      const failed = results.filter((result) => !result.ok);
+      if (failed.length) {
+        allOk = false;
+        setDispatchStatus(
+          `Запущено ${dispatchedCount} из ${dispatchable.length}. Ошибка: ${failed[0].error}`,
+        );
+      } else {
+        setDispatchStatus(
+          `Запущено ${dispatchedCount} задач: Orbit Commander уже анализирует и назначает проект`,
+        );
+      }
       // Notify via pg_notify event is also emitted by DB trigger (brain_dump_dispatch)
     }
 

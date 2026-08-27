@@ -59,6 +59,8 @@ class TaskCreateRequest(BaseModel):
     department_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
     agent_id: Optional[str]= Field(default=None, min_length=36, max_length=36)
     auto_assign: bool = True
+    project_hint: Optional[str]= Field(default=None, max_length=120)
+    target_role: Optional[str]= Field(default=None, max_length=80)
     requires_approval: Optional[bool]= None
     related_entities: list[dict[str, str]] = Field(default_factory=list, max_length=30)
 
@@ -435,6 +437,8 @@ async def create_task(
         "links": request.links,
         "related_entities": request.related_entities,
         "auto_assign": request.auto_assign,
+        "project_hint": request.project_hint.strip() if request.project_hint else None,
+        "target_role": request.target_role.strip() if request.target_role else None,
     }
     if request.requires_approval is not None:
         input_data["requires_approval"] = request.requires_approval
