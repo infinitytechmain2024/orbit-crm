@@ -142,10 +142,18 @@ async def run() -> int:
 
         if os.getenv("SELFDEV_PROVIDER_TOKEN") and os.getenv("SELFDEV_ORGANIZATION_ID"):
             selfdev_env = os.environ.copy()
-            selfdev_env.setdefault(
-                "SELFDEV_BACKEND_URL",
-                f"http://127.0.0.1:{os.getenv('PORT', '8000')}",
-            )
+            embedded_defaults = {
+                "SELFDEV_BACKEND_URL": f"http://127.0.0.1:{os.getenv('PORT', '8000')}",
+                "SELFDEV_PROVIDER_NAME": "render-openclaw-provider",
+                "SELFDEV_EXECUTION_ENABLED": "true",
+                "SELFDEV_AGENT_COMMAND": (
+                    "/opt/orbit-venv/bin/python -m selfdev.provider.openclaw_agent"
+                ),
+                "SELFDEV_JOB_TIMEOUT_SECONDS": "900",
+            }
+            for key, value in embedded_defaults.items():
+                if not selfdev_env.get(key, "").strip():
+                    selfdev_env[key] = value
             selfdev = await asyncio.create_subprocess_exec(
                 "/opt/orbit-venv/bin/python",
                 "-m",
