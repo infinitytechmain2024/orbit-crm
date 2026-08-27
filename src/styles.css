@@ -367,6 +367,14 @@
   }
 }
 
+/* Hide scrollbars globally but keep scrolling functional */
+* {
+  scrollbar-width: none; /* Firefox */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
