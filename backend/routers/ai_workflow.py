@@ -337,7 +337,7 @@ async def get_system_status():
         nvidia_missing.append("NVIDIA_API_KEY")
 
     # Count healthy/total models from registry
-    all_models = nvidia_model_registry.NVIDIA_MODELS
+    all_models = nvidia_model_registry.to_dict()
     total_models = len(all_models)
     healthy_models = len(nvidia_model_registry.list_active())
 
