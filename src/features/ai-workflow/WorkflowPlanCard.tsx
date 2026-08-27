@@ -9,8 +9,6 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { toast } from "sonner";
-
 import { cn } from "@/lib/utils";
 import type { TaskDependency, WorkflowAgent, WorkflowRun, WorkflowTask } from "./types";
 
@@ -45,7 +43,6 @@ export function WorkflowPlanCard({
   onOpen,
   onControl,
   isMutating,
-  setIsMutating,
 }: {
   tasks: WorkflowTask[];
   agents: WorkflowAgent[];
@@ -54,7 +51,6 @@ export function WorkflowPlanCard({
   onOpen: (task: WorkflowTask) => void;
   onControl: (task: WorkflowTask, action: "pause" | "resume" | "retry" | "cancel") => void;
   isMutating: boolean;
-  setIsMutating: (mutating: boolean) => void;
 }) {
   const roots = tasks.filter((task) => !task.parent_task_id);
   const root =
@@ -205,19 +201,22 @@ function ControlButton({
   label,
   icon: Icon,
   onClick,
+  disabled = false,
   danger = false,
 }: {
   label: string;
   icon: typeof Play;
   onClick: () => void;
+  disabled?: boolean;
   danger?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] transition",
+        "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] transition disabled:pointer-events-none disabled:opacity-50",
         danger
           ? "border-badge-red/25 text-badge-red hover:bg-badge-red-bg"
           : "border-border text-muted-foreground hover:border-primary/35 hover:text-primary",

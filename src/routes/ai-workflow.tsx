@@ -357,7 +357,9 @@ function AIWorkflowPage() {
       }, "Задача запущена");
       toast.success("Задача запущена, Orbit Commander начал работу");
     } catch (error) {
-      toast.error("Не удалось запустить", { description: error.message });
+      toast.error("Не удалось запустить", {
+        description: error instanceof Error ? error.message : "Попробуйте еще раз",
+      });
     }
   }
 
@@ -395,7 +397,9 @@ function AIWorkflowPage() {
       }, successByAction[action]);
       toast.success(successByAction[action]);
     } catch (error) {
-      toast.error("Не удалось выполнить действие", { description: error.message });
+      toast.error(`Не удалось выполнить действие "${action}"`, {
+        description: error instanceof Error ? error.message : "Попробуйте еще раз",
+      });
     }
   }
 
