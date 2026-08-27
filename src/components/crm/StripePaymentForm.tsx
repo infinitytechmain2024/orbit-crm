@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useStripe as useStripeHook } from "@/hooks/useStripe";
+import { useCrm } from "@/lib/crm-store";
 import { Button } from "@/components/ui/button";
 import { Loader2, CreditCard, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ export function StripePaymentForm({
   onError,
 }: PaymentFormProps) {
   const { stripe, elements } = useStripeHook();
+  const { organization } = useCrm();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [succeeded, setSucceeded] = useState(false);
@@ -30,12 +32,17 @@ export function StripePaymentForm({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
+    if (!organization) {
+      setError("Организация ещё загружается");
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
 
     try {
       const { client_secret, payment_intent_id } = await createPaymentIntent(
+        organization.id,
         amount,
         currency,
         { description: description || "Оплата через Orbit CRM" }

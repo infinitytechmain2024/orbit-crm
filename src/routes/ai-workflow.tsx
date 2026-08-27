@@ -10,6 +10,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@/components/crm/AppShell";
 import { useAuth } from "@/lib/auth";
@@ -349,10 +350,15 @@ function AIWorkflowPage() {
       return;
     }
     if (!accessToken) return;
-    await perform(async () => {
-      await runWorkflowTask(accessToken, task.id, organizationId);
-      await workflow.refresh(true);
-    }, "Задача запущена");
+    try {
+      await perform(async () => {
+        await runWorkflowTask(accessToken, task.id, organizationId);
+        await workflow.refresh(true);
+      }, "Задача запущена");
+      toast.success("Задача запущена, Orbit Commander начал работу");
+    } catch (error) {
+      toast.error("Не удалось запустить", { description: error.message });
+    }
   }
 
   async function handleControl(

@@ -14,16 +14,13 @@ Endpoints:
   POST /api/appointments        — Create an appointment in Supabase
   POST /api/leads/search        — Start a lead search job
   GET  /api/leads/search/:id    — Get search job status
-  GET  /api/system/health       — Health check (Ollama, Supabase)
+  GET  /api/health              — Health check
 """
 
 import asyncio
 import io
 import logging
-import subprocess
-import sys
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
@@ -61,57 +58,6 @@ CORS_ORIGINS = list(settings.CORS_ORIGINS)
 CORS_ORIGIN_REGEX = settings.CORS_ORIGIN_REGEX
 
 # ============================
-# Ollama Auto-Start
-# ============================
-
-async def ensure_ollama_running():
-    """Check if Ollama is running, start if not."""
-    import httpx
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            response = await client.get(f"{settings.OLLAMA_BASE_URL.replace('/v1', '')}/api/tags")
-            if response.status_code == 200:
-                logger.info("Ollama is already running")
-                return True
-    except Exception:
-        logger.info("Ollama not responding, attempting to start...")
-
-    try:
-        # Start ollama serve in background
-        if sys.platform == "win32":
-            subprocess.Popen(
-                ["ollama", "serve"],
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        else:
-            subprocess.Popen(
-                ["ollama", "serve"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
-        logger.info("Started ollama serve in background")
-
-        # Wait for Ollama to be ready
-        for _ in range(30):
-            await asyncio.sleep(1)
-            try:
-                async with httpx.AsyncClient(timeout=2.0) as client:
-                    response = await client.get(f"{settings.OLLAMA_BASE_URL.replace('/v1', '')}/api/tags")
-                    if response.status_code == 200:
-                        logger.info("Ollama started successfully")
-                        return True
-            except Exception:
-                continue
-        logger.warning("Ollama did not start within 30 seconds")
-        return False
-    except Exception as e:
-        logger.error(f"Failed to start Ollama: {e}")
-        return False
-
-# ============================
 # Lifespan
 # ============================
 
@@ -119,12 +65,13 @@ async def ensure_ollama_running():
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Orbit CRM Backend...")
-    await ensure_ollama_running()
+    # Start background worker immediately; Ollama is optional and checked lazily by ai_dispatcher
     await workflow_worker.start()
     yield
     # Shutdown
     await workflow_worker.stop()
     await openclaw_client.close()
+    await ai_dispatcher.close()
     logger.info("Shutting down Orbit CRM Backend...")
 
 # ============================
@@ -216,13 +163,6 @@ class LeadSearchResponse(BaseModel):
     job_id: str
     status: str
     message: str
-
-
-class HealthResponse(BaseModel):
-    status: str
-    ollama: dict
-    supabase: dict
-    version: str
 
 
 class AppointmentCreateRequest(BaseModel):

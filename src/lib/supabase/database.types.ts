@@ -181,6 +181,159 @@ export type Database = {
           },
         ];
       };
+      stripe_customers: {
+        Row: {
+          created_at: string;
+          email: string | null;
+          id: string;
+          organization_id: string;
+          stripe_customer_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          organization_id: string;
+          stripe_customer_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          organization_id?: string;
+          stripe_customer_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_customers_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      stripe_transactions: {
+        Row: {
+          amount: number;
+          created_at: string;
+          currency: string;
+          description: string | null;
+          id: string;
+          metadata: Json | null;
+          occurred_on: string;
+          organization_id: string;
+          payment_method_type: string | null;
+          status: string;
+          stripe_customer_id: string | null;
+          stripe_payment_intent_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          created_at?: string;
+          currency?: string;
+          description?: string | null;
+          id?: string;
+          metadata?: Json | null;
+          occurred_on?: string;
+          organization_id: string;
+          payment_method_type?: string | null;
+          status: string;
+          stripe_customer_id?: string | null;
+          stripe_payment_intent_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount?: number;
+          created_at?: string;
+          currency?: string;
+          description?: string | null;
+          id?: string;
+          metadata?: Json | null;
+          occurred_on?: string;
+          organization_id?: string;
+          payment_method_type?: string | null;
+          status?: string;
+          stripe_customer_id?: string | null;
+          stripe_payment_intent_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_transactions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      stripe_subscriptions: {
+        Row: {
+          amount: number;
+          cancel_at_period_end: boolean | null;
+          created_at: string;
+          current_period_end: string;
+          current_period_start: string;
+          currency: string;
+          id: string;
+          interval: string;
+          metadata: Json | null;
+          organization_id: string;
+          status: string;
+          stripe_customer_id: string;
+          stripe_price_id: string;
+          stripe_subscription_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          cancel_at_period_end?: boolean | null;
+          created_at?: string;
+          current_period_end: string;
+          current_period_start: string;
+          currency?: string;
+          id?: string;
+          interval: string;
+          metadata?: Json | null;
+          organization_id: string;
+          status: string;
+          stripe_customer_id: string;
+          stripe_price_id: string;
+          stripe_subscription_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount?: number;
+          cancel_at_period_end?: boolean | null;
+          created_at?: string;
+          current_period_end?: string;
+          current_period_start?: string;
+          currency?: string;
+          id?: string;
+          interval?: string;
+          metadata?: Json | null;
+          organization_id?: string;
+          status?: string;
+          stripe_customer_id?: string;
+          stripe_price_id?: string;
+          stripe_subscription_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_subscriptions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       graph_node_positions: {
         Row: {
           node_id: string;

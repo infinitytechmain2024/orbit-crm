@@ -34,11 +34,16 @@ export function useStripe() {
   return { stripe, elements };
 }
 
-export async function createPaymentIntent(amount: number, currency = "EUR", metadata?: Record<string, string>) {
+export async function createPaymentIntent(
+  organizationId: string,
+  amount: number,
+  currency = "EUR",
+  metadata?: Record<string, string>,
+) {
   const response = await fetch("/api/backend/api/stripe/payment-intents", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount: amount * 100, currency, metadata }),
+    body: JSON.stringify({ organization_id: organizationId, amount: amount * 100, currency, metadata }),
   });
 
   if (!response.ok) {
@@ -48,11 +53,15 @@ export async function createPaymentIntent(amount: number, currency = "EUR", meta
   return response.json();
 }
 
-export async function createSubscription(priceId: string, metadata?: Record<string, string>) {
+export async function createSubscription(
+  organizationId: string,
+  priceId: string,
+  metadata?: Record<string, string>,
+) {
   const response = await fetch("/api/backend/api/stripe/subscriptions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ price_id: priceId, metadata }),
+    body: JSON.stringify({ organization_id: organizationId, price_id: priceId, metadata }),
   });
 
   if (!response.ok) {

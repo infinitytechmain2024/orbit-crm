@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Wallet,
   X,
+  Zap,
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
@@ -24,6 +25,7 @@ import { QuickInputTextarea } from "@/components/crm/QuickInputTextarea";
 import { STATUS_LABEL, type Priority } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { useAiWorkflowSummary } from "@/hooks/use-ai-workflow-summary";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -119,6 +121,8 @@ function Dashboard() {
   const [adding, setAdding] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [dispatchStatus, setDispatchStatus] = useState<string | null>(null);
+
+  const aiWorkflow = useAiWorkflowSummary(session?.access_token, organization?.id);
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -541,6 +545,22 @@ function Dashboard() {
             label="Открытых задач"
             value={String(open.length)}
             delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "completed" && !t.archivedAt).length} срочных`}
+          />
+          <Metric
+            icon={<Zap className="size-4" />}
+            label="AI Workflow"
+            value={`${aiWorkflow.inProgress} в работе, ${aiWorkflow.completed} завершено`}
+            delta={
+              <>
+                <span>{aiWorkflow.progress}% прогресс</span>
+                <Link
+                  to="/ai-workflow"
+                  className="ml-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  Открыть AI Workflow <ArrowUpRight className="size-3" />
+                </Link>
+              </>
+            }
           />
         </section>
 

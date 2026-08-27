@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.stripe_customers (
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL,
     CONSTRAINT stripe_customers_pkey PRIMARY KEY (id),
+    CONSTRAINT stripe_customers_organization_id_key UNIQUE (organization_id),
     CONSTRAINT stripe_customers_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE
 );
 
@@ -63,15 +64,15 @@ ALTER TABLE public.stripe_subscriptions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Members can read stripe customers" ON public.stripe_customers FOR SELECT TO authenticated
     USING (private.is_organization_member(organization_id, auth.uid()));
-CREATE POLICY "Service role manages stripe customers" ON public.stripe_customers FOR ALL TO service_role USING (true);
+CREATE POLICY "Service role manages stripe customers" ON public.stripe_customers FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Members can read stripe transactions" ON public.stripe_transactions FOR SELECT TO authenticated
     USING (private.is_organization_member(organization_id, auth.uid()));
-CREATE POLICY "Service role manages stripe transactions" ON public.stripe_transactions FOR ALL TO service_role USING (true);
+CREATE POLICY "Service role manages stripe transactions" ON public.stripe_transactions FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Members can read stripe subscriptions" ON public.stripe_subscriptions FOR SELECT TO authenticated
     USING (private.is_organization_member(organization_id, auth.uid()));
-CREATE POLICY "Service role manages stripe subscriptions" ON public.stripe_subscriptions FOR ALL TO service_role USING (true);
+CREATE POLICY "Service role manages stripe subscriptions" ON public.stripe_subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Grants
 GRANT ALL ON public.stripe_customers TO service_role;
@@ -82,14 +83,16 @@ GRANT ALL ON public.stripe_subscriptions TO service_role;
 GRANT SELECT ON public.stripe_subscriptions TO authenticated;
 
 -- Updated at triggers
-CREATE TRIGGER set_stripe_customers_updated_at
+CREATE OR REPLACE TRIGGER set_stripe_customers_updated_at
     BEFORE UPDATE ON public.stripe_customers
     FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-CREATE TRIGGER set_stripe_transactions_updated_at
+CREATE OR REPLACE TRIGGER set_stripe_transactions_updated_at
     BEFORE UPDATE ON public.stripe_transactions
     FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-CREATE TRIGGER set_stripe_subscriptions_updated_at
+CREATE OR REPLACE TRIGGER set_stripe_subscriptions_updated_at
     BEFORE UPDATE ON public.stripe_subscriptions
     FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+NOTIFY pgrst, 'reload schema';

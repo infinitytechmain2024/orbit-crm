@@ -7,7 +7,7 @@ from typing import Optional
 
 from backend.config import settings
 from backend.services.stripe_service import stripe_service
-from backend.auth import require_workflow_actor, WorkflowActor
+from backend.auth import require_workflow_actor, require_workflow_permission, WorkflowActor
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/stripe", tags=["stripe"])
@@ -17,10 +17,12 @@ router = APIRouter(prefix="/api/stripe", tags=["stripe"])
 
 class CreateCustomerRequest(BaseModel):
     email: str
+    organization_id: str
     metadata: Optional[dict] = None
 
 
 class CreatePaymentIntentRequest(BaseModel):
+    organization_id: str
     amount: int  # in cents
     currency: str = "EUR"
     description: Optional[str] = None
@@ -28,6 +30,7 @@ class CreatePaymentIntentRequest(BaseModel):
 
 
 class CreateSubscriptionRequest(BaseModel):
+    organization_id: str
     price_id: str
     metadata: Optional[dict] = None
 
@@ -70,11 +73,12 @@ async def create_customer(
 ):
     """Create or get Stripe customer for current organization."""
     try:
+        await require_workflow_permission(request.organization_id, actor, "workflow.create")
         customer = stripe_service.get_or_create_customer(
             email=request.email,
-            organization_id=actor.user_id
+            organization_id=request.organization_id
         )
-        stripe_service.sync_customer_to_db(customer, actor.user_id)
+        stripe_service.sync_customer_to_db(customer, request.organization_id)
         return CustomerResponse(customer_id=customer.id, email=customer.email or "")
     except Exception as e:
         logger.error(f"Failed to create customer: {e}")
@@ -88,6 +92,7 @@ async def create_payment_intent(
 ):
     """Create a PaymentIntent for one-time payment."""
     try:
+        await require_workflow_permission(request.organization_id, actor, "workflow.create")
         # Get or create customer
         from backend.services.supabase_client import supabase_service
         profile = supabase_service.client.table("profiles").select("email").eq("id", actor.user_id).single().execute()
@@ -96,7 +101,7 @@ async def create_payment_intent(
         if not email:
             raise HTTPException(status_code=400, detail="User email not found")
         
-        customer = stripe_service.get_or_create_customer(email, actor.user_id)
+        customer = stripe_service.get_or_create_customer(email, request.organization_id)
         
         intent = stripe_service.create_payment_intent(
             amount=request.amount,
@@ -104,7 +109,7 @@ async def create_payment_intent(
             customer_id=customer.id,
             description=request.description,
             metadata={
-                "organization_id": actor.user_id,
+                "organization_id": request.organization_id,
                 **(request.metadata or {})
             }
         )
@@ -127,6 +132,7 @@ async def create_subscription(
 ):
     """Create a subscription for recurring billing."""
     try:
+        await require_workflow_permission(request.organization_id, actor, "workflow.create")
         from backend.services.supabase_client import supabase_service
         profile = supabase_service.client.table("profiles").select("email").eq("id", actor.user_id).single().execute()
         email = profile.data.get("email") if profile.data else None
@@ -134,15 +140,15 @@ async def create_subscription(
         if not email:
             raise HTTPException(status_code=400, detail="User email not found")
         
-        customer = stripe_service.get_or_create_customer(email, actor.user_id)
+        customer = stripe_service.get_or_create_customer(email, request.organization_id)
         
         subscription = stripe_service.create_subscription(
             customer_id=customer.id,
             price_id=request.price_id,
-            metadata={"organization_id": actor.user_id, **(request.metadata or {})}
+            metadata={"organization_id": request.organization_id, **(request.metadata or {})}
         )
         
-        stripe_service.sync_subscription_to_db(subscription, actor.user_id)
+        stripe_service.sync_subscription_to_db(subscription, request.organization_id)
         
         latest_invoice = subscription.latest_invoice
         client_secret = None

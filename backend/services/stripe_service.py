@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import stripe
+from datetime import date
 from typing import Optional
 from backend.config import settings
 
@@ -102,7 +103,7 @@ class StripeService:
             "payment_method_type": payment_intent.payment_method_types[0] if payment_intent.payment_method_types else None,
             "description": payment_intent.description,
             "metadata": payment_intent.metadata,
-            "occurred_on": "now()",
+            "occurred_on": date.today().isoformat(),
         }, on_conflict="stripe_payment_intent_id").execute()
 
     def sync_subscription_to_db(self, subscription: stripe.Subscription, organization_id: str):

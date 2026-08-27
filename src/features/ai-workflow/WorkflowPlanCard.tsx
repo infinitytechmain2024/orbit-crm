@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import type { TaskDependency, WorkflowAgent, WorkflowRun, WorkflowTask } from "./types";
@@ -43,6 +44,8 @@ export function WorkflowPlanCard({
   dependencies,
   onOpen,
   onControl,
+  isMutating,
+  setIsMutating,
 }: {
   tasks: WorkflowTask[];
   agents: WorkflowAgent[];
@@ -50,6 +53,8 @@ export function WorkflowPlanCard({
   dependencies: TaskDependency[];
   onOpen: (task: WorkflowTask) => void;
   onControl: (task: WorkflowTask, action: "pause" | "resume" | "retry" | "cancel") => void;
+  isMutating: boolean;
+  setIsMutating: (mutating: boolean) => void;
 }) {
   const roots = tasks.filter((task) => !task.parent_task_id);
   const root =
@@ -110,22 +115,46 @@ export function WorkflowPlanCard({
             {statusLabel[root.status]}
           </span>
           {root.status === "paused" ? (
-            <ControlButton label="Resume" icon={Play} onClick={() => onControl(root, "resume")} />
+            <ControlButton
+              label="Resume"
+              icon={Play}
+              onClick={() => {
+                setIsMutating(true);
+                onControl(root, "resume").then(() => setIsMutating(false));
+              }}
+              disabled={isMutating}
+            />
           ) : !["done", "cancelled", "approval_required"].includes(root.status) ? (
-            <ControlButton label="Pause" icon={Pause} onClick={() => onControl(root, "pause")} />
+            <ControlButton
+              label="Pause"
+              icon={Pause}
+              onClick={() => {
+                setIsMutating(true);
+                onControl(root, "pause").then(() => setIsMutating(false));
+              }}
+              disabled={isMutating}
+            />
           ) : null}
           {["blocked", "revisions_requested"].includes(root.status) && (
             <ControlButton
               label="Retry"
               icon={RotateCcw}
-              onClick={() => onControl(root, "retry")}
+              onClick={() => {
+                setIsMutating(true);
+                onControl(root, "retry").then(() => setIsMutating(false));
+              }}
+              disabled={isMutating}
             />
           )}
           {!["done", "cancelled"].includes(root.status) && (
             <ControlButton
               label="Cancel"
               icon={Ban}
-              onClick={() => onControl(root, "cancel")}
+              onClick={() => {
+                setIsMutating(true);
+                onControl(root, "cancel").then(() => setIsMutating(false));
+              }}
+              disabled={isMutating}
               danger
             />
           )}

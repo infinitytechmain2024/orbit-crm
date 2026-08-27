@@ -1,68 +1,50 @@
 services:
   - type: web
     name: orbit-crm-backend
-    runtime: docker
+    runtime: python3
     region: ohio
-    # Production requires an always-on instance. Do not apply this paid plan
-    # change until staging smoke tests and budget approval are complete.
     plan: starter
-    dockerfilePath: ./backend/Dockerfile.combined
-    dockerContext: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
-      - key: NVIDIA_API_KEY
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GROQ_API_KEY
-        sync: false
-      - key: GITHUB_TOKEN
-        sync: false
       - key: SUPABASE_URL
         sync: false
+        value: https://qavfajsflzbefgegkwjt.supabase.co
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+        value: sb_secret_J6hQglei-u8wSOinkKG7Kg_AtYyCUjt
       - key: SUPABASE_PUBLISHABLE_KEY
         sync: false
-      - key: EXPECTED_SUPABASE_PROJECT_REF
-        value: qavfajsflzbefgegkwjt
+        value: sb_publishable_FiHskZ3h_BpUu_vmuAqj8w_W25ZMQcT
+      - key: NVIDIA_API_KEY
+        sync: false
+        value: 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
       - key: INTERNAL_API_TOKEN
         sync: false
-      - key: SELFDEV_PROVIDER_TOKEN
+        value: 89a156d2ec73f9a98e822b70d6d45e0062cb6b8069f4377c54928ae4bd1824c2
+      - key: AI_WORKFLOW_WORKER_ENABLED
         sync: false
-      - key: SELFDEV_PROVIDER_LEASE_SECONDS
-        value: "90"
-      - key: SELFDEV_ORGANIZATION_ID
-        value: f009bee0-c0d0-47eb-a5d0-4e291a43a700
-      - key: SELFDEV_PROVIDER_NAME
-        value: render-openclaw-provider
-      - key: SELFDEV_EXECUTION_ENABLED
         value: "true"
-      - key: SELFDEV_AGENT_COMMAND
-        value: /opt/orbit-venv/bin/python -m selfdev.provider.openclaw_agent
-      - key: SELFDEV_JOB_TIMEOUT_SECONDS
-        value: "900"
-      - key: WHISPER_MODEL
-        value: tiny
-      - key: WHISPER_DEVICE
-        value: cpu
-      - key: WHISPER_COMPUTE_TYPE
-        value: int8
-      - key: WHISPER_LANGUAGE
-        value: ru
-      - key: CEO_APPROVAL_REQUIRED_RISK_LEVELS
-        value: "high,critical"
-      - key: CEO_DEPLOYMENT_APPROVAL_REQUIRED
+      - key: AI_WORKFLOW_AUTORUN
+        sync: false
         value: "true"
+      - key: AI_WORKFLOW_WORKER_CONCURRENCY
+        sync: false
+        value: "4"
+      - key: AI_WORKFLOW_POLL_INTERVAL_SECONDS
+        sync: false
+        value: "1.5"
+      - key: CORS_ORIGINS
+        value: '["https://your-vercel-app.vercel.app","http://localhost:5173","http://localhost:3000"]'
       - key: OPENCLAW_URL
         value: http://127.0.0.1:18789
       - key: OPENCLAW_GATEWAY_TOKEN
         sync: false
-      - key: OPENCLAW_WEBHOOK_TOKEN
-        sync: false
-      - key: OPENCLAW_REQUEST_TIMEOUT
-        value: "120.0"
-      - key: OPENCLAW_DAILY_ACTION_LIMIT
-        value: "100"
-      - key: OPENCLAW_MAX_CONTEXT_RECORDS
-        value: "20"
+        value: 4vNxdXV0723hRAeRK2vga8LEAGduOH4YVM7gvVubXqE=
+      - key: OLLAMA_BASE_URL
+        value: http://localhost:11434/v1
+      - key: OLLAMA_MODEL
+        value: llama3.2
+      - key: WHISPER_MODEL
+        value: tiny

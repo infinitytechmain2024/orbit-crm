@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from secrets import compare_digest
+from typing import Optional
 
 from fastapi import Header, HTTPException
 
