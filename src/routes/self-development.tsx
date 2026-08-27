@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { BarChart3, CheckCircle2, Loader2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
+import { Activity, BarChart3, CheckCircle2, GitBranch, Loader2, RefreshCw, Server, ShieldCheck, XCircle } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { authenticatedFetch } from "@/lib/api-client";
 import { useCrm } from "@/lib/crm-store";
@@ -31,6 +31,26 @@ type Pattern = {
   explanation: string;
   evidence_outcome_ids: string[];
 };
+type DevelopmentProvider = {
+  id: string;
+  name: string;
+  status: string;
+  platform: string;
+  architecture: string;
+  active_runs: number;
+  max_concurrent_runs: number;
+  last_heartbeat_at: string | null;
+  metadata: Record<string, unknown>;
+};
+type DevelopmentRun = {
+  id: string;
+  status: string;
+  working_branch: string;
+  base_commit: string;
+  result_summary: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
 
 const riskStyle = {
   low: "bg-emerald-500/10 text-emerald-600",
@@ -43,9 +63,12 @@ function ControlledImprovementPage() {
   const { organization } = useCrm();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [patterns, setPatterns] = useState<Pattern[]>([]);
+  const [providers, setProviders] = useState<DevelopmentProvider[]>([]);
+  const [runs, setRuns] = useState<DevelopmentRun[]>([]);
   const [status, setStatus] = useState("pending_review");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!organization) return;
@@ -56,14 +79,28 @@ function ControlledImprovementPage() {
         organization_id: organization.id,
         min_occurrences: "3",
       });
-      const [proposalResponse, patternResponse] = await Promise.all([
+      const [proposalResponse, patternResponse, runtimeResponse] = await Promise.all([
         authenticatedFetch(`/api/learning/proposals?${proposalsQuery}`),
         authenticatedFetch(`/api/learning/patterns?${patternsQuery}`),
+        authenticatedFetch(`/api/backend/api/selfdev/status?organization_id=${organization.id}`),
       ]);
       if (!proposalResponse.ok || !patternResponse.ok)
         throw new Error("Не удалось загрузить данные");
       setProposals(((await proposalResponse.json()) as { proposals: Proposal[] }).proposals ?? []);
       setPatterns(((await patternResponse.json()) as { patterns: Pattern[] }).patterns ?? []);
+      if (runtimeResponse.ok) {
+        const runtime = (await runtimeResponse.json()) as {
+          providers?: DevelopmentProvider[];
+          runs?: DevelopmentRun[];
+        };
+        setProviders(runtime.providers ?? []);
+        setRuns(runtime.runs ?? []);
+        setRuntimeError(null);
+      } else {
+        setProviders([]);
+        setRuns([]);
+        setRuntimeError("Runtime ещё не подключён к production-схеме или provider недоступен.");
+      }
       setError(null);
     } catch (unknownError) {
       setError(unknownError instanceof Error ? unknownError.message : "Ошибка загрузки");
@@ -122,6 +159,66 @@ function ControlledImprovementPage() {
             {error}
           </div>
         )}
+        <section className="panel p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <Activity className="size-4 text-primary" />
+              Runtime саморазвития
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              providers: {providers.length} · runs: {runs.length}
+            </span>
+          </div>
+          {runtimeError && (
+            <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-sm text-amber-700">
+              {runtimeError}
+            </p>
+          )}
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-xl border border-border p-3">
+              <h3 className="flex items-center gap-2 text-sm font-medium">
+                <Server className="size-4" /> Исполнители
+              </h3>
+              <div className="mt-3 space-y-2">
+                {providers.map((provider) => (
+                  <div key={provider.id} className="flex items-center justify-between gap-3 text-sm">
+                    <div>
+                      <p className="font-medium">{provider.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {provider.platform}/{provider.architecture} · {provider.active_runs}/{provider.max_concurrent_runs}
+                      </p>
+                    </div>
+                    <span className={provider.status === "available" || provider.status === "busy" ? "text-emerald-600" : "text-destructive"}>
+                      {provider.status}
+                    </span>
+                  </div>
+                ))}
+                {!busy && providers.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Нет подключённого execution provider.</p>
+                )}
+              </div>
+            </div>
+            <div className="rounded-xl border border-border p-3">
+              <h3 className="flex items-center gap-2 text-sm font-medium">
+                <GitBranch className="size-4" /> Последние запуски
+              </h3>
+              <div className="mt-3 space-y-2">
+                {runs.slice(0, 8).map((run) => (
+                  <div key={run.id} className="rounded-lg bg-muted/40 p-2 text-sm">
+                    <div className="flex justify-between gap-3">
+                      <span className="truncate font-mono text-xs">{run.working_branch}</span>
+                      <span>{run.status}</span>
+                    </div>
+                    {run.result_summary && <p className="mt-1 text-xs text-muted-foreground">{run.result_summary}</p>}
+                  </div>
+                ))}
+                {!busy && runs.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Запусков ещё не было.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
         <section className="panel p-4">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 font-semibold">

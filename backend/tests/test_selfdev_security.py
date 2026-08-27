@@ -91,6 +91,58 @@ class SelfDevelopmentSecurityTests(unittest.TestCase):
         self.assertIsNone(response.json()["job"])
         rpc.assert_awaited_once()
 
+    def test_job_lease_records_provider_and_event(self) -> None:
+        provider_id = str(uuid4())
+        run_id = str(uuid4())
+        job = {
+            "id": run_id,
+            "organization_id": self.organization_id,
+            "attempt": 1,
+        }
+        with (
+            patch.object(settings, "SELFDEV_PROVIDER_TOKEN", "secret-provider-token"),
+            patch("backend.routers.selfdev.ai_workflow_store.rpc", AsyncMock(return_value=[job])),
+            patch("backend.routers.selfdev.ai_workflow_store.update", AsyncMock(return_value=[])) as update,
+            patch("backend.routers.selfdev.ai_workflow_store.insert", AsyncMock(return_value=[])) as insert,
+        ):
+            response = self.client.post(
+                "/api/selfdev/jobs/lease",
+                headers={"Authorization": "Bearer secret-provider-token"},
+                json={"provider_id": provider_id},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["job"]["id"], run_id)
+        update.assert_awaited_once()
+        insert.assert_awaited_once()
+
+    def test_run_update_rejects_another_provider(self) -> None:
+        run_id = str(uuid4())
+        assigned_provider = str(uuid4())
+        with (
+            patch.object(settings, "SELFDEV_PROVIDER_TOKEN", "secret-provider-token"),
+            patch(
+                "backend.routers.selfdev.ai_workflow_store.select",
+                AsyncMock(return_value=[{
+                    "id": run_id,
+                    "organization_id": self.organization_id,
+                    "provider_id": assigned_provider,
+                }]),
+            ),
+        ):
+            response = self.client.post(
+                "/api/selfdev/runs/update",
+                headers={"Authorization": "Bearer secret-provider-token"},
+                json={
+                    "provider_id": str(uuid4()),
+                    "run_id": run_id,
+                    "status": "running",
+                    "message": "started",
+                },
+            )
+
+        self.assertEqual(response.status_code, 404)
+
 
 if __name__ == "__main__":
     unittest.main()
