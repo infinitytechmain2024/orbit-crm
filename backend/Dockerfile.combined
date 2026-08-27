@@ -16,6 +16,7 @@ RUN /opt/orbit-venv/bin/pip install --no-cache-dir \
     && rm /tmp/orbit-backend-requirements.txt
 
 COPY backend/ /app/orbit/backend/
+COPY selfdev/ /app/orbit/selfdev/
 COPY services/openclaw/openclaw.json /app/orbit/openclaw.default.json
 COPY openclaw/skills/ /opt/orbit-skills/
 

@@ -102,6 +102,7 @@ async def run() -> int:
 
     openclaw: asyncio.subprocess.Process | None = None
     backend: asyncio.subprocess.Process | None = None
+    selfdev: asyncio.subprocess.Process | None = None
     try:
         # Bind Render's public port immediately. OpenClaw is an optional local
         # dependency and may take longer to initialize (or be unavailable), but
@@ -139,6 +140,23 @@ async def run() -> int:
                 # window. Keep the process alive so it can become healthy later.
                 logger.warning("openclaw_still_starting error=%s", error)
 
+        if os.getenv("SELFDEV_PROVIDER_TOKEN") and os.getenv("SELFDEV_ORGANIZATION_ID"):
+            selfdev_env = os.environ.copy()
+            selfdev_env.setdefault(
+                "SELFDEV_BACKEND_URL",
+                f"http://127.0.0.1:{os.getenv('PORT', '8000')}",
+            )
+            selfdev = await asyncio.create_subprocess_exec(
+                "/opt/orbit-venv/bin/python",
+                "-m",
+                "selfdev.provider.main",
+                env=selfdev_env,
+                start_new_session=True,
+            )
+            logger.info("process_started name=selfdev-provider pid=%s", selfdev.pid)
+        else:
+            logger.warning("selfdev_provider_disabled missing token or organization id")
+
         stop_waiter = asyncio.create_task(stop_event.wait())
         backend_waiter = asyncio.create_task(backend.wait())
         waiters = {stop_waiter, backend_waiter}
@@ -151,6 +169,7 @@ async def run() -> int:
         return backend.returncode or 1
     finally:
         await terminate(backend, "backend")
+        await terminate(selfdev, "selfdev-provider")
         await terminate(openclaw, "openclaw")
 
 

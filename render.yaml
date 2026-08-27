@@ -32,6 +32,16 @@ services:
         sync: false
       - key: SELFDEV_PROVIDER_LEASE_SECONDS
         value: "90"
+      - key: SELFDEV_ORGANIZATION_ID
+        value: f009bee0-c0d0-47eb-a5d0-4e291a43a700
+      - key: SELFDEV_PROVIDER_NAME
+        value: render-openclaw-provider
+      - key: SELFDEV_EXECUTION_ENABLED
+        value: "true"
+      - key: SELFDEV_AGENT_COMMAND
+        value: /opt/orbit-venv/bin/python -m selfdev.provider.openclaw_agent
+      - key: SELFDEV_JOB_TIMEOUT_SECONDS
+        value: "900"
       - key: WHISPER_MODEL
         value: tiny
       - key: WHISPER_DEVICE
