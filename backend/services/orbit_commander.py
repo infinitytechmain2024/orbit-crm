@@ -519,20 +519,19 @@ class OrbitCommander:
         event_type: str,
         message: str,
         *,
-        agent_id: Optional[str]= None,
+        agent_id: Optional[str] = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
-        payload: dict[str, Any] = {"message": message}
-        if metadata:
-            payload["metadata"] = metadata
         rows = await self.store.insert(
             "task_events",
             {
                 "organization_id": task["organization_id"],
                 "task_id": task["id"],
+                "project_id": task.get("project_id"),
+                "agent_id": agent_id if agent_id is not None else task.get("agent_id"),
                 "event_type": event_type,
-                "payload": payload,
-                "actor_agent_id": agent_id if agent_id is not None else task.get("agent_id"),
+                "message": message,
+                "metadata": metadata or {},
             },
         )
         return rows[0] if rows else None
@@ -549,8 +548,6 @@ class OrbitCommander:
         summary: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        audit_meta = dict(metadata or {})
-        audit_meta["summary"] = summary[:1000]
         await self.store.insert(
             "audit_logs",
             {
@@ -560,7 +557,8 @@ class OrbitCommander:
                 "action": action,
                 "entity_type": entity_type,
                 "entity_id": entity_id,
-                "metadata": audit_meta,
+                "summary": summary[:1000],
+                "metadata": metadata or {},
             },
         )
 
@@ -649,7 +647,7 @@ class OrbitCommander:
         workflows = await self.store.select(
             "workflows",
             organization_id=organization_id,
-            filters={"name": "eq.Orbit Commander MVP", "is_active": "eq.true"},
+            filters={"name": "eq.Orbit Commander MVP", "version": "eq.1"},
             limit=1,
         )
         if not workflows:
@@ -659,10 +657,13 @@ class OrbitCommander:
                     "organization_id": organization_id,
                     "name": "Orbit Commander MVP",
                     "description": "Планирование → специализированные агенты → QA → результат",
-                    "config": {
+                    "version": 1,
+                    "definition": {
                         "phases": ["analysis", "execution", "qa", "finalize"],
                         "approval_policy": "business_critical_only",
                     },
+                    "created_by": actor_id,
+                    "is_active": True,
                 },
             )
 
@@ -819,7 +820,11 @@ class OrbitCommander:
         workflow = await self.store.select(
             "workflows",
             organization_id=task["organization_id"],
-            filters={"name": "eq.Orbit Commander MVP", "is_active": "eq.true"},
+            filters={
+                "name": "eq.Orbit Commander MVP",
+                "version": "eq.1",
+                "is_active": "eq.true",
+            },
             limit=1,
         )
         runs = await self.store.insert(

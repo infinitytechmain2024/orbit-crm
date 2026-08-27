@@ -28,6 +28,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from backend.config import settings
@@ -53,25 +54,8 @@ from backend.services.intent_executor import execute_intent, ExecutionResult
 from backend.services.workflow_worker import workflow_worker
 from backend.services.openclaw_client import openclaw_client
 
-import traceback
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    """Global exception handler to log errors and return user-friendly messages."""
-    request_id = getattr(request, "headers", {}).get("x-request-id", "unknown")
-    logger.error(
-        f"Unhandled exception [request_id: {request_id}]: {exc}",
-        extra={"exc_info": True, "request_id": request_id},
-    )
-    safe_detail = "Внутренняя ошибка сервера. Попробуйте позже или свядите поддержку."
-    return JSONResponse(
-        status_code=500,
-        content={"error": "InternalServerError", "detail": safe_detail, "request_id": request_id},
-    )
 
 CORS_ORIGINS = list(settings.CORS_ORIGINS)
 CORS_ORIGIN_REGEX = settings.CORS_ORIGIN_REGEX
@@ -153,6 +137,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Log unexpected errors without exposing implementation details."""
+    request_id = request.headers.get("x-request-id", "unknown")
+    logger.exception("Unhandled exception [request_id: %s]", request_id)
+    safe_detail = "Внутренняя ошибка сервера. Попробуйте позже или свяжитесь с поддержкой."
+    return JSONResponse(
+        status_code=500,
+        content={"error": "InternalServerError", "detail": safe_detail, "request_id": request_id},
+    )
 
 app.add_middleware(
     CORSMiddleware,

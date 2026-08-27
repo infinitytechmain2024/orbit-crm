@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import io
+import base64
 import json
 import logging
 from typing import Any
 
 import openai
-from PIL import Image
-
 from backend.config import settings
-from backend.services.supabase_client import supabase_service
-
 logger = logging.getLogger(__name__)
 
 
@@ -54,11 +50,21 @@ class ReceiptOCRService:
     """Service for extracting receipt data using OpenAI Vision API."""
 
     def __init__(self):
-        self.client = openai.OpenAI(
-            api_key=settings.OPENAI_API_KEY,
-            base_url=settings.OPENAI_BASE_URL if settings.OPENAI_BASE_URL != "https://api.openai.com/v1" else None,
-        )
+        self.client: openai.OpenAI | None = None
         self.model = settings.OPENAI_MODEL or "gpt-4o-mini"
+
+    def _get_client(self) -> openai.OpenAI:
+        """Create the API client only when OCR is actually requested."""
+        if self.client is None:
+            self.client = openai.OpenAI(
+                api_key=settings.OPENAI_API_KEY,
+                base_url=(
+                    settings.OPENAI_BASE_URL
+                    if settings.OPENAI_BASE_URL != "https://api.openai.com/v1"
+                    else None
+                ),
+            )
+        return self.client
 
     async def extract_receipt_data(self, image_bytes: bytes) -> ReceiptOCRResult:
         """
@@ -75,9 +81,6 @@ class ReceiptOCRService:
         - confidence: OpenAI confidence score
         """
         try:
-            # Convert bytes to image for OpenAI
-            image = Image.open(io.BytesIO(image_bytes))
-
             # Prepare the message for OpenAI Vision
             messages = [
                 {
@@ -103,7 +106,7 @@ class ReceiptOCRService:
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/jpeg;base64,{self._image_to_base64(image)}",
+                                "url": f"data:image/jpeg;base64,{self._image_to_base64(image_bytes)}",
                                 "detail": "high",
                             },
                         },
@@ -111,7 +114,7 @@ class ReceiptOCRService:
                 }
             ]
 
-            response = await self.client.chat.completions.create(
+            response = await self._get_client().chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=0,
@@ -177,18 +180,9 @@ class ReceiptOCRService:
             raise
 
     @staticmethod
-    def _image_to_base64(image: "Image.Image") -> str:
-        """Convert PIL Image to base64 string."""
-        import base64
-        import io
-
-        buffered = io.BytesIO()
-        # Convert to RGB if necessary (JPEG/PNG compatibility)
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        image.save(buffered, format="JPEG", quality=85)
-        img_bytes = buffered.getvalue()
-        return base64.b64encode(img_bytes).decode("utf-8")
+    def _image_to_base64(image_bytes: bytes) -> str:
+        """Encode uploaded image bytes without an extra image dependency."""
+        return base64.b64encode(image_bytes).decode("utf-8")
 
 
 # Create singleton instance
