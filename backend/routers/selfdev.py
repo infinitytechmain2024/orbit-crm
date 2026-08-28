@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from secrets import compare_digest
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -76,9 +76,9 @@ class DevelopmentRunUpdateRequest(BaseModel):
     run_id: UUID
     status: RUN_STATUSES
     message: str = Field(default="", max_length=4000)
-    result_summary: str | None = Field(default=None, max_length=12000)
-    exit_code: int | None = None
-    error_class: str | None = Field(default=None, max_length=200)
+    result_summary: Optional[str] = Field(default=None, max_length=12000)
+    exit_code: Optional[int] = None
+    error_class: Optional[str] = Field(default=None, max_length=200)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

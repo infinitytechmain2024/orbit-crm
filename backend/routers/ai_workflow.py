@@ -20,6 +20,7 @@ from backend.services.ai_workflow_store import ai_workflow_store
 from backend.services.orbit_commander import orbit_commander
 from backend.services.stt import stt_service
 from backend.services.nvidia_model_registry import nvidia_model_registry
+from backend.services.workflow_worker import workflow_worker
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +163,20 @@ async def _ensure_manual_approval(task: dict[str, Any]) -> None:
             "consequences": "Workflow продолжится только после явного решения.",
         },
     )
+
+
+async def _kickoff_next_job(run_id: str, organization_id: str) -> None:
+    """Best-effort immediate backend kickoff for a freshly queued workflow."""
+    try:
+        job = await workflow_worker.claim_once(worker_id=f"api:{run_id}")
+        if not job:
+            return
+        await workflow_worker._process(job)
+    except Exception:
+        logger.exception(
+            "Failed to kickoff workflow job",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
 
 
 @router.get("/overview")
@@ -470,6 +485,7 @@ async def create_task(
     task = rows[0]
     await orbit_commander.create_event(task, "created", "Пользователь создал новую задачу.")
     task, run = await orbit_commander.create_workflow(task)
+    asyncio.create_task(_kickoff_next_job(str(run["id"]), request.organization_id))
     return {
         "task": task,
         "workflow_run": run,
@@ -618,9 +634,11 @@ async def run_task(
         else:
             root, run = await orbit_commander._root_and_run(task)
             await orbit_commander.enqueue_ready(run)
+            asyncio.create_task(_kickoff_next_job(str(run["id"]), request.organization_id))
             task = root if task["id"] == root["id"] else task
     else:
         task, _ = await orbit_commander.create_workflow(task)
+        asyncio.create_task(_kickoff_next_job(str(task["workflow_run_id"]), request.organization_id))
     return {"task": task, "queued_for_execution": True}
 
 

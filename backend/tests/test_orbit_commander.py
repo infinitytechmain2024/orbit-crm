@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 from backend.services.ai_providers import redact_error
@@ -97,7 +97,7 @@ class MemoryStore:
             row = dict(value)
             self.sequence += 1
             row.setdefault("id", f"{table}-{self.sequence}")
-            row.setdefault("created_at", datetime.now(UTC).isoformat())
+            row.setdefault("created_at", datetime.now(timezone.utc).isoformat())
             row.setdefault("updated_at", row["created_at"])
             self.tables[table].append(row)
             inserted.append(dict(row))
@@ -108,7 +108,7 @@ class MemoryStore:
         for row in self.tables[table]:
             if row.get("organization_id") == organization_id and self._matches(row, filters):
                 row.update(payload)
-                row["updated_at"] = datetime.now(UTC).isoformat()
+                row["updated_at"] = datetime.now(timezone.utc).isoformat()
                 updated.append(dict(row))
         return updated
 

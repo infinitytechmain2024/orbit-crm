@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -14,11 +14,11 @@ router = APIRouter(prefix="/api/learning", tags=["Controlled learning"])
 
 class OutcomeCreate(BaseModel):
     organization_id: str = Field(min_length=36, max_length=36)
-    client_id: str | None = Field(default=None, min_length=36, max_length=36)
+    client_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
     action_type: str = Field(min_length=1, max_length=120)
     recommendation: str = Field(default="", max_length=12000)
     outcome: Literal["successful", "unsuccessful", "neutral", "unknown"]
-    score: float | None = Field(default=None, ge=-100, le=100)
+    score: Optional[float] = Field(default=None, ge=-100, le=100)
     evidence: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -30,7 +30,7 @@ class ProposalCreate(BaseModel):
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     proposed_content: dict[str, Any]
     risk_level: Literal["low", "medium", "high", "critical"] = "medium"
-    confidence: float | None = Field(default=None, ge=0, le=1)
+    confidence: Optional[float] = Field(default=None, ge=0, le=1)
 
 
 class ProposalReview(BaseModel):

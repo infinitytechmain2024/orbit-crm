@@ -11,7 +11,7 @@ import binascii
 import json
 import logging
 from typing import Optional
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
@@ -30,7 +30,7 @@ class ActivityEvent(BaseModel):
     department_id: Optional[str] = None
     message: str
     metadata: dict = Field(default_factory=dict)
-    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class ConnectionManager:

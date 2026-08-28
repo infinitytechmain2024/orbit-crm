@@ -30,8 +30,11 @@ export function useBackendStatus(): UseBackendStatusReturn {
     return false;
   });
   const retryDelayRef = useRef(15_000);
+  const timerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+  const statusRef = useRef<BackendStatus>("checking");
 
-  const checkHealth = useCallback(async () => {
+  const checkHealth = useCallback(async (): Promise<BackendStatus> => {
     setStatus((current) =>
       current === "online" ? "checking" : current === "warming" ? "warming" : "checking",
     );
@@ -46,32 +49,61 @@ export function useBackendStatus(): UseBackendStatusReturn {
       setNextRetryAt(null);
       if (response.ok) {
         setStatus("online");
+        statusRef.current = "online";
         retryDelayRef.current = 15_000;
       } else if (response.status === 502 || response.status === 503) {
         setStatus("warming");
+        statusRef.current = "warming";
         retryDelayRef.current = Math.min(retryDelayRef.current * 1.5, 60_000);
         setNextRetryAt(new Date(Date.now() + retryDelayRef.current));
       } else {
         setStatus("offline");
+        statusRef.current = "offline";
         retryDelayRef.current = 30_000;
         setNextRetryAt(new Date(Date.now() + retryDelayRef.current));
       }
       setLastCheck(new Date());
+      return statusRef.current;
     } catch (error) {
       const message = error instanceof Error ? error.message.toLowerCase() : "";
       if (message.includes("waking up") || message.includes("просып")) {
         setStatus("warming");
+        statusRef.current = "warming";
         retryDelayRef.current = Math.min(retryDelayRef.current * 1.5, 60_000);
         setNextRetryAt(new Date(Date.now() + retryDelayRef.current));
       } else {
         setStatus("offline");
+        statusRef.current = "offline";
         retryDelayRef.current = 30_000;
         setNextRetryAt(new Date(Date.now() + retryDelayRef.current));
       }
       setLatencyMs(Math.round(performance.now() - startedAt));
       setLastCheck(new Date());
+      return statusRef.current;
     }
   }, []);
+
+  const scheduleNextCheck = useCallback(
+    (nextStatus: BackendStatus, visible: boolean) => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+
+      const delay =
+        nextStatus === "online"
+          ? visible
+            ? 10 * 60_000
+            : 30 * 60_000
+          : nextStatus === "warming"
+            ? 8_000
+            : 30_000;
+
+      setNextRetryAt(new Date(Date.now() + delay));
+      timerRef.current = window.setTimeout(() => {
+        if (!mountedRef.current) return;
+        void checkHealth();
+      }, delay);
+    },
+    [checkHealth],
+  );
 
   const toggleDemoMode = useCallback(() => {
     setIsDemoMode((prev) => {
@@ -82,10 +114,25 @@ export function useBackendStatus(): UseBackendStatusReturn {
   }, []);
 
   useEffect(() => {
-    checkHealth();
-    const interval = setInterval(checkHealth, 15_000);
-    return () => clearInterval(interval);
-  }, [checkHealth]);
+    mountedRef.current = true;
+    void checkHealth().then((nextStatus) => {
+      scheduleNextCheck(nextStatus, document.visibilityState === "visible");
+    });
+
+    const onVisibilityChange = () => {
+      if (!mountedRef.current) return;
+      void checkHealth().then((nextStatus) => {
+        scheduleNextCheck(nextStatus, document.visibilityState === "visible");
+      });
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      mountedRef.current = false;
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [checkHealth, scheduleNextCheck]);
 
   return {
     status,

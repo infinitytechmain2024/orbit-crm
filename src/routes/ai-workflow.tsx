@@ -341,6 +341,14 @@ function AIWorkflowPage() {
       return;
     }
     if (!accessToken) return;
+    workflow.updateLocalTask(task.id, {
+      status: "planning",
+      updated_at: new Date().toISOString(),
+      input_data: {
+        ...task.input_data,
+        run_stage: "preparing",
+      },
+    });
     try {
       await perform(async () => {
         await runWorkflowTask(accessToken, task.id, organizationId);
@@ -348,9 +356,18 @@ function AIWorkflowPage() {
       }, "Задача запущена");
       toast.success("Задача запущена, Orbit Commander начал работу");
     } catch (error) {
-      toast.error("Не удалось запустить", {
-        description: error instanceof Error ? error.message : "Попробуйте еще раз",
+      workflow.updateLocalTask(task.id, {
+        status: task.status,
+        updated_at: new Date().toISOString(),
+        input_data: {
+          ...task.input_data,
+          run_stage: "failed",
+          run_error: error instanceof Error ? error.message : "Попробуйте еще раз",
+        },
       });
+      setMutationError(
+        error instanceof Error ? error.message : "Не удалось запустить задачу",
+      );
     }
   }
 
@@ -487,6 +504,28 @@ function AIWorkflowPage() {
       mainClassName="ai-workflow-page !px-3 !py-4 sm:!px-5 sm:!py-5"
     >
       <div className="mx-auto max-w-[1500px]">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/70 px-4 py-3 text-xs backdrop-blur">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-primary">
+              {preview ? "Preview" : workflow.isDemoFallback ? "Demo fallback" : "Live backend"}
+            </span>
+            <span className="text-muted-foreground">
+              {preview
+                ? "URL ?preview=1 включает статичный демо-рендер без живого backend."
+                : workflow.isDemoFallback
+                  ? "Backend недоступен, поэтому UI показывает демо-данные."
+                  : "UI связан с реальным AI workflow backend и realtime-каналом."}
+            </span>
+          </div>
+          <span className="text-muted-foreground">
+            {backendStatus.status === "online"
+              ? "Backend online"
+              : backendStatus.status === "warming"
+                ? "Backend warming"
+                : "Backend offline"}
+          </span>
+        </div>
+
         {/* Backend Status Toast - only show when offline */}
         {(backendStatus.status === "offline" || backendStatus.status === "warming") &&
           !workflow.isLoading && (

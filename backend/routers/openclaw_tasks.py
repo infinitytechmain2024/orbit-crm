@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import hashlib
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from secrets import compare_digest
 from typing import Any, Literal, Optional
 from uuid import uuid4
@@ -268,7 +268,7 @@ async def assist_with_crm_entity(
             status_code=409,
             detail=f"Objective '{request.objective}' is not enabled for {request.entity_type}",
         )
-    start_of_day = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    start_of_day = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     recent_actions = await ai_workflow_store.select(
         "ai_action_audit",
         organization_id=request.organization_id,

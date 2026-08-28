@@ -61,6 +61,8 @@ class SubscriptionResponse(BaseModel):
 @router.get("/config", response_model=StripeConfigResponse)
 async def get_stripe_config(actor: WorkflowActor = Depends(require_workflow_actor)):
     """Get Stripe publishable key for frontend."""
+    if not stripe_service.available:
+        raise HTTPException(status_code=503, detail="Stripe is not installed or configured")
     if not settings.STRIPE_PUBLISHABLE_KEY:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     return StripeConfigResponse(publishable_key=settings.STRIPE_PUBLISHABLE_KEY)
@@ -73,6 +75,8 @@ async def create_customer(
 ):
     """Create or get Stripe customer for current organization."""
     try:
+        if not stripe_service.available:
+            raise HTTPException(status_code=503, detail="Stripe is not installed or configured")
         await require_workflow_permission(request.organization_id, actor, "workflow.create")
         customer = stripe_service.get_or_create_customer(
             email=request.email,
@@ -92,6 +96,8 @@ async def create_payment_intent(
 ):
     """Create a PaymentIntent for one-time payment."""
     try:
+        if not stripe_service.available:
+            raise HTTPException(status_code=503, detail="Stripe is not installed or configured")
         await require_workflow_permission(request.organization_id, actor, "workflow.create")
         # Get or create customer
         from backend.services.supabase_client import supabase_service
@@ -132,6 +138,8 @@ async def create_subscription(
 ):
     """Create a subscription for recurring billing."""
     try:
+        if not stripe_service.available:
+            raise HTTPException(status_code=503, detail="Stripe is not installed or configured")
         await require_workflow_permission(request.organization_id, actor, "workflow.create")
         from backend.services.supabase_client import supabase_service
         profile = supabase_service.client.table("profiles").select("email").eq("id", actor.user_id).single().execute()
@@ -176,6 +184,8 @@ async def stripe_webhook(
     stripe_signature: str = Header(None, alias="stripe-signature")
 ):
     """Handle Stripe webhook events."""
+    if not stripe_service.available:
+        raise HTTPException(status_code=503, detail="Stripe is not installed or configured")
     if not settings.STRIPE_WEBHOOK_SECRET:
         raise HTTPException(status_code=500, detail="Webhook secret not configured")
     

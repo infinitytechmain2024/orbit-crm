@@ -6,7 +6,7 @@ Uses centralized config and openclaw_client service.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from secrets import compare_digest
 from typing import Any, Optional
 
@@ -162,12 +162,12 @@ async def update_goal(
 ):
     """Update a self-development goal."""
     await require_workflow_permission(organization_id, actor, "workflow.control")
-    update_data: dict[str, Any] = {"updated_at": datetime.now(UTC).isoformat()}
+    update_data: dict[str, Any] = {"updated_at": datetime.now(timezone.utc).isoformat()}
 
     if update.status is not None:
         update_data["status"] = update.status
         if update.status == "completed":
-            update_data["completed_at"] = datetime.now(UTC).isoformat()
+            update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
     if update.label is not None:
         update_data["label"] = update.label
     if update.description is not None:
@@ -231,7 +231,7 @@ async def approve_improvement(
     supabase_service.client.table("openclaw_improvements").update({
         "status": "approved",
         "approved_by": actor.user_id,
-        "approved_at": datetime.now(UTC).isoformat(),
+        "approved_at": datetime.now(timezone.utc).isoformat(),
     }).eq("id", improvement.improvement_id).execute()
 
     # Approval records the human decision only. Production code and configuration
@@ -292,14 +292,14 @@ async def openclaw_goal_webhook(
     elif action == "goal_progress":
         supabase_service.client.table("openclaw_goals").update({
             "progress": data.get("progress", {}),
-            "updated_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", goal_id).execute()
 
     elif action == "goal_completed":
         supabase_service.client.table("openclaw_goals").update({
             "status": "completed",
-            "completed_at": datetime.now(UTC).isoformat(),
-            "updated_at": datetime.now(UTC).isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", goal_id).execute()
 
     elif action == "analysis_result":

@@ -142,6 +142,25 @@ function ControlledImprovementPage() {
       subtitle="AI предлагает изменения; решение и применение остаются за человеком"
     >
       <div className="space-y-5">
+        <section className="rounded-xl border border-border/60 bg-card/70 p-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Режим отображения</h2>
+              <p className="mt-1 text-muted-foreground">
+                На рендере live-режим виден только если backend вернул provider/run данные.
+                Иначе это либо пустой runtime, либо отключённый backend.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                Runtime view
+              </span>
+              <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {providers.length > 0 || runs.length > 0 ? "Live data" : "No live data"}
+              </span>
+            </div>
+          </div>
+        </section>
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <div className="flex gap-3">
             <ShieldCheck className="size-5 shrink-0 text-primary" />

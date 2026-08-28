@@ -1,19 +1,33 @@
 from __future__ import annotations
 
-import stripe
 from datetime import date
 from typing import Optional
+
+try:
+    import stripe
+except ModuleNotFoundError:  # pragma: no cover - optional dependency in local dev
+    stripe = None
 from backend.config import settings
 
 
 class StripeService:
     def __init__(self):
+        if stripe is None:
+            self.available = False
+            self.webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+            return
+        self.available = True
         if settings.STRIPE_SECRET_KEY:
             stripe.api_key = settings.STRIPE_SECRET_KEY
         self.webhook_secret = settings.STRIPE_WEBHOOK_SECRET
 
+    def _require_stripe(self) -> None:
+        if stripe is None or not self.available:
+            raise RuntimeError("Stripe is not installed or not configured")
+
     def create_customer(self, email: str, organization_id: str, metadata: dict = None) -> stripe.Customer:
         """Create a Stripe customer for an organization."""
+        self._require_stripe()
         customer = stripe.Customer.create(
             email=email,
             metadata={
@@ -25,6 +39,7 @@ class StripeService:
 
     def get_or_create_customer(self, email: str, organization_id: str) -> stripe.Customer:
         """Get existing customer or create new one."""
+        self._require_stripe()
         customers = stripe.Customer.list(email=email, limit=1)
         if customers.data:
             return customers.data[0]
@@ -39,6 +54,7 @@ class StripeService:
         description: str = None
     ) -> stripe.PaymentIntent:
         """Create a PaymentIntent for one-time payments."""
+        self._require_stripe()
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency=currency.lower(),
@@ -56,6 +72,7 @@ class StripeService:
         metadata: dict = None
     ) -> stripe.Subscription:
         """Create a recurring subscription."""
+        self._require_stripe()
         subscription = stripe.Subscription.create(
             customer=customer_id,
             items=[{"price": price_id}],
@@ -68,6 +85,7 @@ class StripeService:
 
     def cancel_subscription(self, subscription_id: str) -> stripe.Subscription:
         """Cancel a subscription at period end."""
+        self._require_stripe()
         return stripe.Subscription.modify(
             subscription_id,
             cancel_at_period_end=True
@@ -75,6 +93,7 @@ class StripeService:
 
     def construct_webhook_event(self, payload: bytes, sig_header: str) -> stripe.Event:
         """Verify and construct webhook event."""
+        self._require_stripe()
         return stripe.Webhook.construct_event(
             payload, sig_header, self.webhook_secret
         )

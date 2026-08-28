@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import socket
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Any
 
 from backend.config import settings
@@ -57,6 +57,10 @@ class WorkflowWorker:
             return result
         return None
 
+    async def claim_once(self, worker_id: str = "api:kickoff") -> dict[str, Any] | None:
+        """Try to claim one queued job without starting the full background loop."""
+        return await self._claim(worker_id)
+
     async def _loop(self, index: int) -> None:
         worker_id = f"{self._worker_prefix}:{index}"
         poll = max(0.25, settings.AI_WORKFLOW_POLL_INTERVAL_SECONDS)
@@ -83,7 +87,7 @@ class WorkflowWorker:
                 "workflow_jobs",
                 organization_id=job["organization_id"],
                 filters={"id": f"eq.{job['id']}", "status": "eq.leased"},
-                payload={"status": "succeeded", "completed_at": datetime.now(UTC).isoformat()},
+                payload={"status": "succeeded", "completed_at": datetime.now(timezone.utc).isoformat()},
             )
         except Exception as error:
             attempts = int(job.get("attempts") or 1)
@@ -97,7 +101,7 @@ class WorkflowWorker:
                     filters={"id": f"eq.{job['id']}"},
                     payload={
                         "status": "queued",
-                        "available_at": (datetime.now(UTC) + timedelta(seconds=delay)).isoformat(),
+                        "available_at": (datetime.now(timezone.utc) + timedelta(seconds=delay)).isoformat(),
                         "locked_at": None,
                         "locked_by": None,
                         "last_error": safe_error,
@@ -113,7 +117,7 @@ class WorkflowWorker:
                 payload={
                     "status": "failed",
                     "last_error": safe_error,
-                    "completed_at": datetime.now(UTC).isoformat(),
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
                 },
             )
             task = await self.store.one(

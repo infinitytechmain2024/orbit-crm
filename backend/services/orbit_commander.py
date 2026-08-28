@@ -11,7 +11,7 @@ Postgres so a process restart does not lose work.
 import json
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from backend.config import settings
@@ -277,7 +277,7 @@ OPENCLAW_AGENT_MAP: dict[str, dict[str, Any]] = {
 
 
 def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _coerce_text(content: Any) -> str:
