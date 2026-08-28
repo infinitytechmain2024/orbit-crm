@@ -408,6 +408,27 @@ function Dashboard() {
             className="mt-4"
           />
 
+          <div className="mt-4 rounded-2xl border border-border/70 bg-surface-2/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="grid size-7 place-items-center rounded-lg bg-primary/12 text-primary">
+                  <Zap className="size-4" />
+                </span>
+                AI Workflow
+              </div>
+              <Link
+                to="/ai-workflow"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                Открыть AI Workflow <ArrowUpRight className="size-3" />
+              </Link>
+            </div>
+            <p className="mt-3 font-display text-2xl font-semibold">
+              {aiWorkflow.inProgress} в работе
+            </p>
+            <p className="mt-1 text-xs text-primary">{aiWorkflow.progress}% прогресс</p>
+          </div>
+
           {stage !== "preview" && (
             <>
               {/* AI action button — prominent, centered */}
@@ -549,22 +570,6 @@ function Dashboard() {
             label="Открытых задач"
             value={String(open.length)}
             delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "completed" && !t.archivedAt).length} срочных`}
-          />
-          <Metric
-            icon={<Zap className="size-4" />}
-            label="AI Workflow"
-            value={`${aiWorkflow.inProgress} в работе, ${aiWorkflow.completed} завершено`}
-            delta={
-              <>
-                <span>{aiWorkflow.progress}% прогресс</span>
-                <Link
-                  to="/ai-workflow"
-                  className="ml-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  Открыть AI Workflow <ArrowUpRight className="size-3" />
-                </Link>
-              </>
-            }
           />
         </section>
 
