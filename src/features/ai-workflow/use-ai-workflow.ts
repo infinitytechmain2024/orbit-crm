@@ -157,6 +157,13 @@ export function useAiWorkflow(
     }));
   }, []);
 
+  const removeApprovalRequest = useCallback((taskId: string) => {
+    setOverview((current) => ({
+      ...current,
+      approval_requests: current.approval_requests.filter((request) => request.task_id !== taskId),
+    }));
+  }, []);
+
   return {
     overview,
     isLoading,
@@ -168,5 +175,6 @@ export function useAiWorkflow(
     refresh,
     prependTask,
     updateLocalTask,
+    removeApprovalRequest,
   };
 }

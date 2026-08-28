@@ -398,13 +398,19 @@ function AIWorkflowPage() {
     if (!organizationId) return;
     if (demoMode) {
       workflow.updateLocalTask(task.id, { status: "done", updated_at: new Date().toISOString() });
+      workflow.removeApprovalRequest(task.id);
       notify("CEO утвердил результат");
       return;
     }
     if (!accessToken) return;
+    workflow.updateLocalTask(task.id, {
+      status: "in_progress",
+      updated_at: new Date().toISOString(),
+    });
+    workflow.removeApprovalRequest(task.id);
+    setSelectedTask(null);
     await perform(async () => {
       await decideWorkflowApproval(accessToken, task.id, organizationId, "approve");
-      setSelectedTask(null);
       await workflow.refresh(true);
     }, "CEO утвердил результат");
   }
@@ -418,6 +424,7 @@ function AIWorkflowPage() {
         updated_at: new Date().toISOString(),
         input_data: { ...task.input_data, decision_comment: comment },
       });
+      workflow.removeApprovalRequest(task.id);
       setRejectTask(null);
       notify(
         decision === "request_changes" ? "Запрошены изменения" : "Критическое действие отклонено",
@@ -425,13 +432,19 @@ function AIWorkflowPage() {
       return;
     }
     if (!accessToken) return;
+    workflow.updateLocalTask(task.id, {
+      status: decision === "request_changes" ? "revisions_requested" : "cancelled",
+      updated_at: new Date().toISOString(),
+      input_data: { ...task.input_data, decision_comment: comment },
+    });
+    workflow.removeApprovalRequest(task.id);
+    setRejectTask(null);
+    setSelectedTask(null);
     await perform(
       async () => {
         const approval = overview.approval_requests.find((item) => item.task_id === task.id);
         if (!approval) throw new Error("Запрос на подтверждение не найден");
         await decideApprovalRequest(accessToken, approval.id, organizationId, decision, comment);
-        setRejectTask(null);
-        setSelectedTask(null);
         await workflow.refresh(true);
       },
       decision === "request_changes" ? "Запрошены изменения" : "Критическое действие отклонено",
