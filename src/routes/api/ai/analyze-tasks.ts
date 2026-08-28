@@ -11,6 +11,11 @@ interface TaskProposal {
   project_hint: string | null;
 }
 
+type ProviderAnalysisResult = {
+  tasks: TaskProposal[];
+  elapsedMs: number;
+};
+
 // Workflow-aware target roles (must align with ai_agents.role values)
 const TARGET_ROLES = [
   "CEO",
@@ -111,7 +116,7 @@ function getProviders(): ProviderConfig[] {
   return providers;
 }
 
-async function callProvider(provider: ProviderConfig, userText: string): Promise<TaskProposal[]> {
+async function callProvider(provider: ProviderConfig, userText: string): Promise<ProviderAnalysisResult> {
   const body = {
     model: provider.model,
     messages: [
@@ -130,6 +135,7 @@ async function callProvider(provider: ProviderConfig, userText: string): Promise
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
 
+  const startedAt = performance.now();
   let response: Response;
   try {
     response = await fetch(provider.url, {
@@ -156,6 +162,7 @@ async function callProvider(provider: ProviderConfig, userText: string): Promise
   }
 
   const data = await response.json();
+  const elapsedMs = Math.round(performance.now() - startedAt);
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error(`${provider.name}: empty response`);
 
@@ -168,7 +175,7 @@ async function callProvider(provider: ProviderConfig, userText: string): Promise
   const parsed = JSON.parse(cleaned);
   const tasks = Array.isArray(parsed) ? parsed : parsed.tasks || parsed.items || [parsed];
 
-  return tasks.map((t: Record<string, unknown>) => {
+  const normalized: TaskProposal[] = tasks.map((t: Record<string, unknown>) => {
     const rawTarget = String(t.target_role ?? t.targetRole ?? "").trim();
     const normalizedTarget = (TARGET_ROLES as readonly string[]).includes(rawTarget)
       ? rawTarget
@@ -187,6 +194,8 @@ async function callProvider(provider: ProviderConfig, userText: string): Promise
       project_hint: t.project_hint ? String(t.project_hint).slice(0, 80) : null,
     } satisfies TaskProposal;
   });
+
+  return { tasks: normalized, elapsedMs };
 }
 
 export const Route = createFileRoute("/api/ai/analyze-tasks")({
@@ -220,12 +229,15 @@ export const Route = createFileRoute("/api/ai/analyze-tasks")({
         const errors: string[] = [];
         for (const provider of providers) {
           try {
-            const tasks = await callProvider(provider, text);
-            console.log(`[analyze-tasks] ${provider.name} returned ${tasks.length} tasks`);
+            const result = await callProvider(provider, text);
+            console.log(
+              `[analyze-tasks] ${provider.name} returned ${result.tasks.length} tasks in ${result.elapsedMs}ms`,
+            );
             return Response.json({
-              tasks,
+              tasks: result.tasks,
               provider: provider.name,
               model: provider.model,
+              elapsed_ms: result.elapsedMs,
             });
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);

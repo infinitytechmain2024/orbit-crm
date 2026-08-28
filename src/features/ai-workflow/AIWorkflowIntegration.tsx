@@ -156,9 +156,23 @@ export function AIWorkflowIntegration({
                 ? "Backend Online"
                 : backendStatus.status === "checking"
                   ? "Checking..."
-                  : backendStatus.status === "warming"
+              : backendStatus.status === "warming"
                     ? "Server waking up"
                     : "Backend Offline"}
+          </div>
+
+          <div className="hidden text-[10px] text-muted-foreground md:block">
+            {backendStatus.lastCheck
+              ? `Последняя проверка: ${backendStatus.lastCheck.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
+              : "Проверка еще не завершена"}
+            {backendStatus.latencyMs !== null ? ` · ответ ${backendStatus.latencyMs} ms` : ""}
+            {backendStatus.nextRetryAt &&
+            (backendStatus.status === "offline" || backendStatus.status === "warming")
+              ? ` · повтор через ${Math.max(
+                  1,
+                  Math.ceil((backendStatus.nextRetryAt.getTime() - Date.now()) / 1000),
+                )} c`
+              : ""}
           </div>
 
           {(backendStatus.status === "offline" || backendStatus.status === "warming") && (

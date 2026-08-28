@@ -110,6 +110,7 @@ type AiAnalyzeResponse = {
   }[];
   provider: string;
   model: string;
+  elapsed_ms?: number | null;
 };
 
 function Dashboard() {
@@ -147,7 +148,10 @@ function Dashboard() {
       }
 
       const data: AiAnalyzeResponse = await response.json();
-      console.log(`[Dashboard] AI analysis via ${data.provider} (${data.model}):`, data.tasks);
+      console.log(
+        `[Dashboard] AI analysis via ${data.provider} (${data.model}) in ${data.elapsed_ms ?? "?"}ms:`,
+        data.tasks,
+      );
 
       const tasks: ParsedTask[] = data.tasks.map((t) => ({
         id: makeId(),
