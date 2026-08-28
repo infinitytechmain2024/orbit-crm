@@ -1,14 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Crown,
-  Loader2,
-  RefreshCw,
-  Shield,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, Crown, Loader2, RefreshCw, Shield, Wifi } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -194,8 +185,8 @@ function AIWorkflowPage() {
     const fullText = `${input.title} ${input.description}`;
     const dispatchResult = dispatchTask(fullText, {
       currentProject: input.project_id ?? undefined,
-      userId: session?.user?.id ?? undefined,
       allowDestructive: false,
+      ...(session?.user?.id ? { userId: session.user.id } : {}),
     });
 
     const riskLevel = assessRisk(fullText);
@@ -484,27 +475,52 @@ function AIWorkflowPage() {
     >
       <div className="mx-auto max-w-[1500px]">
         {/* Backend Status Toast - only show when offline */}
-        {backendStatus.status === "offline" && !workflow.isLoading && (
-          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right">
-            <div className="bg-card border border-border rounded-lg p-4 shadow-lg max-w-sm">
-              <div className="flex items-center gap-3">
-                <WifiOff className="h-5 w-5 text-amber-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Backend недоступен</p>
-                  <p className="text-xs text-muted-foreground">Работаем в демо-режиме</p>
+        {(backendStatus.status === "offline" || backendStatus.status === "warming") &&
+          !workflow.isLoading && (
+            <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right">
+              <div className="max-w-sm rounded-2xl border border-amber-500/20 bg-card/95 p-4 shadow-2xl shadow-amber-950/10 backdrop-blur">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 grid size-9 place-items-center rounded-full bg-amber-500/10 text-amber-500">
+                    <RefreshCw className="h-4.5 w-4.5 animate-spin" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">
+                      {backendStatus.status === "warming"
+                        ? "Сервер просыпается"
+                        : "Backend недоступен"}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {backendStatus.status === "warming"
+                        ? "Это нормально для бесплатного рендера: сервер может запускаться 15–40 секунд."
+                        : "Работаем в демо-режиме. Можно повторить проверку вручную или подождать автоподключения."}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void backendStatus.retry()}
+                        className="inline-flex h-9 items-center gap-2 rounded-xl bg-amber-500 px-3 text-xs font-medium text-white transition hover:brightness-110"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Проверить снова
+                      </button>
+                      <span className="text-[10px] text-muted-foreground">
+                        {backendStatus.lastCheck
+                          ? `Последняя проверка: ${backendStatus.lastCheck.toLocaleTimeString(
+                              "ru-RU",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                              },
+                            )}`
+                          : "Идёт первичная проверка"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void backendStatus.retry()}
-                  className="rounded-full border border-border px-2 py-1 transition hover:bg-muted"
-                  aria-label="Повторить подключение"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* OpenClaw Status Indicator */}
         {openclawConnected && (
@@ -554,7 +570,7 @@ function AIWorkflowPage() {
         )}
 
         {/* OpenClaw not available warning */}
-        {!openclawConnected && !workflow.isLoading && (
+        {!openclawConnected && !workflow.isLoading && backendStatus.status !== "warming" && (
           <div className="mb-3 flex items-center justify-end gap-2">
             <span className="rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-[10px] text-muted-foreground flex items-center gap-1">
               <svg

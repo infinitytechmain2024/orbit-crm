@@ -3,10 +3,10 @@
  * Replaces static demo mode banner with live connection check
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { authenticatedFetch } from "@/lib/api-client";
 
-export type BackendStatus = "checking" | "online" | "offline";
+export type BackendStatus = "checking" | "online" | "offline" | "warming";
 
 export interface UseBackendStatusReturn {
   status: BackendStatus;
@@ -27,16 +27,29 @@ export function useBackendStatus(): UseBackendStatusReturn {
   });
 
   const checkHealth = useCallback(async () => {
-    setStatus("checking");
+    setStatus((current) =>
+      current === "online" ? "checking" : current === "warming" ? "warming" : "checking",
+    );
     try {
       const response = await authenticatedFetch("/api/backend/api/health", {
         method: "GET",
         signal: AbortSignal.timeout(5000),
       });
-      setStatus(response.ok ? "online" : "offline");
+      if (response.ok) {
+        setStatus("online");
+      } else if (response.status === 502 || response.status === 503) {
+        setStatus("warming");
+      } else {
+        setStatus("offline");
+      }
       setLastCheck(new Date());
-    } catch {
-      setStatus("offline");
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+      if (message.includes("waking up") || message.includes("просып")) {
+        setStatus("warming");
+      } else {
+        setStatus("offline");
+      }
       setLastCheck(new Date());
     }
   }, []);
@@ -51,7 +64,7 @@ export function useBackendStatus(): UseBackendStatusReturn {
 
   useEffect(() => {
     checkHealth();
-    const interval = setInterval(checkHealth, 30000);
+    const interval = setInterval(checkHealth, 15000);
     return () => clearInterval(interval);
   }, [checkHealth]);
 

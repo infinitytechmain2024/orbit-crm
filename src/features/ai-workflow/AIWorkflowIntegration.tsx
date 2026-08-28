@@ -15,7 +15,6 @@ import {
   Play,
   RefreshCw,
   Wifi,
-  WifiOff,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -149,7 +148,7 @@ export function AIWorkflowIntegration({
             ) : backendStatus.status === "checking" ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <WifiOff className="h-3.5 w-3.5" />
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             )}
             {backendStatus.isDemoMode
               ? "Demo Mode"
@@ -157,17 +156,19 @@ export function AIWorkflowIntegration({
                 ? "Backend Online"
                 : backendStatus.status === "checking"
                   ? "Checking..."
-                  : "Backend Offline"}
+                  : backendStatus.status === "warming"
+                    ? "Server waking up"
+                    : "Backend Offline"}
           </div>
 
-          {backendStatus.status === "offline" && (
+          {(backendStatus.status === "offline" || backendStatus.status === "warming") && (
             <button
               type="button"
               onClick={() => void backendStatus.retry()}
               className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs hover:bg-muted"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Retry
+              {backendStatus.status === "warming" ? "Check again" : "Retry"}
             </button>
           )}
         </div>
