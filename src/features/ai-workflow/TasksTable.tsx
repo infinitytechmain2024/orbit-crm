@@ -4,6 +4,7 @@ import {
   Ban,
   CheckCircle2,
   Clock3,
+  Loader2,
   MoreHorizontal,
   Pause,
   Play,
@@ -100,6 +101,7 @@ export function TasksTable({
   onRun,
   onApproval,
   onControl,
+  pendingTasks,
 }: {
   tasks: WorkflowTask[];
   projects: WorkflowProject[];
@@ -116,6 +118,16 @@ export function TasksTable({
   onRun: (task: WorkflowTask) => void;
   onApproval: (task: WorkflowTask) => void;
   onControl: (task: WorkflowTask, action: "pause" | "resume" | "retry" | "cancel") => void;
+  pendingTasks: Record<
+    string,
+    {
+      phase: "planning" | "in_progress" | "approval" | "control";
+      attempt: number;
+      maxAttempts: number;
+      nextRetryAt: number | null;
+      deadlineAt: number;
+    }
+  >;
 }) {
   const [sort, setSort] = useState<"updated" | "due" | "priority">("updated");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -156,6 +168,13 @@ export function TasksTable({
     { value: "approval_required", label: "Требуют утверждения" },
     { value: "done", label: "Готово" },
   ];
+
+  const formatEta = (state: (typeof pendingTasks)[string]) => {
+    if (!state?.nextRetryAt) return "retry soon";
+    const seconds = Math.max(1, Math.ceil((state.nextRetryAt - Date.now()) / 1000));
+    if (seconds >= 60) return `retry in ${Math.ceil(seconds / 60)}m`;
+    return `retry in ${seconds}s`;
+  };
 
   return (
     <section
@@ -291,13 +310,27 @@ export function TasksTable({
                       />
                     </td>
                     <td className="max-w-64 px-2 py-2.5">
-                      <button
-                        type="button"
-                        onClick={() => onOpen(task)}
-                        className="max-w-full truncate text-left font-medium transition hover:text-primary"
-                      >
-                        {task.title}
-                      </button>
+                      <div className="flex max-w-full items-center gap-2">
+                        {pendingTasks[task.id] ? (
+                          <Loader2 className="size-3.5 animate-spin text-amber-500" />
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => onOpen(task)}
+                          className="max-w-full truncate text-left font-medium transition hover:text-primary"
+                        >
+                          {task.title}
+                        </button>
+                      </div>
+                      {pendingTasks[task.id] && (
+                        <div className="mt-1 flex items-center gap-2 text-[9px] text-amber-500">
+                          <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5">
+                            retry {pendingTasks[task.id].attempt}/
+                            {pendingTasks[task.id].maxAttempts}
+                          </span>
+                          <span>{formatEta(pendingTasks[task.id])}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-2 py-2.5">
                       <span
@@ -382,13 +415,24 @@ export function TasksTable({
             {filtered.map((task) => (
               <article key={task.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => onOpen(task)}
-                    className="text-left text-sm font-medium"
-                  >
-                    {task.title}
-                  </button>
+                  <div className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => onOpen(task)}
+                      className="flex items-center gap-2 text-left text-sm font-medium"
+                    >
+                      {pendingTasks[task.id] ? (
+                        <Loader2 className="size-3.5 shrink-0 animate-spin text-amber-500" />
+                      ) : null}
+                      <span className="truncate">{task.title}</span>
+                    </button>
+                    {pendingTasks[task.id] && (
+                      <p className="mt-1 text-[10px] text-amber-500">
+                        retry {pendingTasks[task.id].attempt}/{pendingTasks[task.id].maxAttempts} ·{" "}
+                        {formatEta(pendingTasks[task.id])}
+                      </p>
+                    )}
+                  </div>
                   <TaskMenu
                     task={task}
                     onOpen={onOpen}
@@ -405,22 +449,31 @@ export function TasksTable({
                   <span>{task.agent_id ? agentById.get(task.agent_id)?.role : "Не назначен"}</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-2">
-                  <select
-                    value={task.status}
-                    onChange={(event) =>
-                      onStatusChange(task, event.target.value as WorkflowTaskStatus)
-                    }
-                    className={cn(
-                      "rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-[10px]",
-                      statusClass(task.status),
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={task.status}
+                      onChange={(event) =>
+                        onStatusChange(task, event.target.value as WorkflowTaskStatus)
+                      }
+                      className={cn(
+                        "rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-[10px]",
+                        pendingTasks[task.id]
+                          ? "border-amber-500/25 bg-amber-500/10 text-amber-500"
+                          : statusClass(task.status),
+                      )}
+                    >
+                      {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    {pendingTasks[task.id] && (
+                      <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[9px] text-amber-500">
+                        {formatEta(pendingTasks[task.id])}
+                      </span>
                     )}
-                  >
-                    {Object.entries(STATUS_LABEL).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                  </div>
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Clock3 className="size-3" />
                     {dueLabel(task.due_at)}

@@ -86,6 +86,15 @@ function previewRoleForTask(input: Omit<NewWorkflowTask, "organization_id">) {
 
 const RETRY_WINDOW_MS = 2 * 60_000;
 const RETRY_INTERVAL_MS = 15_000;
+const RETRY_MAX_ATTEMPTS = Math.ceil(RETRY_WINDOW_MS / RETRY_INTERVAL_MS);
+
+type PendingTaskState = {
+  phase: "planning" | "in_progress" | "approval" | "control";
+  attempt: number;
+  maxAttempts: number;
+  nextRetryAt: number | null;
+  deadlineAt: number;
+};
 
 function isTransientBackendError(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -116,7 +125,7 @@ function AIWorkflowPage() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isMutating, setMutating] = useState(false);
   const [cancelConfirmTask, setCancelConfirmTask] = useState<WorkflowTask | null>(null);
-  const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<Record<string, PendingTaskState>>({});
   const preview =
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
@@ -194,34 +203,51 @@ function AIWorkflowPage() {
     }
   }
 
+  function clearPendingTask(taskId: string) {
+    setPendingTasks((current) => {
+      if (!(taskId in current)) return current;
+      const next = { ...current };
+      delete next[taskId];
+      return next;
+    });
+  }
+
+  function setPendingTask(taskId: string, state: PendingTaskState) {
+    setPendingTasks((current) => ({ ...current, [taskId]: state }));
+  }
+
   async function runWithTransientRetry(
     task: WorkflowTask,
     mutateLocal: (attempt: number) => void,
     commit: () => Promise<void>,
     successMessage: string,
     failureMessage: string,
+    phase: PendingTaskState["phase"],
   ) {
     const deadline = Date.now() + RETRY_WINDOW_MS;
     let attempt = 0;
-    setPendingTaskIds((current) => (current.includes(task.id) ? current : [...current, task.id]));
-
-    const finishPending = () => {
-      setPendingTaskIds((current) => current.filter((id) => id !== task.id));
-    };
 
     const tryCommit = async (): Promise<void> => {
       attempt += 1;
+      const nextRetryAt = attempt < RETRY_MAX_ATTEMPTS ? Date.now() + RETRY_INTERVAL_MS : null;
+      setPendingTask(task.id, {
+        phase,
+        attempt,
+        maxAttempts: RETRY_MAX_ATTEMPTS,
+        nextRetryAt,
+        deadlineAt: deadline,
+      });
       mutateLocal(attempt);
       try {
         await commit();
-        finishPending();
+        clearPendingTask(task.id);
         notify(successMessage);
       } catch (error) {
         if (Date.now() < deadline && isTransientBackendError(error)) {
           window.setTimeout(() => void tryCommit(), RETRY_INTERVAL_MS);
           return;
         }
-        finishPending();
+        clearPendingTask(task.id);
         throw error;
       }
     };
@@ -437,6 +463,7 @@ function AIWorkflowPage() {
       },
       "Задача запущена",
       "Не удалось запустить задачу",
+      "planning",
     );
   }
 
@@ -484,6 +511,7 @@ function AIWorkflowPage() {
       },
       successByAction[action],
       `Не удалось выполнить действие "${action}"`,
+      "control",
     );
   }
 
@@ -519,6 +547,7 @@ function AIWorkflowPage() {
       },
       "CEO утвердил результат",
       "Не удалось применить approval",
+      "approval",
     );
   }
 
@@ -614,10 +643,10 @@ function AIWorkflowPage() {
                 ? "Backend warming up"
                 : "Backend offline"}
           </span>
-          {pendingTaskIds.length > 0 && (
+          {Object.keys(pendingTasks).length > 0 && (
             <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-500">
-              {pendingTaskIds.length} task{pendingTaskIds.length === 1 ? "" : "s"} waiting for
-              backend
+              {Object.keys(pendingTasks).length} task
+              {Object.keys(pendingTasks).length === 1 ? "" : "s"} waiting for backend
             </span>
           )}
         </div>
@@ -807,6 +836,7 @@ function AIWorkflowPage() {
                   )
                 }
                 onControl={(task, action) => void handleControl(task, action)}
+                pendingTasks={pendingTasks}
               />
             </div>
             <div className="min-w-0 xl:sticky xl:top-28 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
