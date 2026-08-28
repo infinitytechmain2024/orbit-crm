@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Crown, Loader2, RefreshCw, Shield, Wifi } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Crown, Loader2, RefreshCw, Shield } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -84,6 +84,22 @@ function previewRoleForTask(input: Omit<NewWorkflowTask, "organization_id">) {
   return { role, action };
 }
 
+const RETRY_WINDOW_MS = 2 * 60_000;
+const RETRY_INTERVAL_MS = 15_000;
+
+function isTransientBackendError(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return [
+    "502",
+    "503",
+    "failed to fetch",
+    "backend is unavailable",
+    "просып",
+    "waking up",
+    "timeout",
+  ].some((fragment) => message.includes(fragment));
+}
+
 function AIWorkflowPage() {
   const { organization } = useCrm();
   const { session } = useAuth();
@@ -100,6 +116,7 @@ function AIWorkflowPage() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isMutating, setMutating] = useState(false);
   const [cancelConfirmTask, setCancelConfirmTask] = useState<WorkflowTask | null>(null);
+  const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([]);
   const preview =
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
@@ -107,7 +124,7 @@ function AIWorkflowPage() {
   const accessToken = session?.access_token;
   const organizationId = preview ? DEMO_ORGANIZATION_ID : organization?.id;
   const workflow = useAiWorkflow(accessToken, organizationId, projectId, preview);
-  const demoMode = preview || workflow.isDemoFallback;
+  const demoMode = preview;
   const { overview } = workflow;
   // Older backend deployments returned the overview collections without the
   // optional provider diagnostics block. Keep the dashboard render-safe while
@@ -174,6 +191,58 @@ function AIWorkflowPage() {
       throw unknownError;
     } finally {
       setMutating(false);
+    }
+  }
+
+  async function runWithTransientRetry(
+    task: WorkflowTask,
+    mutateLocal: (attempt: number) => void,
+    commit: () => Promise<void>,
+    successMessage: string,
+    failureMessage: string,
+  ) {
+    const deadline = Date.now() + RETRY_WINDOW_MS;
+    let attempt = 0;
+    setPendingTaskIds((current) => (current.includes(task.id) ? current : [...current, task.id]));
+
+    const finishPending = () => {
+      setPendingTaskIds((current) => current.filter((id) => id !== task.id));
+    };
+
+    const tryCommit = async (): Promise<void> => {
+      attempt += 1;
+      mutateLocal(attempt);
+      try {
+        await commit();
+        finishPending();
+        notify(successMessage);
+      } catch (error) {
+        if (Date.now() < deadline && isTransientBackendError(error)) {
+          window.setTimeout(() => void tryCommit(), RETRY_INTERVAL_MS);
+          return;
+        }
+        finishPending();
+        throw error;
+      }
+    };
+
+    try {
+      await tryCommit();
+    } catch (error) {
+      workflow.updateLocalTask(task.id, {
+        status: "blocked",
+        blocker_reason: error instanceof Error ? error.message : failureMessage,
+        updated_at: new Date().toISOString(),
+        input_data: {
+          ...task.input_data,
+          run_stage: "failed",
+          run_error: error instanceof Error ? error.message : failureMessage,
+        },
+      });
+      setMutationError(error instanceof Error ? error.message : failureMessage);
+      toast.error(failureMessage, {
+        description: error instanceof Error ? error.message : "Попробуйте еще раз позже",
+      });
     }
   }
 
@@ -347,28 +416,28 @@ function AIWorkflowPage() {
       input_data: {
         ...task.input_data,
         run_stage: "preparing",
+        run_started_at: new Date().toISOString(),
       },
     });
-    try {
-      await perform(async () => {
+    await runWithTransientRetry(
+      task,
+      (attempt) =>
+        workflow.updateLocalTask(task.id, {
+          status: attempt === 1 ? "planning" : "in_progress",
+          updated_at: new Date().toISOString(),
+          input_data: {
+            ...task.input_data,
+            run_stage: attempt === 1 ? "preparing" : "retrying",
+            retry_count: attempt,
+          },
+        }),
+      async () => {
         await runWorkflowTask(accessToken, task.id, organizationId);
         await workflow.refresh(true);
-      }, "Задача запущена");
-      toast.success("Задача запущена, Orbit Commander начал работу");
-    } catch (error) {
-      workflow.updateLocalTask(task.id, {
-        status: task.status,
-        updated_at: new Date().toISOString(),
-        input_data: {
-          ...task.input_data,
-          run_stage: "failed",
-          run_error: error instanceof Error ? error.message : "Попробуйте еще раз",
-        },
-      });
-      setMutationError(
-        error instanceof Error ? error.message : "Не удалось запустить задачу",
-      );
-    }
+      },
+      "Задача запущена",
+      "Не удалось запустить задачу",
+    );
   }
 
   async function handleControl(
@@ -397,18 +466,25 @@ function AIWorkflowPage() {
       return;
     }
     if (!accessToken) return;
-    try {
-      await perform(async () => {
+    await runWithTransientRetry(
+      task,
+      () =>
+        workflow.updateLocalTask(task.id, {
+          status: statusByAction[action],
+          updated_at: new Date().toISOString(),
+          input_data: {
+            ...task.input_data,
+            control_stage: action,
+          },
+        }),
+      async () => {
         const response = await controlWorkflowTask(accessToken, task.id, organizationId, action);
         workflow.prependTask(response.task);
         await workflow.refresh(true);
-      }, successByAction[action]);
-      toast.success(successByAction[action]);
-    } catch (error) {
-      toast.error(`Не удалось выполнить действие "${action}"`, {
-        description: error instanceof Error ? error.message : "Попробуйте еще раз",
-      });
-    }
+      },
+      successByAction[action],
+      `Не удалось выполнить действие "${action}"`,
+    );
   }
 
   async function handleApprove(task: WorkflowTask) {
@@ -426,10 +502,24 @@ function AIWorkflowPage() {
     });
     workflow.removeApprovalRequest(task.id);
     setSelectedTask(null);
-    await perform(async () => {
-      await decideWorkflowApproval(accessToken, task.id, organizationId, "approve");
-      await workflow.refresh(true);
-    }, "CEO утвердил результат");
+    await runWithTransientRetry(
+      task,
+      () =>
+        workflow.updateLocalTask(task.id, {
+          status: "in_progress",
+          updated_at: new Date().toISOString(),
+          input_data: {
+            ...task.input_data,
+            approval_stage: "sending",
+          },
+        }),
+      async () => {
+        await decideWorkflowApproval(accessToken, task.id, organizationId, "approve");
+        await workflow.refresh(true);
+      },
+      "CEO утвердил результат",
+      "Не удалось применить approval",
+    );
   }
 
   async function handleReject(comment: string, decision: "request_changes" | "reject") {
@@ -507,13 +597,13 @@ function AIWorkflowPage() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/70 px-4 py-3 text-xs backdrop-blur">
           <div className="flex items-center gap-2">
             <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-primary">
-              {preview ? "Preview" : workflow.isDemoFallback ? "Demo fallback" : "Live backend"}
+              {preview ? "Preview" : workflow.isRecovering ? "Warming up" : "Live backend"}
             </span>
             <span className="text-muted-foreground">
               {preview
                 ? "URL ?preview=1 включает статичный демо-рендер без живого backend."
-                : workflow.isDemoFallback
-                  ? "Backend недоступен, поэтому UI показывает демо-данные."
+                : workflow.isRecovering
+                  ? "Backend сейчас просыпается или отвечает с задержкой. UI сохраняет текущее состояние и продолжит подключения."
                   : "UI связан с реальным AI workflow backend и realtime-каналом."}
             </span>
           </div>
@@ -521,9 +611,15 @@ function AIWorkflowPage() {
             {backendStatus.status === "online"
               ? "Backend online"
               : backendStatus.status === "warming"
-                ? "Backend warming"
+                ? "Backend warming up"
                 : "Backend offline"}
           </span>
+          {pendingTaskIds.length > 0 && (
+            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-500">
+              {pendingTaskIds.length} task{pendingTaskIds.length === 1 ? "" : "s"} waiting for
+              backend
+            </span>
+          )}
         </div>
 
         {/* Backend Status Toast - only show when offline */}
@@ -591,16 +687,6 @@ function AIWorkflowPage() {
           </div>
         )}
 
-        {/* Demo Mode Indicator - compact badge */}
-        {backendStatus.isDemoMode && (
-          <div className="mb-3 flex items-center justify-end gap-2">
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] text-primary flex items-center gap-1">
-              <Wifi className="h-3 w-3" />
-              Demo mode
-            </span>
-          </div>
-        )}
-
         {/* NVIDIA not configured warning - only show when backend is online */}
         {backendStatus.status === "online" && !nvidiaConfigured && !workflow.isLoading && (
           <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.055] px-3 py-2 text-[10px] text-amber-600 dark:text-amber-100">
@@ -641,11 +727,19 @@ function AIWorkflowPage() {
           </div>
         )}
 
-        {workflow.isLoading ? (
+        {workflow.isLoading || workflow.isRecovering ? (
           <div className="grid min-h-[65vh] place-items-center rounded-2xl border border-border bg-surface/75">
             <div className="text-center">
-              <Loader2 className="mx-auto size-8 animate-spin text-primary" />
-              <p className="mt-3 text-xs text-muted-foreground">Собираю AI-команду…</p>
+              {workflow.isRecovering ? (
+                <RefreshCw className="mx-auto size-8 animate-spin text-amber-500" />
+              ) : (
+                <Loader2 className="mx-auto size-8 animate-spin text-primary" />
+              )}
+              <p className="mt-3 text-xs text-muted-foreground">
+                {workflow.isRecovering
+                  ? "Backend просыпается. UI оставляет задачу в рабочем состоянии и пробует подключиться снова."
+                  : "Собираю AI-команду…"}
+              </p>
             </div>
           </div>
         ) : workflow.error ? (

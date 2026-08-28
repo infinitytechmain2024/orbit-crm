@@ -43,8 +43,11 @@ services:
         sync: false
         value: 4vNxdXV0723hRAeRK2vga8LEAGduOH4YVM7gvVubXqE=
       - key: OLLAMA_BASE_URL
-        value: http://localhost:11434/v1
+        value: https://integrate.api.nvidia.com/v1
       - key: OLLAMA_MODEL
-        value: llama3.2
+        value: openai/gpt-oss-120b
+      - key: OLLAMA_API_KEY
+        sync: false
+        value: ""
       - key: WHISPER_MODEL
         value: tiny

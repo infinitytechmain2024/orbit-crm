@@ -60,10 +60,10 @@ check_dependencies() {
     fi
     ok "Python 3: $(python3 --version)"
 
-    if ! command -v ollama &>/dev/null; then
-        warn "Ollama не найден. Установите: brew install ollama && ollama pull llama3.2"
+    if command -v ollama &>/dev/null; then
+        warn "Ollama найден, но для этой сборки он не требуется."
     else
-        ok "Ollama: $(ollama --version)"
+        ok "Ollama не установлен, и это нормально для удалённого LLM-провайдера."
     fi
 
     if ! command -v docker &>/dev/null; then

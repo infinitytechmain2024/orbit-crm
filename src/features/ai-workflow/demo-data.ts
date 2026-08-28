@@ -246,5 +246,29 @@ export function createDemoOverview(projectId = "all"): WorkflowOverview {
   };
 }
 
+export function createEmptyOverview(): WorkflowOverview {
+  return {
+    departments: [],
+    agents: [],
+    tasks: [],
+    events: [],
+    artifacts: [],
+    approval_requests: [],
+    projects: [],
+    model_configs: [],
+    workflow_runs: [],
+    task_dependencies: [],
+    agent_runs: [],
+    notifications: [],
+    provider: {
+      nvidia_configured: false,
+      voice_configured: false,
+      autorun: false,
+      worker_enabled: false,
+      configured: [],
+    },
+  };
+}
+
 export const DEMO_ORGANIZATION_ID = ORG;
 export const DEMO_USER_ID = USER;

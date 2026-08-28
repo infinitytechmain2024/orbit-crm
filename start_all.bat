@@ -47,9 +47,9 @@ python --version
 
 where ollama >nul 2>nul
 if errorlevel 1 (
-    echo %YELLOW%[WARN]%NC% Ollama не найден. Установите: winget install Ollama.Ollama && ollama pull llama3.2
+    echo %GREEN%[OK]%NC% Ollama не установлен, и это нормально для удалённого LLM-провайдера.
 ) else (
-    ollama --version
+    echo %YELLOW%[WARN]%NC% Ollama найден, но для этой сборки он не требуется.
 )
 
 where docker >nul 2>nul

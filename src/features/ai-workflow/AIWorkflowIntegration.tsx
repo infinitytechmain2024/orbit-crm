@@ -150,15 +150,13 @@ export function AIWorkflowIntegration({
             ) : (
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             )}
-            {backendStatus.isDemoMode
-              ? "Demo Mode"
-              : backendStatus.status === "online"
-                ? "Backend Online"
-                : backendStatus.status === "checking"
-                  ? "Checking..."
-              : backendStatus.status === "warming"
-                    ? "Server waking up"
-                    : "Backend Offline"}
+            {backendStatus.status === "online"
+              ? "Backend Online"
+              : backendStatus.status === "checking"
+                ? "Checking..."
+                : backendStatus.status === "warming"
+                  ? "Server waking up"
+                  : "Backend Offline"}
           </div>
 
           <div className="hidden text-[10px] text-muted-foreground md:block">

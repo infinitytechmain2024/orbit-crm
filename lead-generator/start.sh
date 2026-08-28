@@ -41,26 +41,9 @@ if [ ! -f ".env" ]; then
     echo "📝 Please edit .env with your Supabase and LLM settings"
 fi
 
-# 4. Check Ollama
+# 4. Remote LLM is expected
 echo ""
-echo "🔍 Checking Ollama..."
-if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-    echo "✅ Ollama is running"
-    
-    # Check if llama3.2 is available
-    if curl -s http://localhost:11434/api/tags | grep -q "llama3.2"; then
-        echo "✅ Llama 3.2 model found"
-    else
-        echo "⚠️  Llama 3.2 not found. Pulling..."
-        ollama pull llama3.2
-    fi
-else
-    echo "⚠️  Ollama is not running."
-    echo "   Start it with: ollama serve"
-    echo "   Then pull the model: ollama pull llama3.2"
-    echo ""
-    echo "   Continuing anyway — the server will report Ollama as offline..."
-fi
+echo "🔍 Using remote LLM provider configured in .env"
 
 # 5. Install Playwright browsers (for OpenManus browser tool)
 echo ""

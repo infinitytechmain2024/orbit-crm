@@ -13,7 +13,7 @@ export interface UseBackendStatusReturn {
   lastCheck: Date | null;
   latencyMs: number | null;
   nextRetryAt: Date | null;
-  retry: () => Promise<void>;
+  retry: () => Promise<BackendStatus>;
   isDemoMode: boolean;
   toggleDemoMode: () => void;
 }

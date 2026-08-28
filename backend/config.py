@@ -72,10 +72,14 @@ class Settings(BaseSettings):
         validation_alias="GROQ_BASE_URL",
     )
 
-    # Ollama / Llama 3.2
-    OLLAMA_BASE_URL: str = Field(default="http://localhost:11434/v1", validation_alias="OLLAMA_BASE_URL")
-    OLLAMA_MODEL: str = Field(default="llama3.2", validation_alias="OLLAMA_MODEL")
-    OLLAMA_API_KEY: str = Field(default="ollama", validation_alias="OLLAMA_API_KEY")
+    # OpenAI-compatible remote model endpoint.
+    # Kept under the existing OLLAMA_* names for compatibility with older env files.
+    OLLAMA_BASE_URL: str = Field(
+        default="https://integrate.api.nvidia.com/v1",
+        validation_alias="OLLAMA_BASE_URL",
+    )
+    OLLAMA_MODEL: str = Field(default="openai/gpt-oss-120b", validation_alias="OLLAMA_MODEL")
+    OLLAMA_API_KEY: str = Field(default="", validation_alias="OLLAMA_API_KEY")
 
     # Faster-Whisper
     WHISPER_MODEL: str = Field(default="tiny", validation_alias="WHISPER_MODEL")

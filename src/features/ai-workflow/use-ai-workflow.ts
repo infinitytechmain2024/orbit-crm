@@ -3,24 +3,8 @@ import { toast } from "sonner";
 
 import { supabase } from "@/lib/supabase/client";
 import { fetchWorkflowOverview } from "./api";
-import { createDemoOverview } from "./demo-data";
+import { createEmptyOverview, createDemoOverview } from "./demo-data";
 import type { WorkflowOverview, WorkflowTask } from "./types";
-
-function canUseDemoFallback(message: string) {
-  const normalized = message.toLocaleLowerCase();
-  return [
-    "backend url is not configured",
-    "server authentication is not configured",
-    "backend is unavailable",
-    "failed to fetch",
-    "pgrst205",
-    "could not find the table",
-    "ai workflow api: 404",
-    "ai workflow api: 500",
-    "ai workflow api: 502",
-    "ai workflow api: 503",
-  ].some((fragment) => normalized.includes(fragment));
-}
 
 export function useAiWorkflow(
   accessToken: string | undefined,
@@ -28,15 +12,14 @@ export function useAiWorkflow(
   projectId: string,
   preview = false,
 ) {
-  const [overview, setOverview] = useState<WorkflowOverview>(() => createDemoOverview(projectId));
+  const [overview, setOverview] = useState<WorkflowOverview>(() => createEmptyOverview());
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDemoFallback, setDemoFallback] = useState(true);
   const [isRealtimeConnected, setRealtimeConnected] = useState(false);
   const [lastRealtimeAt, setLastRealtimeAt] = useState(0);
   const timerRef = useRef<number | null>(null);
-  const toastShownRef = useRef(false);
 
   const refresh = useCallback(
     async (quiet = false) => {
@@ -44,8 +27,8 @@ export function useAiWorkflow(
         setOverview(createDemoOverview(projectId));
         setIsLoading(false);
         setIsRefreshing(false);
+        setIsRecovering(false);
         setError(null);
-        setDemoFallback(false);
         return;
       }
       if (!accessToken || !organizationId) return;
@@ -59,24 +42,23 @@ export function useAiWorkflow(
         );
         setOverview(data);
         setError(null);
-        setDemoFallback(false);
-        toastShownRef.current = false;
+        setIsRecovering(false);
       } catch (unknownError) {
         const message =
           unknownError instanceof Error ? unknownError.message : "Не удалось загрузить AI Workflow";
-        if (canUseDemoFallback(message)) {
-          if (!toastShownRef.current) {
-            toastShownRef.current = true;
-            toast.warning("AI Workflow backend недоступен", {
-              description:
-                "Показан демо-режим. Настройте AI_WORKFLOW_BACKEND_URL для работы с реальными данными.",
-              duration: 8000,
-            });
-          }
-        } else {
+        const transient = /502|503|waking up|просып|failed to fetch|backend is unavailable/i.test(
+          message,
+        );
+        setIsRecovering(transient);
+        if (!transient) {
           setError(message);
-          setDemoFallback(false);
           toast.error("Ошибка AI Workflow", { description: message });
+        } else {
+          toast.warning("AI Workflow backend просыпается", {
+            description:
+              "Render free service может отвечать медленно после простоя. Мы продолжим проверки.",
+            duration: 8000,
+          });
         }
       } finally {
         setIsLoading(false);
@@ -91,7 +73,7 @@ export function useAiWorkflow(
   }, [refresh]);
 
   useEffect(() => {
-    if (preview || isDemoFallback || !supabase || !organizationId) return;
+    if (preview || isRecovering || !supabase || !organizationId) return;
     const refreshSoon = () => {
       setLastRealtimeAt(Date.now());
       if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -121,7 +103,7 @@ export function useAiWorkflow(
       if (supabase) void supabase.removeChannel(channel);
       setRealtimeConnected(false);
     };
-  }, [isDemoFallback, organizationId, preview, refresh]);
+  }, [isRecovering, organizationId, preview, refresh]);
 
   const prependTask = useCallback((task: WorkflowTask, eventMessage?: string) => {
     setOverview((current) => ({
@@ -169,7 +151,7 @@ export function useAiWorkflow(
     isLoading,
     isRefreshing,
     error,
-    isDemoFallback,
+    isRecovering,
     isRealtimeConnected,
     lastRealtimeAt,
     refresh,

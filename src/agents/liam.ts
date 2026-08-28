@@ -2,7 +2,7 @@ import type { SearchFilters } from "../types/search";
 import type { VoiceIntent } from "../types/voice";
 import type { LiamCommand, LiamResponse } from "../types/agent";
 
-const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434/v1";
+const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "https://integrate.api.nvidia.com/v1";
 const API_URL = import.meta.env.VITE_API_URL || "https://orbit-crm-backend.onrender.com";
 
 const COMMON_HEADERS: Record<string, string> = {
@@ -18,7 +18,7 @@ interface LlmConfig {
 function getConfig(): LlmConfig {
   return {
     ollamaUrl: import.meta.env["VITE_OLLAMA_URL"] ?? OLLAMA_URL,
-    model: import.meta.env["VITE_LLM_MODEL"] ?? "llama3.2",
+    model: import.meta.env["VITE_LLM_MODEL"] ?? "openai/gpt-oss-120b",
   };
 }
 
