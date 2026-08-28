@@ -19,6 +19,7 @@ export function useAiWorkflow(
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeConnected, setRealtimeConnected] = useState(false);
   const [lastRealtimeAt, setLastRealtimeAt] = useState(0);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(preview);
   const timerRef = useRef<number | null>(null);
 
   const refresh = useCallback(
@@ -29,6 +30,7 @@ export function useAiWorkflow(
         setIsRefreshing(false);
         setIsRecovering(false);
         setError(null);
+        setHasLoadedInitialData(true);
         return;
       }
       if (!accessToken || !organizationId) return;
@@ -43,6 +45,7 @@ export function useAiWorkflow(
         setOverview(data);
         setError(null);
         setIsRecovering(false);
+        setHasLoadedInitialData(true);
       } catch (unknownError) {
         const message =
           unknownError instanceof Error ? unknownError.message : "Не удалось загрузить AI Workflow";
@@ -52,6 +55,7 @@ export function useAiWorkflow(
         setIsRecovering(transient);
         if (!transient) {
           setError(message);
+          setHasLoadedInitialData(true);
           toast.error("Ошибка AI Workflow", { description: message });
         } else {
           toast.warning("AI Workflow backend просыпается", {
@@ -152,6 +156,7 @@ export function useAiWorkflow(
     isRefreshing,
     error,
     isRecovering,
+    hasLoadedInitialData,
     isRealtimeConnected,
     lastRealtimeAt,
     refresh,

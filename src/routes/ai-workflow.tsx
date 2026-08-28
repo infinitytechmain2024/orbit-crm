@@ -85,7 +85,7 @@ function previewRoleForTask(input: Omit<NewWorkflowTask, "organization_id">) {
 }
 
 const RETRY_WINDOW_MS = 2 * 60_000;
-const RETRY_INTERVAL_MS = 15_000;
+const RETRY_INTERVAL_MS = 1_000;
 const RETRY_MAX_ATTEMPTS = Math.ceil(RETRY_WINDOW_MS / RETRY_INTERVAL_MS);
 
 type PendingTaskState = {
@@ -135,6 +135,7 @@ function AIWorkflowPage() {
   const workflow = useAiWorkflow(accessToken, organizationId, projectId, preview);
   const demoMode = preview;
   const { overview } = workflow;
+  const showInitialLoading = !workflow.hasLoadedInitialData && !workflow.error && !workflow.isRecovering;
   // Older backend deployments returned the overview collections without the
   // optional provider diagnostics block. Keep the dashboard render-safe while
   // backend and frontend versions roll forward independently.
@@ -632,7 +633,7 @@ function AIWorkflowPage() {
               {preview
                 ? "URL ?preview=1 включает статичный демо-рендер без живого backend."
                 : workflow.isRecovering
-                  ? "Backend сейчас просыпается или отвечает с задержкой. UI сохраняет текущее состояние и продолжит подключения."
+                  ? "Backend сейчас просыпается или отвечает с задержкой. UI сохраняет состояние и продолжает попытки каждую секунду до 2 минут."
                   : "UI связан с реальным AI workflow backend и realtime-каналом."}
             </span>
           </div>
@@ -668,7 +669,7 @@ function AIWorkflowPage() {
                     </p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
                       {backendStatus.status === "warming"
-                        ? "Это нормально для бесплатного рендера: сервер может запускаться 15–40 секунд."
+                        ? "Это нормально для бесплатного рендера: сервер может запускаться около минуты. Мы будем пробовать каждую секунду до 2 минут."
                         : "Работаем в демо-режиме. Можно повторить проверку вручную или подождать автоподключения."}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -756,21 +757,41 @@ function AIWorkflowPage() {
           </div>
         )}
 
-        {workflow.isLoading || workflow.isRecovering ? (
+        {showInitialLoading || workflow.isRecovering ? (
           <div className="grid min-h-[65vh] place-items-center rounded-2xl border border-border bg-surface/75">
-            <div className="text-center">
-              {workflow.isRecovering ? (
-                <RefreshCw className="mx-auto size-8 animate-spin text-amber-500" />
-              ) : (
-                <Loader2 className="mx-auto size-8 animate-spin text-primary" />
+            <div className="w-full max-w-5xl space-y-4 px-4 py-8">
+              <div className="flex items-center justify-center gap-3 text-center">
+                {workflow.isRecovering ? (
+                  <RefreshCw className="size-8 animate-spin text-amber-500" />
+                ) : (
+                  <Loader2 className="size-8 animate-spin text-primary" />
+                )}
+                <div>
+                  <p className="text-sm font-medium">
+                    {workflow.isRecovering ? "Backend просыпается" : "Загружаю AI Workflow"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {workflow.isRecovering
+                      ? "Система восстановит данные и состояние, как только backend ответит."
+                      : "Подождите несколько секунд, пока подгружается актуальное состояние команд и задач."}
+                  </p>
+                </div>
+              </div>
+              {!workflow.isRecovering && (
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_330px]">
+                  <div className="space-y-3">
+                    <div className="h-28 rounded-2xl border border-border/60 bg-card/50 animate-pulse" />
+                    <div className="h-80 rounded-2xl border border-border/60 bg-card/50 animate-pulse" />
+                    <div className="h-[32rem] rounded-2xl border border-border/60 bg-card/50 animate-pulse" />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-48 rounded-2xl border border-border/60 bg-card/50 animate-pulse" />
+                    <div className="h-40 rounded-2xl border border-border/60 bg-card/50 animate-pulse" />
+                    <div className="h-52 rounded-2xl border border-border/60 bg-card/50 animate-pulse" />
+                  </div>
+                </div>
               )}
-              <p className="mt-3 text-xs text-muted-foreground">
-                {workflow.isRecovering
-                  ? "Backend просыпается. UI оставляет задачу в рабочем состоянии и пробует подключиться снова."
-                  : "Собираю AI-команду…"}
-              </p>
             </div>
-          </div>
         ) : workflow.error ? (
           <div className="grid min-h-[55vh] place-items-center rounded-2xl border border-destructive/25 bg-destructive/[0.035] px-5 text-center">
             <div className="max-w-md">

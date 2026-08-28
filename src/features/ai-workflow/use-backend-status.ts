@@ -54,7 +54,7 @@ export function useBackendStatus(): UseBackendStatusReturn {
       } else if (response.status === 502 || response.status === 503) {
         setStatus("warming");
         statusRef.current = "warming";
-        retryDelayRef.current = Math.min(retryDelayRef.current * 1.5, 60_000);
+        retryDelayRef.current = 1_000;
         setNextRetryAt(new Date(Date.now() + retryDelayRef.current));
       } else {
         setStatus("offline");
@@ -69,7 +69,7 @@ export function useBackendStatus(): UseBackendStatusReturn {
       if (message.includes("waking up") || message.includes("просып")) {
         setStatus("warming");
         statusRef.current = "warming";
-        retryDelayRef.current = Math.min(retryDelayRef.current * 1.5, 60_000);
+        retryDelayRef.current = 1_000;
         setNextRetryAt(new Date(Date.now() + retryDelayRef.current));
       } else {
         setStatus("offline");
@@ -93,7 +93,7 @@ export function useBackendStatus(): UseBackendStatusReturn {
             ? 10 * 60_000
             : 30 * 60_000
           : nextStatus === "warming"
-            ? 8_000
+            ? 1_000
             : 30_000;
 
       setNextRetryAt(new Date(Date.now() + delay));
