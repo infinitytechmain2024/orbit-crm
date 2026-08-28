@@ -33,7 +33,7 @@ export type TaskTab = "all" | "queued" | "in_progress" | "approval_required" | "
 
 const STATUS_LABEL: Record<WorkflowTaskStatus, string> = {
   planning: "Планируется",
-  queued: "В очереди",
+  queued: "Ожидает старта",
   in_progress: "В работе",
   paused: "Приостановлено",
   review: "На проверке",
@@ -163,7 +163,7 @@ export function TasksTable({
   }, [agentById, projectById, search, selectedDepartmentId, sort, tab, tasks]);
   const tabs: Array<{ value: TaskTab; label: string }> = [
     { value: "all", label: "Все" },
-    { value: "queued", label: "В очереди" },
+    { value: "queued", label: "Ожидают старта" },
     { value: "in_progress", label: "В работе" },
     { value: "approval_required", label: "Требуют утверждения" },
     { value: "done", label: "Готово" },

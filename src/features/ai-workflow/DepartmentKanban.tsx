@@ -16,7 +16,7 @@ const COLUMN_CONFIG: Array<{
 }> = [
   {
     status: ["planning", "queued"],
-    title: "Очередь",
+    title: "Ожидают старта",
     color: "text-muted-foreground",
   },
   {

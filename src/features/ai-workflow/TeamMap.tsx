@@ -199,7 +199,7 @@ export function TeamMap({
             <div className="grid shrink-0 grid-cols-3 gap-3 text-center">
               <div>
                 <strong className="block text-sm font-semibold">{systemStats.queued}</strong>
-                <span className="text-[9px] text-muted-foreground">В очереди</span>
+                <span className="text-[9px] text-muted-foreground">Ожидают старта</span>
               </div>
               <div>
                 <strong className="block text-sm font-semibold text-badge-green">
@@ -374,7 +374,7 @@ export function TeamMap({
                   <div className="mt-3 grid grid-cols-3 divide-x divide-border border-t border-border/70 pt-2 text-center">
                     <div>
                       <strong className="block text-sm font-semibold">{stats.queued}</strong>
-                      <span className="text-[9px] text-muted-foreground">В очереди</span>
+                      <span className="text-[9px] text-muted-foreground">Ожидают старта</span>
                     </div>
                     <div>
                       <strong className="block text-sm font-semibold">{stats.active}</strong>

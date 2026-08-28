@@ -14,7 +14,7 @@ import type { TaskDependency, WorkflowAgent, WorkflowRun, WorkflowTask } from ".
 
 const statusLabel: Record<WorkflowTask["status"], string> = {
   planning: "Планируется",
-  queued: "В очереди",
+  queued: "Ожидает старта",
   in_progress: "В работе",
   paused: "Приостановлено",
   review: "На проверке",

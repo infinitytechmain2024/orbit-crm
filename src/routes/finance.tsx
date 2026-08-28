@@ -19,6 +19,7 @@ import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
 import { StripePaymentForm } from "@/components/crm/StripePaymentForm";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({
@@ -63,12 +64,16 @@ function FinancePage() {
     }));
 
     return [...manual, ...stripe].sort(
-      (a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime()
+      (a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime(),
     );
   }, [txs, stripeTransactions]);
 
-  const income = allTransactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const expense = allTransactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const income = allTransactions
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + t.amount, 0);
+  const expense = allTransactions
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + t.amount, 0);
 
   const monthly = useMemo(() => {
     const formatter = new Intl.DateTimeFormat("ru-RU", { month: "short" });
@@ -101,7 +106,7 @@ function FinancePage() {
     .reduce((s, t) => s + t.amount, 0);
 
   const activeSubscriptions = stripeSubscriptions.filter(
-    (s) => s.status === "active" || s.status === "trialing"
+    (s) => s.status === "active" || s.status === "trialing",
   );
 
   const mrr = activeSubscriptions
@@ -132,11 +137,7 @@ function FinancePage() {
 
       <div className="mt-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Stripe метрики</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowPaymentForm(true)}
-        >
+        <Button variant="outline" size="sm" onClick={() => setShowPaymentForm(true)}>
           <Plus className="size-4 mr-2" />
           Принять платеж
         </Button>
@@ -313,9 +314,7 @@ function FinancePage() {
       <section className="panel mt-6 overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold">История операций</h3>
-          <span className="text-xs text-muted-foreground">
-            {allTransactions.length} операций
-          </span>
+          <span className="text-xs text-muted-foreground">{allTransactions.length} операций</span>
         </div>
         <table className="w-full text-sm">
           <thead className="bg-surface-2/60 text-left text-xs uppercase tracking-wide text-muted-foreground">

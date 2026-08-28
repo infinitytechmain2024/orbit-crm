@@ -89,7 +89,7 @@ export function AgentProfileDialog({
           <>
             <div className="grid grid-cols-3 gap-2">
               <Stat
-                label="В очереди"
+                label="Ожидают старта"
                 value={agentTasks.filter((task) => task.status === "queued").length}
               />
               <Stat

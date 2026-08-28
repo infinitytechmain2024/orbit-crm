@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Loader2,
@@ -17,6 +17,11 @@ import { authenticatedFetch } from "@/lib/api-client";
 import { useCrm } from "@/lib/crm-store";
 
 export const Route = createFileRoute("/openclaw-tasks")({
+  beforeLoad: () => {
+    throw redirect({
+      to: "/ai-workflow",
+    });
+  },
   head: () => ({
     meta: [
       { title: "OpenClaw — Developer — Orbit CRM" },

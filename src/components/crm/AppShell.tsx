@@ -21,6 +21,7 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -32,18 +33,29 @@ import { cn } from "@/lib/utils";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const nav: { to: string; label: string; icon: LucideIcon }[] = [
+const nav: {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  children?: { to: string; label: string; icon: LucideIcon }[];
+}[] = [
   { to: "/", label: "Дашборд", icon: LayoutDashboard },
   { to: "/tasks", label: "Задачи и проекты", icon: ListChecks },
   { to: "/projects", label: "Проекты", icon: FolderKanban },
-  { to: "/ai-workflow", label: "AI Workflow", icon: Network },
+  {
+    to: "/ai-workflow",
+    label: "AI Workflow",
+    icon: Network,
+    children: [
+      { to: "/lead-search", label: "AI Поиск лидов", icon: Bot },
+      { to: "/prompt-generator", label: "Генератор промптов", icon: Sparkles },
+    ],
+  },
   { to: "/calendar", label: "Календарь", icon: Calendar },
   { to: "/clients", label: "Клиенты", icon: Users },
   { to: "/requests", label: "Заявки и записи", icon: ClipboardList },
-  { to: "/lead-search", label: "AI Поиск лидов", icon: Bot },
   { to: "/mail", label: "Почта", icon: Mail },
   { to: "/finance", label: "Финансы", icon: Wallet },
-  { to: "/prompt-generator", label: "Генератор промптов", icon: Sparkles },
 ];
 
 export function AppShell({
@@ -93,23 +105,30 @@ export function AppShell({
           <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
             {nav.map((item) => {
               const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+              const childActive = item.children?.some((child) =>
+                child.to === "/" ? pathname === "/" : pathname.startsWith(child.to),
+              );
               const link = (
                 <Link
                   to={item.to}
                   className={cn(
                     "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
                     collapsed && "justify-center px-2",
-                    active
+                    active || childActive
                       ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_var(--sidebar-border)]"
                       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
                   )}
                 >
                   <item.icon
-                    className={cn("size-4 shrink-0 transition-colors", active && "text-primary")}
+                    className={cn(
+                      "size-4 shrink-0 transition-colors",
+                      (active || childActive) && "text-primary",
+                    )}
                   />
                   {!collapsed && (
                     <>
                       <span className="flex-1">{item.label}</span>
+                      {item.children && <ChevronDown className="size-3.5 opacity-60" />}
                       {item.to === "/mail" && unread > 0 && (
                         <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
                           {unread}
@@ -119,7 +138,31 @@ export function AppShell({
                   )}
                 </Link>
               );
-              if (!collapsed) return <div key={item.to}>{link}</div>;
+              if (!collapsed)
+                return (
+                  <div key={item.to} className="space-y-1">
+                    {link}
+                    {item.children?.map((child) => {
+                      const childIsActive =
+                        child.to === "/" ? pathname === "/" : pathname.startsWith(child.to);
+                      return (
+                        <Link
+                          key={child.to}
+                          to={child.to}
+                          className={cn(
+                            "ml-6 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition",
+                            childIsActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+                          )}
+                        >
+                          <child.icon className={cn("size-3.5", childIsActive && "text-primary")} />
+                          <span className="flex-1">{child.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                );
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>{link}</TooltipTrigger>
