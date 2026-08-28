@@ -50,6 +50,7 @@ from backend.services.ai_dispatcher import ai_dispatcher
 from backend.services.intent_executor import execute_intent, ExecutionResult
 from backend.services.workflow_worker import workflow_worker
 from backend.services.openclaw_client import openclaw_client
+from backend.services.lead_search_pipeline import lead_search_pipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -163,6 +164,13 @@ class LeadSearchResponse(BaseModel):
     job_id: str
     status: str
     message: str
+
+
+class UnifiedLeadSearchRequest(BaseModel):
+    niche: str
+    city: str
+    country: str
+    limit: int = 20
 
 
 class AppointmentCreateRequest(BaseModel):
@@ -374,6 +382,33 @@ async def start_lead_search(request: LeadSearchRequest):
         raise Exception("No data returned from insert")
     except Exception as e:
         logger.error(f"Lead search failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Lead search failed: {str(e)}")
+
+
+@app.post("/api/lead-search")
+async def unified_lead_search(request: UnifiedLeadSearchRequest):
+    """Unified lead search pipeline for the UI."""
+    try:
+        capped_limit = min(max(1, request.limit), 100)
+        leads = await lead_search_pipeline.search(
+            niche=request.niche,
+            city=request.city,
+            country=request.country,
+            limit=capped_limit,
+        )
+        return {
+            "leads": leads,
+            "total": len(leads),
+            "query": {
+                "niche": request.niche,
+                "city": request.city,
+                "country": request.country,
+                "limit": capped_limit,
+            },
+            "pipeline": ["google_maps_browser", "openmanus"],
+        }
+    except Exception as e:
+        logger.error(f"Unified lead search failed: {e}")
         raise HTTPException(status_code=500, detail=f"Lead search failed: {str(e)}")
 
 

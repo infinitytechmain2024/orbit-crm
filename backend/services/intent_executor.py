@@ -222,8 +222,7 @@ async def _execute_run_lead_search(user_id: str, intent: Intent) -> ExecutionRes
         
         if result.data:
             job = result.data[0]
-            # Trigger async search (will be handled by lead-generator service)
-            # For now, return job info
+            # Trigger async search via the unified lead-search pipeline.
             return ExecutionResult(
                 success=True,
                 action="RUN_LEAD_SEARCH",

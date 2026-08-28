@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, User, Bell, Calendar, Clock } from "lucide-react";
+import { User, Bell, Calendar, Clock } from "lucide-react";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
 import {
@@ -114,16 +114,7 @@ export function QuickEventModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Новая запись</span>
-            <button
-              onClick={onClose}
-              className="rounded-sm p-1 hover:bg-accent transition"
-              aria-label="Закрыть"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </DialogTitle>
+          <DialogTitle>Новая запись</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

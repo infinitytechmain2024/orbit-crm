@@ -19,7 +19,6 @@ export default tseslint.config(
       "whisper",
       "praison",
       "gmaps_scraper",
-      "lead-generator",
       "CRM",
     ],
   },
