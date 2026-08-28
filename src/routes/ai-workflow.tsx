@@ -135,7 +135,8 @@ function AIWorkflowPage() {
   const workflow = useAiWorkflow(accessToken, organizationId, projectId, preview);
   const demoMode = preview;
   const { overview } = workflow;
-  const showInitialLoading = !workflow.hasLoadedInitialData && !workflow.error && !workflow.isRecovering;
+  const showInitialLoading =
+    !workflow.hasLoadedInitialData && !workflow.error && !workflow.isRecovering;
   // Older backend deployments returned the overview collections without the
   // optional provider diagnostics block. Keep the dashboard render-safe while
   // backend and frontend versions roll forward independently.
@@ -792,6 +793,7 @@ function AIWorkflowPage() {
                 </div>
               )}
             </div>
+          </div>
         ) : workflow.error ? (
           <div className="grid min-h-[55vh] place-items-center rounded-2xl border border-destructive/25 bg-destructive/[0.035] px-5 text-center">
             <div className="max-w-md">
