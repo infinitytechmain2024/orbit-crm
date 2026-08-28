@@ -10,11 +10,9 @@ import type {
 type ApiErrorPayload = { detail?: string; error?: string };
 
 const backendErrorMessages: Record<number, string> = {
-  502: "Сервер отвечает с ошибкой. Попробуйте еще раз через минуту.",
-  503: "Сервис временно недоступен. Администратор был уведомлен.",
+  502: "Backend временно недоступен. Мы повторим попытку автоматически.",
+  503: "Сервис временно недоступен. Мы повторим попытку автоматически.",
 };
-
-const isTransientError = (status: number) => status === 502 || status === 503;
 
 async function workflowRequest<T>(
   accessToken: string,
@@ -46,9 +44,9 @@ async function workflowRequest<T>(
     if (payload.detail) {
       const lower = payload.detail.toLowerCase();
       if (lower.includes("waking up") || lower.includes("засыпает")) {
-        userMessage = "Backend просыпается, подождите 1–2 минуты и попробуйте снова.";
+        userMessage = "Backend просыпается. Повторяем попытку автоматически.";
       } else if (lower.includes("unavailable")) {
-        userMessage = "Сервер временно недоступен. Попробуйте позже.";
+        userMessage = "Сервер временно недоступен. Повторяем попытку автоматически.";
       } else if (lower.includes("not configured")) {
         userMessage = "Ошибка конфигурации сервиса. Администратору нужна помощь.";
       }

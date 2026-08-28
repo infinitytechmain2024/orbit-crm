@@ -51,6 +51,19 @@ const PRIORITY_LABEL = {
   critical: "Критичный",
 };
 
+const STATUS_SORT_ORDER: Record<WorkflowTaskStatus, number> = {
+  approval_required: 0,
+  in_progress: 1,
+  queued: 2,
+  planning: 3,
+  paused: 4,
+  review: 5,
+  revisions_requested: 6,
+  blocked: 7,
+  cancelled: 8,
+  done: 9,
+};
+
 function statusClass(status: WorkflowTaskStatus) {
   if (status === "done") return "text-badge-green";
   if (status === "in_progress" || status === "planning") return "text-badge-blue";
@@ -156,6 +169,8 @@ export function TasksTable({
     });
     const priority = { low: 0, medium: 1, high: 2, critical: 3 };
     return [...values].sort((left, right) => {
+      const statusDiff = STATUS_SORT_ORDER[left.status] - STATUS_SORT_ORDER[right.status];
+      if (statusDiff !== 0) return statusDiff;
       if (sort === "due") return (left.due_at ?? "9999").localeCompare(right.due_at ?? "9999");
       if (sort === "priority") return priority[right.priority] - priority[left.priority];
       return right.updated_at.localeCompare(left.updated_at);

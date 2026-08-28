@@ -21,6 +21,26 @@ export function useAiWorkflow(
   const [lastRealtimeAt, setLastRealtimeAt] = useState(0);
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(preview);
   const timerRef = useRef<number | null>(null);
+  const retryRef = useRef<number | null>(null);
+  const retryAttemptRef = useRef(0);
+  const autoRetryEnabledRef = useRef(true);
+
+  const clearRetryTimer = useCallback(() => {
+    if (retryRef.current) {
+      window.clearTimeout(retryRef.current);
+      retryRef.current = null;
+    }
+  }, []);
+
+  const scheduleRetry = useCallback(() => {
+    if (preview || !autoRetryEnabledRef.current) return;
+    clearRetryTimer();
+    retryAttemptRef.current += 1;
+    const delay = 60_000;
+    retryRef.current = window.setTimeout(() => {
+      void refresh(true);
+    }, delay);
+  }, [clearRetryTimer, preview]);
 
   const refresh = useCallback(
     async (quiet = false) => {
@@ -45,6 +65,9 @@ export function useAiWorkflow(
         setOverview(data);
         setError(null);
         setIsRecovering(false);
+        autoRetryEnabledRef.current = true;
+        retryAttemptRef.current = 0;
+        clearRetryTimer();
         setHasLoadedInitialData(true);
       } catch (unknownError) {
         const message =
@@ -58,23 +81,30 @@ export function useAiWorkflow(
           setHasLoadedInitialData(true);
           toast.error("Ошибка AI Workflow", { description: message });
         } else {
-          toast.warning("AI Workflow backend просыпается", {
-            description:
-              "Render free service может отвечать медленно после простоя. Мы продолжим проверки.",
-            duration: 8000,
-          });
+          autoRetryEnabledRef.current = true;
+          setError(null);
+          setHasLoadedInitialData(true);
+          scheduleRetry();
         }
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [accessToken, organizationId, preview, projectId],
+    [accessToken, clearRetryTimer, organizationId, preview, projectId, scheduleRetry],
   );
 
   useEffect(() => {
     void refresh(true);
   }, [refresh]);
+
+  useEffect(
+    () => () => {
+      autoRetryEnabledRef.current = false;
+      clearRetryTimer();
+    },
+    [clearRetryTimer],
+  );
 
   useEffect(() => {
     if (preview || isRecovering || !supabase || !organizationId) return;

@@ -59,16 +59,18 @@ const PRIORITY_OPTIONS: { value: Priority; label: string; color: string }[] = [
   { value: "low", label: "Низкий", color: "bg-green-500/15 text-green-400 border-green-500/30" },
 ];
 
-const DEFAULT_FORM: PromptForm = {
-  title: "",
-  description: "",
-  expectedResult: "",
-  priority: "medium",
-  steps: [{ id: crypto.randomUUID(), text: "" }],
-  constraints: "",
-  context: "",
-  outputFormat: "",
-};
+function createDefaultForm(): PromptForm {
+  return {
+    title: "",
+    description: "",
+    expectedResult: "",
+    priority: "medium",
+    steps: [{ id: crypto.randomUUID(), text: "" }],
+    constraints: "",
+    context: "",
+    outputFormat: "",
+  };
+}
 
 function generatePrompt(form: PromptForm): string {
   const lines: string[] = [];
@@ -120,8 +122,9 @@ function generatePrompt(form: PromptForm): string {
 }
 
 function PromptGeneratorPage() {
-  const [form, setForm] = useState<PromptForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<PromptForm>(() => createDefaultForm());
   const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const previewRef = useRef<HTMLPreElement>(null);
 
   const prompt = generatePrompt(form);
@@ -175,7 +178,8 @@ function PromptGeneratorPage() {
   }, [copied]);
 
   const handleReset = useCallback(() => {
-    setForm(DEFAULT_FORM);
+    setForm(createDefaultForm());
+    setShowPreview(true);
   }, []);
 
   return (
