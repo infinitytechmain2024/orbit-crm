@@ -96,6 +96,27 @@ function LeadSearchPage() {
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const getCountryFlag = (country: string) => {
+    switch (country) {
+      case "United States":
+        return "🇺🇸";
+      case "Ukraine":
+        return "🇺🇦";
+      case "United Kingdom":
+        return "🇬🇧";
+      case "Germany":
+        return "🇩🇪";
+      case "France":
+        return "🇫🇷";
+      case "Canada":
+        return "🇨🇦";
+      case "Australia":
+        return "🇦🇺";
+      default:
+        return "";
+    }
+  };
+
   const loadSavedSearches = useCallback(async () => {
     if (!user || !organization) return;
     setIsLoadingSaved(true);
@@ -116,6 +137,10 @@ function LeadSearchPage() {
       setIsLoadingSaved(false);
     }
   }, [user, organization]);
+
+  useEffect(() => {
+    void loadSavedSearches();
+  }, [loadSavedSearches]);
 
   const handleSearch = async (filters: SearchFilters) => {
     setError(null);
@@ -146,9 +171,12 @@ function LeadSearchPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          state: filters.state,
           niche: filters.niche,
           city: filters.city,
           country: filters.country,
+          countryFlag: filters.countryFlag,
+          websiteStatus: filters.websiteStatus,
           limit: filters.leadLimit,
         }),
         signal: controller.signal,
@@ -218,8 +246,8 @@ function LeadSearchPage() {
         country: lastFilters.country,
         countryFlag: lastFilters.countryFlag,
         contactPhone: lead.phone || null,
-        email: lead.email || "-",
-        websiteUrl: lead.website || "-",
+        email: lead.email || "",
+        websiteUrl: lead.website || "",
         whatsappStatus: "Unverified",
         googleMapsUrl: lead.google_maps_url || null,
         priority: "Middle",
@@ -241,7 +269,7 @@ function LeadSearchPage() {
     setLeads(saved.results || []);
     setLastFilters({
       country: saved.query_country,
-      countryFlag: "",
+      countryFlag: getCountryFlag(saved.query_country),
       city: saved.query_city,
       state: "",
       niche: saved.query_niche,
@@ -250,6 +278,7 @@ function LeadSearchPage() {
     });
     setCurrentStage({ label: "Loaded from saved search", progress: 100 });
     toast.info(`Loaded ${saved.results?.length || 0} leads from "${saved.name}"`);
+    setError(null);
   };
 
   const deleteSavedSearch = async (id: string) => {

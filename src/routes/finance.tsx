@@ -14,12 +14,21 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowUpRight, Plus, CreditCard } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CreditCard, Plus } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
 import { StripePaymentForm } from "@/components/crm/StripePaymentForm";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({
@@ -39,9 +48,20 @@ export const Route = createFileRoute("/finance")({
 const COLORS = ["var(--acc-1)", "var(--acc-2)", "var(--acc-3)", "var(--acc-4)"];
 
 function FinancePage() {
-  const { txs, stripeTransactions, stripeSubscriptions, isLoading } = useCrm();
+  const { txs, stripeTransactions, stripeSubscriptions, isLoading, addFinanceTransaction } =
+    useCrm();
   const [view, setView] = useState<"area" | "bar">("area");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [entryType, setEntryType] = useState<"income" | "expense">("income");
+  const [label, setLabel] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("Прочее");
+  const [occurredOn, setOccurredOn] = useState(() => {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    return local.toISOString().slice(0, 10);
+  });
+  const [savingFinance, setSavingFinance] = useState(false);
 
   const allTransactions = useMemo(() => {
     const manual = txs.map((t) => ({
@@ -121,6 +141,25 @@ function FinancePage() {
     setShowPaymentForm(false);
   };
 
+  const submitManualTransaction = async () => {
+    if (!addFinanceTransaction || savingFinance) return;
+
+    setSavingFinance(true);
+    const saved = await addFinanceTransaction({
+      label: label.trim(),
+      amount: Number(amount),
+      type: entryType,
+      category: category.trim(),
+      occurredOn,
+      taskId: null,
+    });
+    setSavingFinance(false);
+    if (!saved) return;
+    setLabel("");
+    setAmount("");
+    setCategory(entryType === "income" ? "Доход" : "Расход");
+  };
+
   return (
     <AppShell title="Финансы" subtitle="Доходы, расходы и структура по данным Supabase + Stripe">
       {isLoading && (
@@ -134,6 +173,98 @@ function FinancePage() {
         <Kpi label="Расход" value={expense} tone="down" />
         <Kpi label="Чистыми" value={income - expense} tone="up" />
       </div>
+
+      <section className="panel mt-6 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold">Добавить операцию</h3>
+            <p className="text-sm text-muted-foreground">
+              Доходы и расходы считаются автоматически по всем сохранённым операциям.
+            </p>
+          </div>
+          <div className="rounded-full border border-border bg-surface-2/60 px-3 py-1 text-xs text-muted-foreground">
+            Баланс: {(income - expense).toLocaleString("ru-RU")} €
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[140px_1.2fr_0.8fr_0.9fr_1fr_auto]">
+          <div className="space-y-2">
+            <Label htmlFor="finance-type">Тип</Label>
+            <Select
+              value={entryType}
+              onValueChange={(value) => {
+                const next = value === "expense" ? "expense" : "income";
+                setEntryType(next);
+                if (!category || category === "Прочее") {
+                  setCategory(next === "income" ? "Доход" : "Расход");
+                }
+              }}
+            >
+              <SelectTrigger id="finance-type">
+                <SelectValue placeholder="Тип операции" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="income">Доход</SelectItem>
+                <SelectItem value="expense">Расход</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="finance-label">Название</Label>
+            <Input
+              id="finance-label"
+              placeholder="Например, оплата от клиента"
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="finance-amount">Сумма</Label>
+            <Input
+              id="finance-amount"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="finance-category">Категория</Label>
+            <Input
+              id="finance-category"
+              placeholder="Например, Продажи"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="finance-date">Дата</Label>
+            <Input
+              id="finance-date"
+              type="date"
+              value={occurredOn}
+              onChange={(event) => setOccurredOn(event.target.value)}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <Button
+              className="w-full"
+              onClick={submitManualTransaction}
+              disabled={savingFinance || !label.trim() || !amount || !category.trim()}
+            >
+              <Plus className="mr-2 size-4" />
+              {savingFinance ? "Сохраняю..." : "Добавить"}
+            </Button>
+          </div>
+        </div>
+      </section>
 
       <div className="mt-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Stripe метрики</h3>

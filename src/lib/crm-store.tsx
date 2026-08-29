@@ -12,6 +12,7 @@ import {
   archiveTask as archiveRemoteTask,
   archiveProject as archiveRemoteProject,
   createChecklistItem as createRemoteChecklistItem,
+  createFinanceTransaction as createRemoteFinanceTransaction,
   createProject,
   createTask,
   createTaskComment as createRemoteTaskComment,
@@ -25,6 +26,7 @@ import {
   updateTask as updateRemoteTask,
   uploadTaskFile as uploadRemoteTaskFile,
   type CrmSnapshot,
+  type FinanceTransactionInput,
 } from "@/lib/crm-repository";
 import { fetchEmails } from "@/lib/agentmail";
 import {
@@ -80,6 +82,7 @@ type Store = {
   ) => Promise<TaskChecklistItem | null>;
   deleteChecklistItem: (taskId: string, itemId: string) => Promise<boolean>;
   addTaskComment: (taskId: string, body: string) => Promise<TaskComment | null>;
+  addFinanceTransaction: (input: FinanceTransactionInput) => Promise<Tx | null>;
   uploadTaskFile: (taskId: string, file: File) => Promise<TaskFile | null>;
   openTaskFile: (storagePath: string) => Promise<string | null>;
   markRead: (id: string) => void;
@@ -426,6 +429,15 @@ export function CrmProvider({
           const freshTask = await fetchTaskById(organization.id, taskId);
           replaceTask(freshTask);
           return comment;
+        });
+      },
+      addFinanceTransaction: async (input) => {
+        if (!user || !organization) return null;
+
+        return runMutation("Финансовая операция сохранена", async () => {
+          const tx = await createRemoteFinanceTransaction(user.id, organization.id, input);
+          setTxs((prev) => [tx, ...prev]);
+          return tx;
         });
       },
       uploadTaskFile: async (taskId, file) => {

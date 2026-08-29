@@ -81,6 +81,15 @@ export type CrmSnapshot = {
   stripeCustomer: StripeCustomer | null;
 };
 
+export type FinanceTransactionInput = {
+  label: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+  occurredOn?: string;
+  taskId?: string | null;
+};
+
 export type TaskPage = {
   tasks: Task[];
   total: number;
@@ -542,6 +551,39 @@ function mapTx(row: FinanceTransactionRow): Tx {
   };
 }
 
+function normalizeFinanceTransactionInput(input: FinanceTransactionInput): {
+  amount: number;
+  category: string;
+  label: string;
+  occurredOn: string;
+  taskId: string | null;
+  type: "income" | "expense";
+} {
+  const label = input.label.trim();
+  if (!label) throw new Error("Название операции обязательно.");
+
+  const category = input.category.trim();
+  if (!category) throw new Error("Категория операции обязательна.");
+
+  const amount = Number(input.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Сумма должна быть положительным числом.");
+  }
+
+  const occurredOn = /^\d{4}-\d{2}-\d{2}$/.test(input.occurredOn ?? "")
+    ? (input.occurredOn as string)
+    : todayIsoDate();
+
+  return {
+    amount: Math.round(amount * 100) / 100,
+    category,
+    label,
+    occurredOn,
+    taskId: input.taskId ?? null,
+    type: input.type,
+  };
+}
+
 function mapStripeCustomer(row: StripeCustomerRow): StripeCustomer {
   return {
     id: row.id,
@@ -925,6 +967,33 @@ async function fetchTransactions(organizationId: string): Promise<Tx[]> {
 
   if (error) throw toMessage("Не удалось загрузить финансовые операции", error.message);
   return (data ?? []).map(mapTx);
+}
+
+export async function createFinanceTransaction(
+  userId: string,
+  organizationId: string,
+  input: FinanceTransactionInput,
+): Promise<Tx> {
+  const supabase = getSupabaseClient();
+  const normalized = normalizeFinanceTransactionInput(input);
+  const payload: TablesInsert<"finance_transactions"> = {
+    organization_id: organizationId,
+    created_by: userId,
+    label: normalized.label,
+    amount: normalized.amount,
+    category: normalized.category,
+    type: normalized.type,
+    occurred_on: normalized.occurredOn,
+    task_id: normalized.taskId,
+  };
+
+  const { data, error } = await supabase
+    .from("finance_transactions")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw toMessage("Не удалось создать финансовую операцию", error.message);
+  return mapTx(ensureData(data, "Supabase не вернул созданную финансовую операцию."));
 }
 
 export async function fetchStripeTransactions(
@@ -1966,7 +2035,9 @@ export async function createTask(
   // Relations may not exist in qavf schema — ignore those errors gracefully
   try {
     await persistTaskRelations(userId, organizationId, created.id, normalized);
-  } catch {}
+  } catch {
+    // Ignore relation persistence failures for fallback schemas.
+  }
   try {
     await createInitialChecklistItems(
       userId,
@@ -1974,10 +2045,14 @@ export async function createTask(
       created.id,
       normalized.checklistTitles,
     );
-  } catch {}
+  } catch {
+    // Ignore checklist bootstrap failures for fallback schemas.
+  }
   try {
     await createInitialSubtasks(userId, organizationId, created.id, normalized);
-  } catch {}
+  } catch {
+    // Ignore subtask bootstrap failures for fallback schemas.
+  }
 
   try {
     return await fetchTaskById(organizationId, created.id);
@@ -2022,7 +2097,9 @@ export async function updateTask(
       ensureData(data as unknown as TaskRow, "Supabase не вернул обновлённую задачу.");
       try {
         await persistTaskRelations(userId, organizationId, id, normalized);
-      } catch {}
+      } catch {
+        // Ignore relation persistence failures for fallback schemas.
+      }
       try {
         return await fetchTaskById(organizationId, id);
       } catch {
@@ -2120,7 +2197,9 @@ export async function updateTask(
         ensureData(d2 as unknown as TaskRow, "Supabase не вернул обновлённую задачу.");
         try {
           await persistTaskRelations(userId, organizationId, id, normalized);
-        } catch {}
+        } catch {
+          // Ignore relation persistence failures for fallback schemas.
+        }
         try {
           return await fetchTaskById(organizationId, id);
         } catch {

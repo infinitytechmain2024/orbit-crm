@@ -196,6 +196,20 @@ export function SkyscannerSearchPanel({
 
   const currentCountry = COUNTRIES.find((c) => c.name === filters.country) ?? COUNTRIES[0]!;
 
+  useEffect(() => {
+    setFilters({
+      country: initialFilters?.country ?? "United States",
+      countryFlag: initialFilters?.countryFlag ?? "🇺🇸",
+      state: initialFilters?.state ?? "",
+      city: initialFilters?.city ?? "",
+      niche: initialFilters?.niche ?? "",
+      websiteStatus: initialFilters?.websiteStatus ?? "no_website",
+      leadLimit: initialFilters?.leadLimit ?? 20,
+    });
+    setCitySearch(initialFilters?.city ?? "");
+    setNicheSearch(initialFilters?.niche ?? "");
+  }, [initialFilters]);
+
   return (
     <div className="rounded-2xl border border-border bg-surface-2/60 p-6 shadow-lg">
       <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">

@@ -30,6 +30,7 @@ from pydantic import BaseModel
 
 from backend.config import settings
 from backend.routers import agent_router
+from backend.routers.assistant import router as assistant_router
 from backend.routers.ai_workflow import router as ai_workflow_api_router
 from backend.routers.ai_router import router as ai_router
 from backend.routers.ceo import router as ceo_router
@@ -111,6 +112,7 @@ app.add_middleware(CorrelationMiddleware)
 
 app.include_router(internal_router)
 app.include_router(agent_router.router)
+app.include_router(assistant_router)
 app.include_router(company_router)
 app.include_router(openclaw_router)
 app.include_router(openclaw_goals_router)

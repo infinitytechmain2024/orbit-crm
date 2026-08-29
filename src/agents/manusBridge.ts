@@ -53,9 +53,12 @@ export async function startLeadSearch(filters: SearchFilters): Promise<LeadSearc
   return apiFetch<LeadSearchResponse>("/api/lead-search", {
     method: "POST",
     body: JSON.stringify({
+      state: filters.state,
       niche: filters.niche,
       city: filters.city,
       country: filters.country,
+      countryFlag: filters.countryFlag,
+      websiteStatus: filters.websiteStatus,
       limit: filters.leadLimit,
     }),
   });

@@ -62,6 +62,7 @@ Expected JSON format:
 {
   "country": "United States",
   "countryFlag": "🇺🇸",
+  "state": "state abbreviation or empty string",
   "city": "city name or empty string",
   "niche": "business category or empty string",
   "websiteStatus": "no_website" | "needs_upgrade" | "all",
@@ -69,6 +70,7 @@ Expected JSON format:
 }
 
 Rules:
+- If no state mentioned, use empty string
 - If no city mentioned, use empty string
 - If no niche mentioned, use empty string
 - If "без сайта" / "no website" / "no site" mentioned, set websiteStatus to "no_website"
@@ -88,6 +90,7 @@ Rules:
     return {
       country: parsed.country ?? "United States",
       countryFlag: parsed.countryFlag ?? "🇺🇸",
+      state: parsed.state ?? "",
       city: parsed.city ?? "",
       niche: parsed.niche ?? "",
       websiteStatus: parsed.websiteStatus ?? "no_website",
@@ -102,6 +105,7 @@ function getDefaultFilters(): SearchFilters {
   return {
     country: "United States",
     countryFlag: "🇺🇸",
+    state: "",
     city: "",
     niche: "",
     websiteStatus: "no_website",

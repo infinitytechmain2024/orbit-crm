@@ -3,6 +3,7 @@ import { Bot, Send, Sparkles, X, Mic, MicOff, Loader2 } from "lucide-react";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
 import { transcribeAudio } from "@/agents/whisper";
+import { authenticatedFetch } from "@/lib/api-client";
 
 type Msg = { id: string; role: "user" | "ai"; text: string };
 
@@ -53,6 +54,32 @@ export function AiAssistant() {
         ? `Приоритет на сегодня:\n${hot.map((t, i) => `${i + 1}. ${t.title}`).join("\n")}`
         : "Всё под контролем — срочных задач нет.";
     }
+
+    try {
+      const response = await authenticatedFetch("/api/backend/assistant/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: q,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Assistant API error ${response.status}`);
+      }
+
+      const data = (await response.json()) as { reply?: string };
+      const replyText = data.reply?.trim();
+      if (replyText) return replyText;
+    } catch (err) {
+      console.warn("[AiAssistant] server assistant unavailable, falling back to local reply:", err);
+    }
+
     return "Записал в единую память. Могу разложить это на задачи, связать с проектом или найти похожие письма — скажи, что сделать.";
   };
 

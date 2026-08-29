@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from backend.config import settings
+from backend.services.ai_providers import ai_provider_registry
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +67,7 @@ SYSTEM_PROMPT = f"""Ты — ИИ-диспетчер Orbit CRM. Твоя зад�
 
 class AIDispatcher:
     def __init__(self):
-        self.ollama_url = settings.OLLAMA_BASE_URL
-        self.model = settings.OLLAMA_MODEL
-        self._client: httpx.Optional[AsyncClient]= None
+        self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
@@ -81,32 +80,38 @@ class AIDispatcher:
             self._client = None
 
     async def _call_llm(self, prompt: str, system_prompt: str = "") -> str:
-        client = await self._get_client()
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        try:
-            response = await client.post(
-                f"{self.ollama_url}/chat/completions",
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "max_tokens": 2048,
-                    "temperature": 0.1,
-                    "response_format": {"type": "json_object"},
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data["choices"][0]["message"]["content"]
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Ollama API error: {e.response.status_code} - {e.response.text}")
-            raise RuntimeError(f"Ollama API error: {e.response.status_code}")
-        except Exception as e:
-            logger.error(f"Failed to call Ollama: {e}")
-            raise RuntimeError(f"Failed to call Ollama: {e}")
+        providers = [
+            ("nvidia", settings.NVIDIA_MODEL or settings.OLLAMA_MODEL or "openai/gpt-oss-120b"),
+            ("openai", settings.OPENAI_MODEL or "gpt-4o-mini"),
+            ("groq", settings.GROQ_MODEL or "openai/gpt-oss-120b"),
+            ("ollama", settings.OLLAMA_MODEL or "openai/gpt-oss-120b"),
+        ]
+
+        last_error: Exception | None = None
+        for provider_name, model_name in providers:
+            provider = ai_provider_registry.get(provider_name)
+            if not provider.configured:
+                continue
+            try:
+                result = await provider.complete(
+                    model_name,
+                    messages,
+                    temperature=0.1,
+                    max_tokens=2048,
+                )
+                return result.content
+            except Exception as exc:
+                logger.warning("%s provider failed: %s", provider_name, exc)
+                last_error = exc
+
+        if last_error:
+            raise RuntimeError(f"No AI provider available: {last_error}")
+        raise RuntimeError("No AI provider available")
 
     def _parse_intent(self, response: str, raw_text: str) -> Intent:
         try:
@@ -142,7 +147,7 @@ class AIDispatcher:
         response = await self._call_llm(text, SYSTEM_PROMPT + context)
         return self._parse_intent(response, text)
 
-async def generate_suggestions(self, intent: Intent) -> list[str]:
+    async def generate_suggestions(self, intent: Intent) -> list[str]:
         """Generate action suggestions based on classified intent."""
         suggestions = []
         entities = intent.entities
