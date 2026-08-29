@@ -62,7 +62,7 @@ export function AiAssistant() {
     }
 
     try {
-      const response = await authenticatedFetch("/api/backend/assistant/chat", {
+      const response = await authenticatedFetch("/api/backend/api/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

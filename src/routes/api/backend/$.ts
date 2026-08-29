@@ -99,7 +99,7 @@ async function proxyRequest(
         (isTimeout || reason.includes("ECONNREFUSED") || reason.includes("ETIMEDOUT"))
       ) {
         attempt++;
-        logger.warn(
+        console.warn(
           `[backend proxy] retry attempt ${attempt}/${maxAttempts} after error: ${reason}`,
         );
         await new Promise((r) => setTimeout(r, 2000));
