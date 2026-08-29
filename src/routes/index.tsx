@@ -525,13 +525,13 @@ function Dashboard() {
           <Metric
             icon={<Wallet className="size-4" />}
             label="Доход за месяц"
-            value={money(income)}
+            value={money(income, currency)}
             delta="+18%"
           />
           <Metric
             icon={<TrendingUp className="size-4" />}
             label="Чистая прибыль"
-            value={money(income - expense)}
+            value={money(income - expense, currency)}
             delta="+9%"
           />
           <Metric
@@ -860,15 +860,7 @@ function Metric({
   );
 }
 
-function MiniMetric({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-}) {
+function MiniMetric({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
     <div className="rounded-2xl border border-border bg-surface-2/60 px-4 py-3">
       <div className="flex items-center justify-between gap-3">
@@ -880,7 +872,7 @@ function MiniMetric({
   );
 }
 
-const money = (value: number) =>
+const money = (value: number, currency: string) =>
   new Intl.NumberFormat("ru-RU", {
     style: "currency",
     currency,
