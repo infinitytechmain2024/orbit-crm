@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowUpRight, CreditCard, Plus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CreditCard, RefreshCw, Plus } from "lucide-react";
 import { Trash2 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
@@ -57,6 +57,21 @@ export const Route = createFileRoute("/finance")({
 });
 
 const COLORS = ["var(--acc-1)", "var(--acc-2)", "var(--acc-3)", "var(--acc-4)"];
+const DISPLAY_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "PLN", "TRY"] as const;
+type DisplayCurrency = (typeof DISPLAY_CURRENCIES)[number];
+
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function normalizeRate(rate: unknown): number | null {
+  const value = typeof rate === "string" ? Number(rate) : typeof rate === "number" ? rate : NaN;
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
 
 function FinancePage() {
   const {
@@ -75,6 +90,17 @@ function FinancePage() {
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Прочее");
+  const [currency, setCurrency] = useState<DisplayCurrency>("EUR");
+  const [rates, setRates] = useState<Record<DisplayCurrency, number>>({
+    EUR: 1,
+    USD: 1,
+    GBP: 1,
+    CHF: 1,
+    PLN: 1,
+    TRY: 1,
+  });
+  const [ratesStatus, setRatesStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
   const [occurredOn, setOccurredOn] = useState(() => {
     const now = new Date();
     const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
@@ -82,6 +108,50 @@ function FinancePage() {
   });
   const [savingFinance, setSavingFinance] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadRates = async () => {
+    setRatesStatus("loading");
+    try {
+      const response = await fetch("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml", {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) throw new Error("Failed to load exchange rates");
+      const xml = await response.text();
+      const document = new DOMParser().parseFromString(xml, "application/xml");
+      const cubes = [...document.querySelectorAll("Cube[currency][rate]")];
+      const nextRates: Record<DisplayCurrency, number> = {
+        EUR: 1,
+        USD: 1,
+        GBP: 1,
+        CHF: 1,
+        PLN: 1,
+        TRY: 1,
+      };
+
+      for (const cube of cubes) {
+        const currencyCode = cube.getAttribute("currency") as DisplayCurrency | null;
+        const rate = normalizeRate(cube.getAttribute("rate"));
+        if (!currencyCode || !rate || !(currencyCode in nextRates)) continue;
+        nextRates[currencyCode] = rate;
+      }
+
+      setRates(nextRates);
+      setRatesStatus("ready");
+      setRatesUpdatedAt(new Date().toLocaleString("ru-RU"));
+    } catch {
+      setRatesStatus("error");
+    }
+  };
+
+  useEffect(() => {
+    void loadRates();
+  }, []);
+
+  const selectedRate = rates[currency] || 1;
+  const toDisplayCurrency = (valueInEUR: number) =>
+    currency === "EUR" ? valueInEUR : valueInEUR * selectedRate;
+  const toBaseEUR = (valueInDisplayCurrency: number) =>
+    currency === "EUR" ? valueInDisplayCurrency : valueInDisplayCurrency / selectedRate;
 
   const allTransactions = useMemo(() => {
     const manual = txs.map((t) => ({
@@ -114,6 +184,9 @@ function FinancePage() {
   const expense = allTransactions
     .filter((t) => t.type === "expense")
     .reduce((s, t) => s + t.amount, 0);
+  const displayedIncome = toDisplayCurrency(income);
+  const displayedExpense = toDisplayCurrency(expense);
+  const displayedBalance = toDisplayCurrency(income - expense);
 
   const monthly = useMemo(() => {
     const formatter = new Intl.DateTimeFormat("ru-RU", { month: "short" });
@@ -144,6 +217,7 @@ function FinancePage() {
   const stripeIncome = stripeTransactions
     .filter((t) => t.status === "succeeded")
     .reduce((s, t) => s + t.amount, 0);
+  const displayedStripeIncome = toDisplayCurrency(stripeIncome);
 
   const activeSubscriptions = stripeSubscriptions.filter(
     (s) => s.status === "active" || s.status === "trialing",
@@ -156,6 +230,7 @@ function FinancePage() {
     .filter((s) => s.interval === "year")
     .reduce((s, sub) => s + sub.amount / 12, 0);
   const totalMRR = mrr + arr;
+  const displayedMRR = toDisplayCurrency(totalMRR);
 
   const handlePaymentSuccess = (paymentIntentId: string) => {
     setShowPaymentForm(false);
@@ -176,9 +251,10 @@ function FinancePage() {
     if ((!addFinanceTransaction && !updateFinanceTransaction) || savingFinance) return;
 
     setSavingFinance(true);
+    const amountInEUR = toBaseEUR(Number(amount));
     const payload = {
       label: label.trim(),
-      amount: Number(amount),
+      amount: amountInEUR,
       type: entryType,
       category: category.trim(),
       occurredOn,
@@ -239,12 +315,26 @@ function FinancePage() {
               Доходы и расходы считаются автоматически по всем сохранённым операциям.
             </p>
           </div>
-          <div className="rounded-full border border-border bg-surface-2/60 px-3 py-1 text-xs text-muted-foreground">
-            Баланс: {(income - expense).toLocaleString("ru-RU")} €
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-full border border-border bg-surface-2/60 px-3 py-1 text-xs text-muted-foreground">
+              Баланс: {formatMoney(displayedBalance, currency)}
+            </div>
+            <div className="rounded-full border border-border bg-surface-2/60 px-3 py-1 text-xs text-muted-foreground">
+              Курс: 1 EUR = {selectedRate.toLocaleString("ru-RU", { maximumFractionDigits: 4 })} {currency}
+            </div>
+            {ratesUpdatedAt && (
+              <div className="rounded-full border border-border bg-surface-2/60 px-3 py-1 text-xs text-muted-foreground">
+                Обновлено: {ratesUpdatedAt}
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={() => void loadRates()} disabled={ratesStatus === "loading"}>
+              <RefreshCw className="mr-2 size-4" />
+              {ratesStatus === "loading" ? "Обновляю курс..." : "Обновить курс"}
+            </Button>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[140px_1.2fr_0.8fr_0.9fr_1fr_auto]">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[140px_1.2fr_0.8fr_0.75fr_0.9fr_1fr_auto]">
           <div className="space-y-2">
             <Label htmlFor="finance-type">Тип</Label>
             <Select
@@ -288,6 +378,25 @@ function FinancePage() {
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Будет сохранено как {currency === "EUR" ? "EUR" : `≈ EUR по текущему курсу`}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="finance-currency">Валюта</Label>
+            <Select value={currency} onValueChange={(value) => setCurrency(value as DisplayCurrency)}>
+              <SelectTrigger id="finance-currency">
+                <SelectValue placeholder="EUR" />
+              </SelectTrigger>
+              <SelectContent>
+                {DISPLAY_CURRENCIES.map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -344,8 +453,8 @@ function FinancePage() {
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <Kpi label="Stripe доходы" value={stripeIncome} tone="up" />
-        <Kpi label="MRR (ежемесячно)" value={totalMRR} tone="up" />
+        <Kpi label="Stripe доходы" value={displayedStripeIncome} tone="up" currency={currency} />
+        <Kpi label="MRR (ежемесячно)" value={displayedMRR} tone="up" currency={currency} />
         <Kpi label="Активные подписки" value={activeSubscriptions.length} tone="up" />
       </div>
 
@@ -362,7 +471,7 @@ function FinancePage() {
           </div>
           <StripePaymentForm
             amount={100}
-            currency="EUR"
+            currency={currency}
             description="Тестовый платеж"
             onSuccess={handlePaymentSuccess}
           />
@@ -504,7 +613,7 @@ function FinancePage() {
                   style={{ background: COLORS[i % COLORS.length] }}
                 />
                 <span className="flex-1 text-muted-foreground">{c.name}</span>
-                <span>{c.value.toLocaleString("ru-RU")} €</span>
+                <span>{formatMoney(toDisplayCurrency(c.value), currency)}</span>
               </div>
             ))}
           </div>
@@ -546,7 +655,7 @@ function FinancePage() {
                   )}
                 >
                   {t.type === "income" ? "+" : "−"}
-                  {t.amount.toLocaleString("ru-RU")} €
+                  {formatMoney(toDisplayCurrency(t.amount), currency)}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -607,11 +716,21 @@ function FinancePage() {
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: number; tone: "up" | "down" }) {
+function Kpi({
+  label,
+  value,
+  tone,
+  currency = "EUR",
+}: {
+  label: string;
+  value: number;
+  tone: "up" | "down";
+  currency?: string;
+}) {
   return (
     <div className="panel p-5">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-2 font-display text-2xl font-semibold">{value.toLocaleString("ru-RU")} €</p>
+      <p className="mt-2 font-display text-2xl font-semibold">{formatMoney(value, currency)}</p>
       <p
         className={cn(
           "mt-1 flex items-center gap-1 text-xs",
