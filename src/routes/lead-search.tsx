@@ -180,7 +180,10 @@ function LeadSearchPage() {
     try {
       const { data: sessionData } = await getSupabaseClient().auth.getSession();
       const accessToken = sessionData.session?.access_token;
-      if (!accessToken) throw new Error("Authentication is required");
+      if (!accessToken) {
+        setSavedSearches([]);
+        return;
+      }
 
       const data = await backendJson<{ saved_searches: SavedSearch[] }>(
         `/api/saved-searches?organization_id=${encodeURIComponent(organization.id)}&limit=20`,
@@ -189,6 +192,11 @@ function LeadSearchPage() {
       );
       setSavedSearches(data.saved_searches || []);
     } catch (e) {
+      const message = e instanceof Error ? e.message : "";
+      if (message === "Authentication is required") {
+        setSavedSearches([]);
+        return;
+      }
       console.error("Failed to load saved searches:", e);
     } finally {
       setIsLoadingSaved(false);
