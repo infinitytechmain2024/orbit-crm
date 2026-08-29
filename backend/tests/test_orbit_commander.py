@@ -286,5 +286,131 @@ class OrbitCommanderEndToEndTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(len(store.tables["artifacts"]), 4)
 
 
+class OrbitCommanderStepApprovalTests(unittest.IsolatedAsyncioTestCase):
+    """A critical step should pause on its own without stalling independent siblings."""
+
+    def build_store(self):
+        organization_id = "org-1"
+        run = {
+            "id": "run-1",
+            "organization_id": organization_id,
+            "root_task_id": "root-task",
+            "status": "running",
+            "progress": 10,
+            "current_phase": "execution",
+            "commander_state": {},
+            "created_by": "user-1",
+        }
+        root = {
+            "id": "root-task",
+            "organization_id": organization_id,
+            "parent_task_id": None,
+            "workflow_run_id": "run-1",
+            "title": "Root",
+            "description": "",
+            "status": "in_progress",
+            "created_by": "user-1",
+        }
+        critical_task = {
+            "id": "task-critical",
+            "organization_id": organization_id,
+            "parent_task_id": "root-task",
+            "workflow_run_id": "run-1",
+            "agent_id": "agent-1",
+            "title": "Опубликуй релиз в production",
+            "description": "",
+            "status": "queued",
+            "approval_required": True,
+            "risk_level": "high",
+            "execution_plan": {"phase": "execution"},
+            "attempt_count": 0,
+            "created_by": "user-1",
+        }
+        normal_task = {
+            "id": "task-normal",
+            "organization_id": organization_id,
+            "parent_task_id": "root-task",
+            "workflow_run_id": "run-1",
+            "agent_id": "agent-1",
+            "title": "Обнови README",
+            "description": "",
+            "status": "queued",
+            "approval_required": False,
+            "risk_level": "low",
+            "execution_plan": {"phase": "execution"},
+            "attempt_count": 0,
+            "created_by": "user-1",
+        }
+        agent = {
+            "id": "agent-1",
+            "organization_id": organization_id,
+            "role": "Backend Engineer",
+            "status": "idle",
+            "is_active": True,
+        }
+        store = MemoryStore(
+            {
+                "ai_tasks": [root, critical_task, normal_task],
+                "workflow_runs": [run],
+                "ai_agents": [agent],
+                "task_dependencies": [],
+            }
+        )
+        return store, run
+
+    async def test_critical_step_pauses_alone_while_sibling_keeps_running(self):
+        store, run = self.build_store()
+        commander = OrbitCommander(store)
+
+        await commander.enqueue_ready(run)
+
+        critical = await store.one("ai_tasks", organization_id="org-1", row_id="task-critical")
+        self.assertEqual(critical["status"], "approval_required")
+
+        job_task_ids = {job["task_id"] for job in store.tables["workflow_jobs"]}
+        self.assertNotIn("task-critical", job_task_ids)
+        self.assertIn("task-normal", job_task_ids)
+
+        approvals = store.tables["approval_requests"]
+        self.assertEqual(len(approvals), 1)
+        self.assertEqual(approvals[0]["task_id"], "task-critical")
+
+    async def test_approving_step_resumes_it_without_pausing_the_run(self):
+        store, run = self.build_store()
+        commander = OrbitCommander(store)
+        await commander.enqueue_ready(run)
+        approval_id = store.tables["approval_requests"][0]["id"]
+
+        await commander.resolve_approval(
+            approval_id, "org-1", actor_id="user-1", decision="approved", comment=None
+        )
+
+        critical = await store.one("ai_tasks", organization_id="org-1", row_id="task-critical")
+        self.assertEqual(critical["status"], "queued")
+        self.assertFalse(critical["approval_required"])
+
+        run_after = await store.one("workflow_runs", organization_id="org-1", row_id="run-1")
+        self.assertEqual(run_after["status"], "running")
+
+        job_task_ids = {job["task_id"] for job in store.tables["workflow_jobs"]}
+        self.assertIn("task-critical", job_task_ids)
+
+    async def test_rejecting_step_cancels_only_that_step(self):
+        store, run = self.build_store()
+        commander = OrbitCommander(store)
+        await commander.enqueue_ready(run)
+        approval_id = store.tables["approval_requests"][0]["id"]
+
+        await commander.resolve_approval(
+            approval_id, "org-1", actor_id="user-1", decision="rejected", comment="нет"
+        )
+
+        critical = await store.one("ai_tasks", organization_id="org-1", row_id="task-critical")
+        self.assertEqual(critical["status"], "cancelled")
+
+        run_after = await store.one("workflow_runs", organization_id="org-1", row_id="run-1")
+        self.assertNotEqual(run_after["status"], "cancelled")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -383,192 +383,78 @@ function Dashboard() {
   };
 
   const selectedCount = parsed.filter((t) => t.selected).length;
-  const todayLabel = "Суббота, 29 августа";
-
   return (
-    <AppShell title="Дашборд" subtitle={`${todayLabel} · всё важное на одном экране`}>
-      <div className="grid gap-6 xl:grid-cols-[1.45fr_0.75fr]">
-        <section className="hero-panel gradient-border p-6 md:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-6">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-                <Sparkles className="size-3" />
-                Executive cockpit
+    <AppShell title="Дашборд" subtitle="Всё важное на одном экране">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <section className="panel relative overflow-hidden p-6 xl:col-span-2">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(57,202,138,0.10),transparent_30%)]" />
+          <div className="relative">
+            <div className="flex items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-surface/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground backdrop-blur-sm">
+                <Sparkles className="size-3.5 text-primary" /> быстрый ввод
               </div>
-              <h2 className="mt-4 text-3xl font-semibold leading-tight md:text-4xl">
-                Выгрузите хаос мыслей в{" "}
-                <span className="text-gradient">яркую, структурную систему</span>
-              </h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground md:text-base">
-                Дашборд теперь легче читается: заметнее приоритеты, ярче акценты и яснее, что в
-                работе прямо сейчас.
-              </p>
+              <div className="hidden rounded-full border border-border/70 bg-surface/70 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur-sm sm:block">
+                Просто накидывайте мысли, детали и поручения
+              </div>
             </div>
 
-            <div className="grid w-full gap-3 sm:w-[20rem]">
-              <StatPill label="AI Workflow" value={`${aiWorkflow.inProgress} в работе`} accent="primary" />
-              <StatPill label="Прогресс маршрутизации" value={`${aiWorkflow.progress}%`} accent="secondary" />
-              <StatPill
-                label="Срочные задачи"
-                value={String(tasks.filter((t) => t.priority === "high" && t.status !== "completed" && !t.archivedAt).length)}
-                accent="warning"
-              />
-            </div>
+            <QuickInputTextarea
+              value={draft}
+              onChange={setDraft}
+              rows={4}
+              placeholder="Например: позвонить Анне по договору, выставить счёт Nordwind, подготовить отчёт за июль"
+              className="mt-4 border-border/70 bg-surface/80 shadow-[0_10px_30px_rgba(0,0,0,0.14)] backdrop-blur-sm"
+            />
           </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-            <div className="rounded-2xl border border-border bg-surface-2/60 p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="grid size-7 place-items-center rounded-lg bg-primary/12 text-primary">
-                    <Zap className="size-4" />
-                  </span>
-                  Быстрый ввод
-                </div>
-                <Link
-                  to="/ai-workflow"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          {stage !== "preview" && (
+            <>
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={() => void analyze()}
+                  disabled={!draft.trim() || stage === "loading"}
+                  className="inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-acc-1 to-acc-2 px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/10 transition hover:opacity-90 hover:shadow-xl hover:shadow-primary/15 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  AI Workflow <ArrowUpRight className="size-3" />
-                </Link>
+                  <Brain className={cn("size-4.5", stage === "loading" && "animate-pulse")} />
+                  {stage === "loading" ? "ИИ разбирает…" : "Разобрать через ИИ"}
+                </button>
               </div>
-              <h3 className="mt-3 text-xl font-semibold">Сначала мысль, потом структура</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Забросьте заметку, и ИИ сразу разложит ее на задачи, приоритеты и исполнителей.
-              </p>
-              <QuickInputTextarea
-                value={draft}
-                onChange={setDraft}
-                rows={5}
-                placeholder="Например: позвонить Анне по договору, выставить счёт Nordwind, подготовить отчёт за июль"
-                className="mt-4"
-              />
-              {stage !== "preview" && (
-                <>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={() => void analyze()}
-                      disabled={!draft.trim() || stage === "loading"}
-                      className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-acc-1 via-acc-2 to-acc-3 px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/10 transition hover:opacity-95 hover:shadow-xl hover:shadow-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Brain className={cn("size-4.5", stage === "loading" && "animate-pulse")} />
-                      {stage === "loading" ? "ИИ разбирает…" : "Разобрать через ИИ"}
-                    </button>
-                    <div className="rounded-full border border-border bg-background/40 px-4 py-2 text-xs text-muted-foreground">
-                      {selectedCount > 0
-                        ? `${selectedCount} задач готовы к отправке`
-                        : "Пока нет выбранных задач"}
-                    </div>
-                  </div>
-                  {aiError && (
-                    <p className="mt-3 text-sm text-destructive" role="alert">
-                      {aiError}
-                    </p>
-                  )}
-                </>
+
+              {aiError && (
+                <p className="mt-3 text-center text-xs text-destructive" role="alert">
+                  {aiError}
+                </p>
               )}
+            </>
+          )}
 
-              {stage === "loading" && (
-                <div className="mt-4 space-y-2">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="shimmer h-12 rounded-xl bg-surface-2/70" />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <Metric
-                icon={<Wallet className="size-4" />}
-                label="Доход за месяц"
-                value={money(income)}
-                delta="+18%"
-              />
-              <Metric
-                icon={<TrendingUp className="size-4" />}
-                label="Чистая прибыль"
-                value={money(income - expense)}
-                delta="+9%"
-              />
-              <Metric
-                icon={<CalendarClock className="size-4" />}
-                label="Открытых задач"
-                value={String(open.length)}
-                delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "completed" && !t.archivedAt).length} срочных`}
-              />
-            </div>
-          </div>
-        </section>
-
-        <aside className="space-y-4">
-          <section className="panel p-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Сводка
-              </h3>
-              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
-                Live
-              </span>
-            </div>
-            <div className="mt-4 grid gap-3">
-              <MiniMetric
-                label="Письма"
-                value={String(emails.length)}
-                helper={`${emails.filter((e) => e.unread).length} непрочитанных`}
-              />
-              <MiniMetric label="Проекты" value={String(projects.length)} helper="активные направления" />
-              <MiniMetric label="Финансы" value={money(income - expense)} helper="чистый результат" />
-            </div>
-          </section>
-
-          <section className="panel p-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Последние письма
-              </h3>
-              <Link to="/mail" className="text-xs font-medium text-primary">
-                Открыть
-              </Link>
-            </div>
-            <div className="mt-4 space-y-3">
-              {emails.slice(0, 4).map((e) => (
-                <div
-                  key={e.id}
-                  className="flex gap-3 rounded-2xl border border-border/70 bg-surface-2/40 p-3"
-                >
-                  <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <Mail className="size-3.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className={cn("truncate text-sm", e.unread && "font-semibold")}>{e.subject}</p>
-                    <p className="truncate text-xs text-muted-foreground">{e.from}</p>
-                  </div>
-                </div>
+          {stage === "loading" && (
+            <div className="mt-4 space-y-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="shimmer h-12 rounded-xl bg-surface-2/70" />
               ))}
             </div>
-          </section>
-        </aside>
+          )}
 
-        <section className="panel p-6 xl:col-span-2">
-          {stage === "preview" && parsed.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+          {stage === "preview" && parsed.length > 0 && (
+            <div className="mt-5 space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold">ИИ распознал задачи</h3>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    Отредактируйте, выберите и отправьте в работу
+                  <h3 className="text-base font-semibold">ИИ распознал задачи</h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Выберите, отредактируйте и отправьте в работу
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={selectAll}
-                    className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+                    className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
                   >
                     Выбрать все
                   </button>
                   <button
                     onClick={deselectAll}
-                    className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+                    className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
                   >
                     Снять все
                   </button>
@@ -588,37 +474,36 @@ function Dashboard() {
                 ))}
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={addManualTask}
-                  className="inline-flex items-center gap-2 rounded-full border border-dashed border-border px-4 py-2.5 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
-                >
-                  <Plus className="size-4" /> Добавить задачу вручную
-                </button>
-                {parsed.some((t) => t.dispatchToWorkflow) && (
-                  <p className="text-xs text-muted-foreground">
-                    {parsed.filter((t) => t.dispatchToWorkflow).length} задач пойдут в AI Workflow.
-                  </p>
-                )}
-              </div>
+              <button
+                onClick={addManualTask}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              >
+                <Plus className="size-4" /> Добавить задачу вручную
+              </button>
 
+              {parsed.some((t) => t.dispatchToWorkflow) && (
+                <p className="text-center text-[11px] leading-4 text-muted-foreground">
+                  {parsed.filter((t) => t.dispatchToWorkflow).length} задач будут отправлены C-level
+                  агенту (Orbit Commander) в AI Workflow для декомпозиции и маршрутизации
+                </p>
+              )}
               {dispatchStatus && (
-                <p className="text-sm text-primary" role="status">
+                <p className="text-center text-xs text-primary" role="status">
                   {dispatchStatus}
                 </p>
               )}
 
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className="flex items-center gap-3 pt-2">
                 <button
                   onClick={cancelPreview}
-                  className="rounded-full border border-border px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
+                  className="rounded-xl border border-border px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
                   Назад
                 </button>
                 <button
                   onClick={() => void sendToWork()}
                   disabled={adding || selectedCount === 0}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="size-4" />
                   {adding
@@ -627,55 +512,84 @@ function Dashboard() {
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
-              <div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold">Ближайшие задачи</h3>
-                  <Link to="/tasks" className="inline-flex items-center gap-1 text-xs text-primary">
-                    Все задачи <ArrowUpRight className="size-3.5" />
-                  </Link>
-                </div>
-                <div className="mt-4 divide-y divide-border">
-                  {open.slice(0, 5).map((t) => (
-                    <div key={t.id} className="flex items-center gap-3 py-3">
-                      <span
-                        className={cn(
-                          "size-2 rounded-full",
-                          t.priority === "high" ? "bg-acc-4" : "bg-primary",
-                        )}
-                      />
-                      <span className="flex-1 truncate text-sm">{t.title}</span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                        {STATUS_LABEL[t.status]}
-                      </span>
-                      <span className="w-14 text-right text-xs text-muted-foreground">
-                        {t.due ?? "—"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          )}
 
-              <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-surface-2/60 to-transparent p-5">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  <Sparkles className="size-3.5 text-primary" />
-                  Рабочий ритм
-                </div>
-                <p className="mt-3 text-xl font-semibold">
-                  Задачи и финансы теперь читаются как один управляемый поток
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Сначала сверху видно состояние системы, затем быстрый AI-ввод, а ниже уже
-                  конкретные действия и контрольные списки. Это делает экран легче и современнее.
-                </p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <MiniMetric label="Открытые задачи" value={String(open.length)} helper="на контроле" />
-                  <MiniMetric label="Письма" value={String(emails.length)} helper="в почтовом потоке" />
-                </div>
-              </div>
+          {stage === "preview" && parsed.length === 0 && (
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              Все задачи удалены. Нажмите "Назад" чтобы вернуться.
             </div>
           )}
+        </section>
+
+        <section className="grid gap-4">
+          <Metric
+            icon={<Wallet className="size-4" />}
+            label="Доход за месяц"
+            value={money(income)}
+            delta="+18%"
+          />
+          <Metric
+            icon={<TrendingUp className="size-4" />}
+            label="Чистая прибыль"
+            value={money(income - expense)}
+            delta="+9%"
+          />
+          <Metric
+            icon={<CalendarClock className="size-4" />}
+            label="Открытых задач"
+            value={String(open.length)}
+            delta={`${tasks.filter((t) => t.priority === "high" && t.status !== "completed" && !t.archivedAt).length} срочных`}
+          />
+        </section>
+
+        <section className="panel p-6 xl:col-span-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold">Ближайшие задачи</h3>
+            <Link to="/tasks" className="inline-flex items-center gap-1 text-xs text-primary">
+              Все задачи <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="mt-4 divide-y divide-border">
+            {open.slice(0, 5).map((t) => (
+              <div key={t.id} className="flex items-center gap-3 py-3">
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    t.priority === "high" ? "bg-acc-4" : "bg-primary",
+                  )}
+                />
+                <span className="flex-1 truncate text-sm">{t.title}</span>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {STATUS_LABEL[t.status]}
+                </span>
+                <span className="w-14 text-right text-xs text-muted-foreground">
+                  {t.due ?? "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold">Последние письма</h3>
+            <Link to="/mail" className="text-xs text-primary">
+              Открыть
+            </Link>
+          </div>
+          <div className="mt-4 space-y-3">
+            {emails.slice(0, 4).map((e) => (
+              <div key={e.id} className="flex gap-3">
+                <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-muted-foreground">
+                  <Mail className="size-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className={cn("truncate text-sm", e.unread && "font-semibold")}>{e.subject}</p>
+                  <p className="truncate text-xs text-muted-foreground">{e.from}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </AppShell>
@@ -942,30 +856,6 @@ function Metric({
       </div>
       <p className="mt-3 font-display text-2xl font-semibold">{value}</p>
       <p className="mt-1 text-xs text-primary">{delta}</p>
-    </div>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent: "primary" | "secondary" | "warning";
-}) {
-  const accentClass =
-    accent === "primary"
-      ? "border-primary/20 bg-primary/10 text-primary"
-      : accent === "secondary"
-        ? "border-acc-2/20 bg-acc-2/10 text-foreground"
-        : "border-acc-3/20 bg-acc-3/10 text-foreground";
-
-  return (
-    <div className={cn("rounded-2xl border px-4 py-3 shadow-sm", accentClass)}>
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-base font-semibold">{value}</p>
     </div>
   );
 }
