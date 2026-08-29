@@ -83,6 +83,34 @@ interface SavedSearch {
   results: LeadResult[];
 }
 
+async function readJsonOrText(response: Response): Promise<{ data?: unknown; text?: string }> {
+  const text = await response.text().catch(() => "");
+  const contentType = response.headers.get("Content-Type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return { data: JSON.parse(text) };
+    } catch {
+      return { text };
+    }
+  }
+
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      return { data: JSON.parse(text) };
+    } catch {
+      return { text };
+    }
+  }
+
+  return { text };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function LeadSearchPage() {
   const { user } = useAuth();
   const { organization } = useCrm();
@@ -183,11 +211,22 @@ function LeadSearchPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || `Search failed (${res.status})`);
+        const parsed = await readJsonOrText(res);
+        const data = isRecord(parsed.data) ? parsed.data : {};
+        const errorText =
+          typeof data.error === "string"
+            ? data.error
+            : typeof data.detail === "string"
+              ? data.detail
+              : undefined;
+        throw new Error(errorText || parsed.text || `Search failed (${res.status})`);
       }
 
-      const data = await res.json();
+      const parsed = await readJsonOrText(res);
+      if (!parsed.data) {
+        throw new Error(parsed.text || "Lead search returned an invalid response");
+      }
+      const data = parsed.data as { leads?: LeadResult[] };
       setLeads(data.leads || []);
       setCurrentStage({ label: "Complete!", progress: 100 });
 

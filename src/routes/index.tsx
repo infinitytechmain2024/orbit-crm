@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import {
+  AlertCircle,
   ArrowUpRight,
   Brain,
   CalendarClock,

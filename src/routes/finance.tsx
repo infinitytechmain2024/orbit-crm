@@ -214,23 +214,9 @@ function FinancePage() {
     return [...map].map(([name, value]) => ({ name, value }));
   }, [allTransactions]);
 
-  const stripeIncome = stripeTransactions
-    .filter((t) => t.status === "succeeded")
-    .reduce((s, t) => s + t.amount, 0);
-  const displayedStripeIncome = toDisplayCurrency(stripeIncome);
-
   const activeSubscriptions = stripeSubscriptions.filter(
     (s) => s.status === "active" || s.status === "trialing",
   );
-
-  const mrr = activeSubscriptions
-    .filter((s) => s.interval === "month")
-    .reduce((s, sub) => s + sub.amount, 0);
-  const arr = activeSubscriptions
-    .filter((s) => s.interval === "year")
-    .reduce((s, sub) => s + sub.amount / 12, 0);
-  const totalMRR = mrr + arr;
-  const displayedMRR = toDisplayCurrency(totalMRR);
 
   const handlePaymentSuccess = (paymentIntentId: string) => {
     setShowPaymentForm(false);
@@ -301,10 +287,12 @@ function FinancePage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Kpi label="Доход" value={income} tone="up" />
-        <Kpi label="Расход" value={expense} tone="down" />
-        <Kpi label="Чистыми" value={income - expense} tone="up" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <Kpi label="Доход" value={income} tone="up" currency={currency} />
+        <Kpi label="Расход" value={expense} tone="down" currency={currency} />
+        <Kpi label="Чистыми" value={income - expense} tone="up" currency={currency} />
+        <Kpi label="Активные подписки" value={activeSubscriptions.length} tone="up" />
+        <Kpi label="Stripe транзакции" value={stripeTransactions.length} tone="up" />
       </div>
 
       <section className="panel mt-6 p-6">
@@ -444,18 +432,11 @@ function FinancePage() {
         </div>
       </section>
 
-      <div className="mt-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Stripe метрики</h3>
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
         <Button variant="outline" size="sm" onClick={() => setShowPaymentForm(true)}>
           <Plus className="size-4 mr-2" />
           Принять платеж
         </Button>
-      </div>
-
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <Kpi label="Stripe доходы" value={displayedStripeIncome} tone="up" currency={currency} />
-        <Kpi label="MRR (ежемесячно)" value={displayedMRR} tone="up" currency={currency} />
-        <Kpi label="Активные подписки" value={activeSubscriptions.length} tone="up" />
       </div>
 
       {showPaymentForm && (

@@ -21,9 +21,27 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
     });
 
     const text = await res.text();
+    const contentType = res.headers.get("Content-Type") || "";
+    const looksLikeJson =
+      contentType.includes("application/json") ||
+      text.trimStart().startsWith("{") ||
+      text.trimStart().startsWith("[");
+
+    if (!looksLikeJson) {
+      return Response.json(
+        {
+          error: "Lead search backend returned a non-JSON response",
+          detail: text.slice(0, 500),
+          leads: [],
+          total: 0,
+        },
+        { status: 502 },
+      );
+    }
+
     return new Response(text, {
       status: res.status,
-      headers: { "Content-Type": res.headers.get("Content-Type") || "application/json" },
+      headers: { "Content-Type": contentType || "application/json" },
     });
   } catch (error) {
     return Response.json(
