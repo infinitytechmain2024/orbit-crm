@@ -1021,6 +1021,10 @@ class OrbitCommander:
                 raise RuntimeError(f"No active agent for role {role}")
             key = str(step.get("key") or f"step_{index + 1}")[:60]
             phase = "qa" if role == "QA Agent" or step.get("phase") == "qa" else "execution"
+            step_title = str(step.get("title") or key)[:240]
+            step_description = str(step.get("description") or "")[:12000]
+            step_approval = critical_approval(f"{step_title} {step_description}")
+            step_risk = infer_risk(f"{step_title} {step_description}", str(root.get("priority") or "medium"))
             rows = await self.store.insert(
                 "ai_tasks",
                 {
@@ -1030,15 +1034,15 @@ class OrbitCommander:
                     "agent_id": agent["id"],
                     "parent_task_id": root["id"],
                     "workflow_run_id": run["id"],
-                    "title": str(step.get("title") or key)[:240],
-                    "description": str(step.get("description") or "")[:12000],
+                    "title": step_title,
+                    "description": step_description,
                     "original_request": root.get("original_request") or root["title"],
                     "source": root.get("source") or "text",
                     "status": "queued",
                     "priority": root.get("priority") or "medium",
                     "due_at": root.get("due_at"),
-                    "risk_level": risk,
-                    "approval_required": False,
+                    "risk_level": step_risk,
+                    "approval_required": bool(step_approval),
                     "goal": str(step.get("title") or key)[:1000],
                     "acceptance_criteria": step.get("acceptance_criteria") or [],
                     "execution_plan": {"key": key, "phase": phase, "role": role},
@@ -1211,21 +1215,26 @@ class OrbitCommander:
             raise ValueError("Approval was already resolved")
         root = await self.store.one("ai_tasks", organization_id=organization_id, row_id=request["task_id"])
         run = await self.store.one("workflow_runs", organization_id=organization_id, row_id=root["workflow_run_id"])
+        is_root = root.get("parent_task_id") is None
         if decision == "approved":
             root = (
                 await self.store.update(
                     "ai_tasks",
                     organization_id=organization_id,
                     filters={"id": f"eq.{root['id']}"},
-                    payload={"status": "in_progress"},
+                    payload={
+                        "status": "in_progress" if is_root else "queued",
+                        "approval_required": False,
+                    },
                 )
             )[0]
-            await self.store.update(
-                "workflow_runs",
-                organization_id=organization_id,
-                filters={"id": f"eq.{run['id']}"},
-                payload={"status": "running", "current_phase": "execution"},
-            )
+            if is_root:
+                await self.store.update(
+                    "workflow_runs",
+                    organization_id=organization_id,
+                    filters={"id": f"eq.{run['id']}"},
+                    payload={"status": "running", "current_phase": "execution"},
+                )
             await self.create_event(root, "approved", "Пользователь подтвердил критическое действие; workflow продолжен.")
             await self.enqueue_ready(run)
         elif decision == "changes_requested":
@@ -1233,17 +1242,37 @@ class OrbitCommander:
                 "ai_tasks",
                 organization_id=organization_id,
                 filters={"id": f"eq.{root['id']}"},
-                payload={"status": "revisions_requested", "blocker_reason": comment or "Запрошены изменения"},
+                payload={
+                    "status": "revisions_requested",
+                    "blocker_reason": comment or "Запрошены изменения",
+                    "approval_required": False,
+                },
             )
-            await self.store.update(
-                "workflow_runs",
-                organization_id=organization_id,
-                filters={"id": f"eq.{run['id']}"},
-                payload={"status": "paused", "current_phase": "approval_changes"},
-            )
+            if is_root:
+                await self.store.update(
+                    "workflow_runs",
+                    organization_id=organization_id,
+                    filters={"id": f"eq.{run['id']}"},
+                    payload={"status": "paused", "current_phase": "approval_changes"},
+                )
             await self.create_event(root, "changes_requested", "Пользователь запросил изменения плана.")
-        else:
+        elif is_root:
             await self.cancel(root, actor_id=actor_id, reason=comment or "Критическое действие отклонено")
+        else:
+            # Отклонение конкретного этапа не должно останавливать независимые
+            # параллельные этапы того же workflow — отменяем только этот этап.
+            await self.store.update(
+                "ai_tasks",
+                organization_id=organization_id,
+                filters={"id": f"eq.{root['id']}"},
+                payload={
+                    "status": "cancelled",
+                    "cancelled_at": utc_now(),
+                    "blocker_reason": comment or "Критическое действие отклонено",
+                    "approval_required": False,
+                },
+            )
+            await self.create_event(root, "cancelled", comment or "Пользователь отклонил критическое действие этапа.")
         await self.audit(
             organization_id,
             actor_type="user",
@@ -1281,6 +1310,21 @@ class OrbitCommander:
                 if item["task_id"] == task["id"] and item.get("is_required", True)
             ]
             if any(by_id.get(item["depends_on_task_id"], {}).get("status") != "done" for item in required):
+                continue
+            if task.get("approval_required"):
+                approval = critical_approval(f"{task['title']} {task.get('description') or ''}") or {
+                    "action": f"Критический этап: {task['title']}",
+                    "reason": "Orbit Commander обнаружил бизнес-критическую точку перед выполнением этапа.",
+                    "risk": task.get("risk_level") or "high",
+                    "consequences": "Этап не начнётся, пока пользователь не подтвердит действие.",
+                }
+                await self.store.update(
+                    "ai_tasks",
+                    organization_id=task["organization_id"],
+                    filters={"id": f"eq.{task['id']}"},
+                    payload={"status": "approval_required"},
+                )
+                await self.request_approval(task, approval)
                 continue
             phase = str((task.get("execution_plan") or {}).get("phase") or "execution")
             await self.enqueue_job(run, task, "qa" if phase == "qa" else "execute")
