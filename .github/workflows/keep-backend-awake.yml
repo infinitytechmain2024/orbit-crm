@@ -10,4 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping /api/health
-        run: curl -fsS --max-time 20 https://orbit-crm-backend.onrender.com/api/health
+        run: curl -fsS --max-time 60 https://aura-crm-hn11.onrender.com/api/health

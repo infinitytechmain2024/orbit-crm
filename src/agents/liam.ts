@@ -3,7 +3,7 @@ import type { VoiceIntent } from "../types/voice";
 import type { LiamCommand, LiamResponse } from "../types/agent";
 
 const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "https://integrate.api.nvidia.com/v1";
-const API_URL = import.meta.env.VITE_API_URL || "https://orbit-crm-backend.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://aura-crm-hn11.onrender.com";
 
 const COMMON_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",

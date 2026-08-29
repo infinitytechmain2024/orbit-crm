@@ -154,6 +154,10 @@ class Settings(BaseSettings):
     # once project-scoped repo auto-creation ships). Never logged, never sent to the frontend.
     GITHUB_TOKEN: str = Field(default="", validation_alias="GITHUB_TOKEN")
     GITHUB_REPO: str = Field(default="", validation_alias="GITHUB_REPO")
+    # Optional: create per-project repositories under this GitHub organization
+    # instead of the token owner's personal account. Requires Administration
+    # (read & write) on GITHUB_TOKEN.
+    GITHUB_PROJECTS_ORG: str = Field(default="", validation_alias="GITHUB_PROJECTS_ORG")
 
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":

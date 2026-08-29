@@ -19,7 +19,7 @@ backend не является частью production-сценария.
 - [ ] Убедиться, что Render health check `/api/health` проходит, backend не
   перезапускается, а workflow worker забирает задания из очереди.
 - [ ] Проверить, что Vercel `AI_WORKFLOW_BACKEND_URL` указывает на публичный URL
-  `orbit-crm-backend.onrender.com`, а `INTERNAL_API_TOKEN` совпадает с Render.
+  `aura-crm-hn11.onrender.com`, а `INTERNAL_API_TOKEN` совпадает с Render.
 - [ ] Выполнить авторизованный smoke test: «Выгрузить мысли» → CRM task →
   `ai_tasks` → `workflow_runs` → queued/leased `plan` → назначенный проект →
   исполнитель начал работу.

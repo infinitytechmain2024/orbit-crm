@@ -314,13 +314,13 @@ OPENCLAW_MAX_CONTEXT_RECORDS=20
 Скопируйте публичный backend URL из Render service page. Он выглядит как:
 
 ```text
-https://orbit-crm-backend.onrender.com
+https://aura-crm-hn11.onrender.com
 ```
 
 Проверьте:
 
 ```bash
-curl -i https://orbit-crm-backend.onrender.com/api/health
+curl -i https://aura-crm-hn11.onrender.com/api/health
 ```
 
 Ожидается `HTTP 200` и JSON со `status: ok`.
@@ -328,7 +328,7 @@ curl -i https://orbit-crm-backend.onrender.com/api/health
 Проверьте, что provider API закрыт:
 
 ```bash
-curl -i -X POST https://orbit-crm-backend.onrender.com/api/selfdev/providers/heartbeat \
+curl -i -X POST https://aura-crm-hn11.onrender.com/api/selfdev/providers/heartbeat \
   -H 'Content-Type: application/json' \
   -d '{"provider_id":"00000000-0000-0000-0000-000000000000"}'
 ```
@@ -349,8 +349,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<sb_publishable_...>
 SUPABASE_URL=https://qavfajsflzbefgegkwjt.supabase.co
 SUPABASE_PUBLISHABLE_KEY=<тот же sb_publishable_...>
 
-AI_WORKFLOW_BACKEND_URL=https://orbit-crm-backend.onrender.com
-RENDER_BACKEND_URL=https://orbit-crm-backend.onrender.com
+AI_WORKFLOW_BACKEND_URL=https://aura-crm-hn11.onrender.com
+RENDER_BACKEND_URL=https://aura-crm-hn11.onrender.com
 INTERNAL_API_TOKEN=<тот же первый token, что на Render backend>
 ```
 
@@ -443,7 +443,7 @@ open -a TextEdit .env.selfdev
 Заполните:
 
 ```text
-SELFDEV_BACKEND_URL=https://orbit-crm-backend.onrender.com
+SELFDEV_BACKEND_URL=https://aura-crm-hn11.onrender.com
 SELFDEV_PROVIDER_TOKEN=<второй token, совпадает с Render backend>
 SELFDEV_PROVIDER_NAME=dmytro-mac-docker
 SELFDEV_ORGANIZATION_ID=<UUID из Supabase organizations>

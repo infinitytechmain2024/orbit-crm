@@ -291,9 +291,9 @@ function FinancePage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <Kpi label="Доход" value={income} tone="up" currency={currency} />
-        <Kpi label="Расход" value={expense} tone="down" currency={currency} />
-        <Kpi label="Чистыми" value={income - expense} tone="up" currency={currency} />
+        <Kpi label="Доход" value={displayedIncome} tone="up" currency={currency} />
+        <Kpi label="Расход" value={displayedExpense} tone="down" currency={currency} />
+        <Kpi label="Чистыми" value={displayedBalance} tone="up" currency={currency} />
         <Kpi label="Активные подписки" value={activeSubscriptions.length} tone="up" />
         <Kpi label="Stripe транзакции" value={stripeTransactions.length} tone="up" />
       </div>

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const API_URL = import.meta.env["VITE_API_URL"] || "https://orbit-crm-backend.onrender.com";
+const API_URL = import.meta.env["VITE_API_URL"] || "https://aura-crm-hn11.onrender.com";
 
 export const Route = createFileRoute("/api/lead-search")({
   server: {

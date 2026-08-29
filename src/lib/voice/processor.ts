@@ -20,7 +20,7 @@ const BACKEND_URL =
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_BACKEND_URL ||
   import.meta.env.VITE_LEAD_GEN_URL ||
-  "https://orbit-crm-backend.onrender.com";
+  "https://aura-crm-hn11.onrender.com";
 
 const COMMON_HEADERS: Record<string, string> = {
   "ngrok-skip-browser-warning": "true",
