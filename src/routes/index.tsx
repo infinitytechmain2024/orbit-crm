@@ -18,7 +18,6 @@ import {
   TrendingUp,
   Wallet,
   X,
-  Zap,
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
@@ -26,7 +25,6 @@ import { QuickInputTextarea } from "@/components/crm/QuickInputTextarea";
 import { STATUS_LABEL, type Priority } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
-import { useAiWorkflowSummary } from "@/hooks/use-ai-workflow-summary";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -115,7 +113,7 @@ type AiAnalyzeResponse = {
 };
 
 function Dashboard() {
-  const { tasks, emails, txs, addTask, projects, organization } = useCrm();
+  const { tasks, emails, txs, addTask, projects, organization, currency } = useCrm();
   const { session } = useAuth();
   const [draft, setDraft] = useState("");
   const [stage, setStage] = useState<"idle" | "loading" | "preview">("idle");
@@ -123,8 +121,6 @@ function Dashboard() {
   const [adding, setAdding] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [dispatchStatus, setDispatchStatus] = useState<string | null>(null);
-
-  const aiWorkflow = useAiWorkflowSummary(session?.access_token, organization?.id);
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -392,42 +388,26 @@ function Dashboard() {
     <AppShell title="Дашборд" subtitle="Суббота, 8 августа · всё важное на одном экране">
       <div className="grid gap-6 xl:grid-cols-3">
         {/* Main input section */}
-        <section className="panel relative overflow-hidden p-6 xl:col-span-2">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-            <Sparkles className="size-3.5 text-primary" /> быстрый ввод
-          </div>
-          <h2 className="mt-2 text-2xl">
-            Выгрузите мысли — <span className="text-gradient">ИИ разложит по полкам</span>
-          </h2>
-
-          {/* Textarea */}
-          <QuickInputTextarea
-            value={draft}
-            onChange={setDraft}
-            rows={4}
-            placeholder="Например: позвонить Анне по договору, выставить счёт Nordwind, подготовить отчёт за июль"
-            className="mt-4"
-          />
-
-          <div className="mt-4 rounded-2xl border border-border/70 bg-surface-2/60 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="grid size-7 place-items-center rounded-lg bg-primary/12 text-primary">
-                  <Zap className="size-4" />
-                </span>
-                AI Workflow
+        <section className="relative overflow-hidden rounded-[1.75rem] border border-primary/15 bg-gradient-to-br from-surface via-surface to-primary/5 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.24)] xl:col-span-2">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(57,202,138,0.10),transparent_30%)]" />
+          <div className="relative">
+            <div className="flex items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-surface/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground backdrop-blur-sm">
+                <Sparkles className="size-3.5 text-primary" /> быстрый ввод
               </div>
-              <Link
-                to="/ai-workflow"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                Открыть AI Workflow <ArrowUpRight className="size-3" />
-              </Link>
+              <div className="hidden rounded-full border border-border/70 bg-surface/70 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur-sm sm:block">
+                Просто накидывайте мысли, детали и поручения
+              </div>
             </div>
-            <p className="mt-3 font-display text-2xl font-semibold">
-              {aiWorkflow.inProgress} в работе
-            </p>
-            <p className="mt-1 text-xs text-primary">{aiWorkflow.progress}% прогресс</p>
+
+            {/* Textarea */}
+            <QuickInputTextarea
+              value={draft}
+              onChange={setDraft}
+              rows={4}
+              placeholder="Например: позвонить Анне по договору, выставить счёт Nordwind, подготовить отчёт за июль"
+              className="mt-4 border-border/70 bg-surface/80 shadow-[0_10px_30px_rgba(0,0,0,0.14)] backdrop-blur-sm"
+            />
           </div>
 
           {stage !== "preview" && (
@@ -557,13 +537,13 @@ function Dashboard() {
           <Metric
             icon={<Wallet className="size-4" />}
             label="Доход за месяц"
-            value={`${income.toLocaleString("ru-RU")} €`}
+            value={money(income)}
             delta="+18%"
           />
           <Metric
             icon={<TrendingUp className="size-4" />}
             label="Чистая прибыль"
-            value={`${(income - expense).toLocaleString("ru-RU")} €`}
+            value={money(income - expense)}
             delta="+9%"
           />
           <Metric
@@ -893,3 +873,9 @@ function Metric({
     </div>
   );
 }
+const money = (value: number) =>
+  new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(value);

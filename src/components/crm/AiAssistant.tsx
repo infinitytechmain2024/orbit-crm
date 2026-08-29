@@ -10,7 +10,7 @@ type Msg = { id: string; role: "user" | "ai"; text: string };
 const suggestions = ["Создай задачу", "Покажи аналитику", "Что горит сегодня?"];
 
 export function AiAssistant() {
-  const { addTask, tasks, txs } = useCrm();
+  const { addTask, tasks, txs, currency } = useCrm();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -26,6 +26,12 @@ export function AiAssistant() {
   const [transcribing, setTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const money = (value: number) =>
+    new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(value);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,7 +50,7 @@ export function AiAssistant() {
     if (lower.includes("аналитик") || lower.includes("деньг") || lower.includes("финанс")) {
       const inc = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
       const exp = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-      return `За август: доход ${inc.toLocaleString("ru-RU")} €, расход ${exp.toLocaleString("ru-RU")} €, чистыми ${(inc - exp).toLocaleString("ru-RU")} €. Маржинальность ~${Math.round(((inc - exp) / inc) * 100)}%.`;
+      return `За август: доход ${money(inc)}, расход ${money(exp)}, чистыми ${money(inc - exp)}. Маржинальность ~${Math.round(((inc - exp) / inc) * 100)}%.`;
     }
     if (lower.includes("горит") || lower.includes("сегодня") || lower.includes("важн")) {
       const hot = tasks

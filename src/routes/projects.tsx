@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   CalendarDays,
@@ -36,6 +36,16 @@ import {
   type ProjectStatus,
 } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
+
+const CURRENCY_FLAGS: Record<string, string> = {
+  EUR: "🇪🇺",
+  USD: "🇺🇸",
+  GBP: "🇬🇧",
+  CHF: "🇨🇭",
+  PLN: "🇵🇱",
+  TRY: "🇹🇷",
+  UAH: "🇺🇦",
+};
 
 export const Route = createFileRoute("/projects")({
   head: () => ({
@@ -74,6 +84,7 @@ function ProjectsPage() {
   const {
     projects,
     members,
+    currency,
     isLoading,
     isMutating,
     error,
@@ -266,7 +277,15 @@ function ProjectsPage() {
                       <td className="px-4 py-3 text-right text-muted-foreground">
                         {project.budgetPlanned === null
                           ? "—"
-                          : `${project.budgetPlanned.toLocaleString("ru-RU")} ${project.currency}`}
+                          : (
+                            <span className="inline-flex items-center justify-end gap-2">
+                              <span>{project.budgetPlanned.toLocaleString("ru-RU")}</span>
+                              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/60 px-2 py-0.5 text-[11px] font-medium text-foreground">
+                                <span>{CURRENCY_FLAGS[project.currency] ?? "¤"}</span>
+                                <span>{project.currency}</span>
+                              </span>
+                            </span>
+                          )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -318,6 +337,7 @@ function ProjectsPage() {
         <ProjectEditor
           project={editorProject}
           members={members}
+          defaultCurrency={currency}
           isMutating={isMutating}
           onClose={() => {
             setIsCreating(false);
@@ -440,7 +460,11 @@ type ProjectDraft = {
   status: ProjectStatus;
 };
 
-function createDraft(project: Project | null, members: OrganizationMember[]): ProjectDraft {
+function createDraft(
+  project: Project | null,
+  members: OrganizationMember[],
+  defaultCurrency: string,
+): ProjectDraft {
   const firstMemberId = members[0]?.userId ?? "";
   return {
     budgetPlanned:
@@ -448,7 +472,7 @@ function createDraft(project: Project | null, members: OrganizationMember[]): Pr
         ? ""
         : String(project.budgetPlanned),
     color: project?.color ?? PROJECT_COLORS[0],
-    currency: project?.currency ?? "EUR",
+    currency: project?.currency ?? defaultCurrency,
     description: project?.description ?? "",
     dueDate: project?.dueDate ?? "",
     memberIds: project?.memberIds.length ? project.memberIds : firstMemberId ? [firstMemberId] : [],
@@ -463,6 +487,7 @@ function createDraft(project: Project | null, members: OrganizationMember[]): Pr
 function ProjectEditor({
   project,
   members,
+  defaultCurrency,
   isMutating,
   onClose,
   onCreate,
@@ -471,17 +496,23 @@ function ProjectEditor({
 }: {
   project: Project | null;
   members: OrganizationMember[];
+  defaultCurrency: string;
   isMutating: boolean;
   onClose: () => void;
   onCreate: (input: ProjectInput) => Promise<Project | null>;
   onUpdate: (id: string, patch: ProjectInput) => Promise<Project | null>;
   onArchive: (id: string) => Promise<Project | null>;
 }) {
-  const [draft, setDraft] = useState<ProjectDraft>(() => createDraft(project, members));
+  const [draft, setDraft] = useState<ProjectDraft>(() => createDraft(project, members, defaultCurrency));
   const [localError, setLocalError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [busy, setBusy] = useState(false);
   const isArchived = Boolean(project?.archivedAt);
+
+  useEffect(() => {
+    if (project) return;
+    setDraft((current) => (current.currency === defaultCurrency ? current : { ...current, currency: defaultCurrency }));
+  }, [defaultCurrency, project]);
 
   const setOwner = (ownerId: string) => {
     setDraft((current) => ({

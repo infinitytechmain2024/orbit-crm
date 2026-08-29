@@ -32,6 +32,18 @@ import { OrbitLogoFull, OrbitLogoIcon } from "./OrbitLogo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const CURRENCY_OPTIONS = ["EUR", "USD", "GBP", "CHF", "PLN", "TRY", "UAH"] as const;
+const CURRENCY_FLAGS: Record<(typeof CURRENCY_OPTIONS)[number], string> = {
+  EUR: "🇪🇺",
+  USD: "🇺🇸",
+  GBP: "🇬🇧",
+  CHF: "🇨🇭",
+  PLN: "🇵🇱",
+  TRY: "🇹🇷",
+  UAH: "🇺🇦",
+};
 
 const nav: {
   to: string;
@@ -73,7 +85,17 @@ export function AppShell({
   headerActions?: ReactNode;
   hideAssistant?: boolean;
 }) {
-  const { theme, toggleTheme, emails, error, flash, clearError, clearFlash } = useCrm();
+  const {
+    theme,
+    toggleTheme,
+    currency,
+    setCurrency,
+    emails,
+    error,
+    flash,
+    clearError,
+    clearFlash,
+  } = useCrm();
   const { user, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const unread = emails.filter((e) => e.unread).length;
@@ -285,6 +307,27 @@ export function AppShell({
             >
               <Bell className="size-4" />
             </button>
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-2/70 px-2 py-1 shadow-sm">
+              <span className="hidden text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:inline">
+                Валюта
+              </span>
+              <Select value={currency} onValueChange={(value) => setCurrency(value as typeof currency)}>
+                <SelectTrigger className="h-8 w-[118px] rounded-full border-0 bg-transparent px-2 text-xs shadow-none">
+                  <SelectValue placeholder="EUR" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCY_OPTIONS.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      <span className="flex items-center gap-2">
+                        <span className="text-sm">{CURRENCY_FLAGS[code]}</span>
+                        <span className="font-medium sm:hidden">{code}</span>
+                        <span className="hidden font-medium sm:inline">{code}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <button
               onClick={toggleTheme}
               aria-label="Переключить тему"

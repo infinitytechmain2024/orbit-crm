@@ -57,7 +57,7 @@ export const Route = createFileRoute("/finance")({
 });
 
 const COLORS = ["var(--acc-1)", "var(--acc-2)", "var(--acc-3)", "var(--acc-4)"];
-const DISPLAY_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "PLN", "TRY"] as const;
+const DISPLAY_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "PLN", "TRY", "UAH"] as const;
 type DisplayCurrency = (typeof DISPLAY_CURRENCIES)[number];
 
 function formatMoney(amount: number, currency: string) {
@@ -78,6 +78,8 @@ function FinancePage() {
     txs,
     stripeTransactions,
     stripeSubscriptions,
+    currency,
+    setCurrency,
     isLoading,
     addFinanceTransaction,
     deleteFinanceTransaction,
@@ -90,7 +92,6 @@ function FinancePage() {
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Прочее");
-  const [currency, setCurrency] = useState<DisplayCurrency>("EUR");
   const [rates, setRates] = useState<Record<DisplayCurrency, number>>({
     EUR: 1,
     USD: 1,
@@ -98,6 +99,7 @@ function FinancePage() {
     CHF: 1,
     PLN: 1,
     TRY: 1,
+    UAH: 1,
   });
   const [ratesStatus, setRatesStatus] = useState<"loading" | "ready" | "error">("loading");
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
@@ -126,6 +128,7 @@ function FinancePage() {
         CHF: 1,
         PLN: 1,
         TRY: 1,
+        UAH: 1,
       };
 
       for (const cube of cubes) {
@@ -147,7 +150,7 @@ function FinancePage() {
     void loadRates();
   }, []);
 
-  const selectedRate = rates[currency] || 1;
+  const selectedRate = rates[currency as DisplayCurrency] || 1;
   const toDisplayCurrency = (valueInEUR: number) =>
     currency === "EUR" ? valueInEUR : valueInEUR * selectedRate;
   const toBaseEUR = (valueInDisplayCurrency: number) =>
@@ -322,7 +325,7 @@ function FinancePage() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[140px_1.2fr_0.8fr_0.75fr_0.9fr_1fr_auto]">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[140px_1.2fr_0.8fr_0.9fr_1fr_auto]">
           <div className="space-y-2">
             <Label htmlFor="finance-type">Тип</Label>
             <Select
@@ -369,22 +372,6 @@ function FinancePage() {
             <p className="text-xs text-muted-foreground">
               Будет сохранено как {currency === "EUR" ? "EUR" : `≈ EUR по текущему курсу`}
             </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="finance-currency">Валюта</Label>
-            <Select value={currency} onValueChange={(value) => setCurrency(value as DisplayCurrency)}>
-              <SelectTrigger id="finance-currency">
-                <SelectValue placeholder="EUR" />
-              </SelectTrigger>
-              <SelectContent>
-                {DISPLAY_CURRENCIES.map((code) => (
-                  <SelectItem key={code} value={code}>
-                    {code}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">

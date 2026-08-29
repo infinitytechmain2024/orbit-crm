@@ -99,6 +99,8 @@ type Store = {
   clearFlash: () => void;
   theme: "dark" | "light";
   toggleTheme: () => void;
+  currency: "EUR" | "USD" | "GBP" | "CHF" | "PLN" | "TRY" | "UAH";
+  setCurrency: (currency: "EUR" | "USD" | "GBP" | "CHF" | "PLN" | "TRY" | "UAH") => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -139,12 +141,30 @@ export function CrmProvider({
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [currency, setCurrency] = useState<"EUR" | "USD" | "GBP" | "CHF" | "PLN" | "TRY" | "UAH">(
+    () => {
+      if (typeof window === "undefined") return "EUR";
+      const saved = localStorage.getItem("crm-currency");
+      return saved === "USD" ||
+        saved === "GBP" ||
+        saved === "CHF" ||
+        saved === "PLN" ||
+        saved === "TRY" ||
+        saved === "UAH"
+        ? saved
+        : "EUR";
+    },
+  );
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
     root.classList.toggle("light", theme === "light");
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("crm-currency", currency);
+  }, [currency]);
 
   const showFlash = useCallback((message: string) => {
     setFlash(message);
@@ -493,6 +513,8 @@ export function CrmProvider({
       clearFlash: () => setFlash(null),
       theme,
       toggleTheme: () => setTheme((current) => (current === "dark" ? "light" : "dark")),
+      currency,
+      setCurrency,
     }),
     [
       organization,
@@ -511,6 +533,7 @@ export function CrmProvider({
       flash,
       user,
       theme,
+      currency,
       load,
       runMutation,
       applySnapshot,

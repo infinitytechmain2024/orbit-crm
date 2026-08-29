@@ -40,6 +40,16 @@ const priorityTone: Record<Priority, string> = {
   low: "bg-acc-2/15 text-acc-2",
 };
 
+const CURRENCY_FLAGS: Record<string, string> = {
+  EUR: "🇪🇺",
+  USD: "🇺🇸",
+  GBP: "🇬🇧",
+  CHF: "🇨🇭",
+  PLN: "🇵🇱",
+  TRY: "🇹🇷",
+  UAH: "🇺🇦",
+};
+
 function TasksPage() {
   const { tasks, projects, moveTask, isLoading, isMutating } = useCrm();
   const navigate = useNavigate();
@@ -163,6 +173,10 @@ function TasksPage() {
                           {projects.find((project) => project.id === task.projectId)?.name ??
                             "Без проекта"}
                         </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/60 px-2 py-0.5 text-[11px] font-medium text-foreground">
+                          <span>{CURRENCY_FLAGS[task.currency?.toUpperCase?.() ?? ""] ?? "¤"}</span>
+                          <span>{task.currency?.toUpperCase?.() ?? "—"}</span>
+                        </span>
                         {task.due && <span className="ml-auto text-[11px]">{task.due}</span>}
                       </div>
                       {(task.checklistItems.length > 0 || task.files.length > 0) && (
@@ -243,7 +257,13 @@ function TasksPage() {
                       {task.assigneeId ? task.assigneeId.slice(0, 8) : "Не назначен"}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {PRIORITY_LABEL[task.priority]}
+                      <div className="flex items-center gap-2">
+                        <span>{PRIORITY_LABEL[task.priority]}</span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/60 px-2 py-0.5 text-[11px] font-medium text-foreground">
+                          <span>{CURRENCY_FLAGS[task.currency?.toUpperCase?.() ?? ""] ?? "¤"}</span>
+                          <span>{task.currency?.toUpperCase?.() ?? "—"}</span>
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{task.due ?? "—"}</td>
                     <td className="px-4 py-3">

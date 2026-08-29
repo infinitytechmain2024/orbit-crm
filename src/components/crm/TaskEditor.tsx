@@ -33,6 +33,16 @@ import { cn } from "@/lib/utils";
 import { authenticatedFetch } from "@/lib/api-client";
 import { Progress } from "@/components/ui/progress";
 
+const CURRENCY_FLAGS: Record<string, string> = {
+  EUR: "🇪🇺",
+  USD: "🇺🇸",
+  GBP: "🇬🇧",
+  CHF: "🇨🇭",
+  PLN: "🇵🇱",
+  TRY: "🇹🇷",
+  UAH: "🇺🇦",
+};
+
 type TaskAssistObjective = "plan_task" | "summarize_history" | "qa_review";
 
 type TaskDraft = {
@@ -663,13 +673,19 @@ export function TaskEditor({
           />
         </Field>
         <Field label="Валюта">
-          <input
-            value={draft.currency}
-            maxLength={3}
-            disabled={busy || isMutating}
-            onChange={(event) => setField("currency", event.target.value)}
-            className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm uppercase outline-none"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              value={draft.currency}
+              maxLength={3}
+              disabled={busy || isMutating}
+              onChange={(event) => setField("currency", event.target.value)}
+              className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm uppercase outline-none"
+            />
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-surface-2/60 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+              <span>{CURRENCY_FLAGS[draft.currency.trim().toUpperCase()] ?? "¤"}</span>
+              <span className="hidden sm:inline">{draft.currency.trim().toUpperCase() || "EUR"}</span>
+            </span>
+          </div>
         </Field>
       </div>
 
