@@ -111,6 +111,35 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+async function backendJson<T>(path: string, init: RequestInit, accessToken: string): Promise<T> {
+  const response = await fetch(`/api/backend${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+      ...(init.headers || {}),
+    },
+  });
+
+  const parsed = await readJsonOrText(response);
+  if (!response.ok) {
+    const data = isRecord(parsed.data) ? parsed.data : {};
+    const errorText =
+      typeof data.error === "string"
+        ? data.error
+        : typeof data.detail === "string"
+          ? data.detail
+          : parsed.text || `Request failed (${response.status})`;
+    throw new Error(errorText);
+  }
+
+  if (!parsed.data) {
+    throw new Error(parsed.text || "Backend returned an invalid response");
+  }
+
+  return parsed.data as T;
+}
+
 function LeadSearchPage() {
   const { user } = useAuth();
   const { organization } = useCrm();
@@ -149,16 +178,16 @@ function LeadSearchPage() {
     if (!user || !organization) return;
     setIsLoadingSaved(true);
     try {
-      const supabase = getSupabaseClient();
-      const { data, error: dbError } = await supabase
-        .from("saved_searches" as never)
-        .select("*")
-        .eq("organization_id", organization.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
+      const { data: sessionData } = await getSupabaseClient().auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Authentication is required");
 
-      if (dbError) throw dbError;
-      setSavedSearches((data as unknown as SavedSearch[]) || []);
+      const data = await backendJson<{ saved_searches: SavedSearch[] }>(
+        `/api/saved-searches?organization_id=${encodeURIComponent(organization.id)}&limit=20`,
+        { method: "GET" },
+        accessToken,
+      );
+      setSavedSearches(data.saved_searches || []);
     } catch (e) {
       console.error("Failed to load saved searches:", e);
     } finally {
@@ -260,22 +289,28 @@ function LeadSearchPage() {
     if (!user || !organization || leads.length === 0 || !lastFilters) return;
     setIsSaving(true);
     try {
+      const { data: sessionData } = await getSupabaseClient().auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Authentication is required");
       const name = `${lastFilters.niche} in ${lastFilters.city} — ${new Date().toLocaleDateString()}`;
 
-      const supabase = getSupabaseClient();
-      const { error: dbError } = await supabase.from("saved_searches" as never).insert({
-        organization_id: organization.id,
-        user_id: user.id,
-        name,
-        query_niche: lastFilters.niche,
-        query_city: lastFilters.city,
-        query_country: lastFilters.country,
-        query_limit: lastFilters.leadLimit,
-        results: leads,
-        total_found: leads.length,
-      } as never);
-
-      if (dbError) throw dbError;
+      await backendJson<{ saved_search: SavedSearch }>(
+        "/api/saved-searches",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            organization_id: organization.id,
+            name,
+            query_niche: lastFilters.niche,
+            query_city: lastFilters.city,
+            query_country: lastFilters.country,
+            query_limit: lastFilters.leadLimit,
+            results: leads,
+            total_found: leads.length,
+          }),
+        },
+        accessToken,
+      );
       toast.success("Search results saved");
 
       const inputs: LeadClientInput[] = leads.map((lead) => ({
@@ -322,12 +357,15 @@ function LeadSearchPage() {
 
   const deleteSavedSearch = async (id: string) => {
     try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase
-        .from("saved_searches" as never)
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
+      const { data: sessionData } = await getSupabaseClient().auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Authentication is required");
+
+      await backendJson<{ deleted: boolean }>(
+        `/api/saved-searches/${id}?organization_id=${encodeURIComponent(organization?.id || "")}`,
+        { method: "DELETE" },
+        accessToken,
+      );
       setSavedSearches((prev) => prev.filter((s) => s.id !== id));
       toast.success("Deleted");
     } catch (e) {

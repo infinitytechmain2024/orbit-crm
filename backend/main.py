@@ -23,7 +23,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -52,6 +52,7 @@ from backend.services.intent_executor import execute_intent, ExecutionResult
 from backend.services.workflow_worker import workflow_worker
 from backend.services.openclaw_client import openclaw_client
 from backend.services.lead_search_pipeline import lead_search_pipeline
+from backend.auth import require_workflow_actor, require_workflow_permission, WorkflowActor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -173,6 +174,21 @@ class UnifiedLeadSearchRequest(BaseModel):
     city: str
     country: str
     limit: int = 20
+
+
+class SavedSearchCreateRequest(BaseModel):
+    organization_id: str
+    name: str
+    query_niche: str
+    query_city: str
+    query_country: str
+    query_limit: int = 20
+    results: list[dict]
+    total_found: int = 0
+
+
+class SavedSearchDeleteRequest(BaseModel):
+    organization_id: str
 
 
 class AppointmentCreateRequest(BaseModel):
@@ -412,6 +428,87 @@ async def unified_lead_search(request: UnifiedLeadSearchRequest):
     except Exception as e:
         logger.error(f"Unified lead search failed: {e}")
         raise HTTPException(status_code=500, detail=f"Lead search failed: {str(e)}")
+
+
+@app.get("/api/saved-searches")
+async def list_saved_searches(
+    organization_id: str = Query(...),
+    limit: int = Query(default=20, ge=1, le=100),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
+    try:
+        await require_workflow_permission(organization_id, actor, "workflow.read")
+        from backend.services.supabase_client import supabase_service
+
+        result = (
+            supabase_service.client.table("saved_searches")
+            .select("*")
+            .eq("organization_id", organization_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return {"saved_searches": result.data or []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to list saved searches: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list saved searches: {str(e)}")
+
+
+@app.post("/api/saved-searches")
+async def create_saved_search(
+    request: SavedSearchCreateRequest,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
+    try:
+        await require_workflow_permission(request.organization_id, actor, "workflow.create")
+        from backend.services.supabase_client import supabase_service
+
+        result = supabase_service.client.table("saved_searches").insert({
+            "organization_id": request.organization_id,
+            "user_id": actor.user_id,
+            "name": request.name,
+            "query_niche": request.query_niche,
+            "query_city": request.query_city,
+            "query_country": request.query_country,
+            "query_limit": request.query_limit,
+            "results": request.results,
+            "total_found": request.total_found,
+        }).execute()
+        if result.data:
+            return {"saved_search": result.data[0]}
+        raise Exception("No data returned")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create saved search: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create saved search: {str(e)}")
+
+
+@app.delete("/api/saved-searches/{saved_search_id}")
+async def delete_saved_search(
+    saved_search_id: str,
+    organization_id: str = Query(...),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
+    try:
+        await require_workflow_permission(organization_id, actor, "workflow.create")
+        from backend.services.supabase_client import supabase_service
+
+        result = (
+            supabase_service.client.table("saved_searches")
+            .delete()
+            .eq("id", saved_search_id)
+            .eq("organization_id", organization_id)
+            .execute()
+        )
+        return {"deleted": True, "data": result.data or []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete saved search: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete saved search: {str(e)}")
 
 
 async def _execute_lead_search(

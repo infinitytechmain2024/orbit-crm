@@ -22,6 +22,7 @@ from backend.services.ai_providers import (
 )
 from backend.services.ai_workflow_store import AIWorkflowStore, ai_workflow_store
 from backend.services.openclaw_client import openclaw_client, OpenClawExecutionResult
+from backend.services import coding_executor
 
 logger = logging.getLogger(__name__)
 
@@ -1495,6 +1496,98 @@ class OrbitCommander:
         await self.create_event(task, "review", f"{agent['role']} передал результат QA Agent (via OpenClaw).")
         await self.enqueue_job(run, task, "qa", payload={"agent_run_id": agent_run["id"]})
 
+    async def _finalize_coding_result(
+        self,
+        task: dict[str, Any],
+        agent: dict[str, Any],
+        agent_run: dict[str, Any],
+        run: dict[str, Any],
+        coding_result: "coding_executor.CodingExecutionResult",
+    ) -> None:
+        """Process a coding_executor run: either a real PR, or a retryable failure."""
+        if not coding_result.success:
+            await self.store.update(
+                "agent_runs",
+                organization_id=task["organization_id"],
+                filters={"id": f"eq.{agent_run['id']}"},
+                payload={
+                    "status": "failed",
+                    "output_snapshot": {"error": coding_result.error, "steps": len(coding_result.steps)},
+                },
+            )
+            revisions = int(task.get("attempt_count") or 0)
+            max_revisions = min(int(task.get("max_attempts") or 3), settings.AI_WORKFLOW_MAX_QA_REVISIONS + 1)
+            retry_allowed = revisions < max_revisions
+            task = (
+                await self.store.update(
+                    "ai_tasks",
+                    organization_id=task["organization_id"],
+                    filters={"id": f"eq.{task['id']}"},
+                    payload={
+                        "status": "revisions_requested" if retry_allowed else "blocked",
+                        "blocker_reason": (coding_result.error or "Coding executor не смог выполнить задачу")[:2000],
+                    },
+                )
+            )[0]
+            await self.create_event(
+                task,
+                "coding_executor_failed",
+                "Coding executor не справился, будет повторная попытка."
+                if retry_allowed
+                else "Coding executor исчерпал попытки.",
+                metadata={"error": coding_result.error, "steps": len(coding_result.steps), "retry": retry_allowed},
+            )
+            if retry_allowed:
+                await self.enqueue_job(run, task, "execute")
+            else:
+                await self._block_workflow(run, task, coding_result.error or "Coding executor не справился с задачей")
+            return
+
+        result = {
+            "mode": "coding_executor",
+            "summary": coding_result.summary or f"Открыт PR: {coding_result.pr_url}",
+            "pr_url": coding_result.pr_url,
+            "branch": coding_result.branch,
+            "commit_sha": coding_result.commit_sha,
+        }
+        artifact = await self._create_artifact(
+            task,
+            f"PR — {task['title']}"[:240],
+            "pull_request",
+            {"agent_run_id": agent_run["id"], "pr_url": coding_result.pr_url, "branch": coding_result.branch},
+        )
+        task = (
+            await self.store.update(
+                "ai_tasks",
+                organization_id=task["organization_id"],
+                filters={"id": f"eq.{task['id']}"},
+                payload={"status": "review", "qa_status": "running", "result": result},
+            )
+        )[0]
+        await self.store.update(
+            "agent_runs",
+            organization_id=task["organization_id"],
+            filters={"id": f"eq.{agent_run['id']}"},
+            payload={
+                "status": "review",
+                "provider": "coding_executor",
+                "output_snapshot": {"result": result, "artifact_id": artifact["id"]},
+            },
+        )
+        await self.store.update(
+            "ai_agents",
+            organization_id=task["organization_id"],
+            filters={"id": f"eq.{agent['id']}"},
+            payload={"status": "review"},
+        )
+        await self.create_event(
+            task,
+            "pull_request_opened",
+            f"{agent['role']} открыл Pull Request: {coding_result.pr_url}",
+            metadata={"pr_url": coding_result.pr_url, "branch": coding_result.branch},
+        )
+        await self.enqueue_job(run, task, "qa", payload={"agent_run_id": agent_run["id"]})
+
     async def execute_specialist(self, task: dict[str, Any], run: dict[str, Any]) -> None:
         task = await self.store.one("ai_tasks", organization_id=task["organization_id"], row_id=task["id"])
         if task["status"] in ("cancelled", "paused", "done"):
@@ -1537,6 +1630,23 @@ class OrbitCommander:
             )
         )[0]
         await self.create_event(task, "started", f"{agent['role']} начал выполнение этапа.", agent_id=agent["id"])
+
+        # ── Coding executor path (real git branch + PR for engineering roles) ──
+        agent_role = str(agent.get("role") or "")
+        mapping = OPENCLAW_AGENT_MAP.get(agent_role) or {}
+        if "github" in (mapping.get("allowed_tools") or []):
+            try:
+                coding_result = await coding_executor.run(task, agent)
+            except coding_executor.CodingExecutorUnavailable as exc:
+                coding_result = None
+                await self.create_event(
+                    task,
+                    "coding_executor_unavailable",
+                    f"Coding executor недоступен ({exc}), используется OpenClaw/model chain.",
+                )
+            if coding_result is not None:
+                await self._finalize_coding_result(task, agent, agent_run, run, coding_result)
+                return
 
         # ── OpenClaw execution path ──────────────────────────────────
         openclaw_result = await self._try_openclaw_execute(task, agent, run)

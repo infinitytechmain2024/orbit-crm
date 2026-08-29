@@ -59,6 +59,7 @@ class ProviderResult:
     content: str
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    tool_calls: tuple[dict[str, Any], ...] = ()
 
 
 class ProviderUnavailable(RuntimeError):
@@ -78,10 +79,12 @@ class OpenAICompatibleProvider:
     async def complete(
         self,
         model: str,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         *,
         temperature: float = 0.2,
         max_tokens: int = 4096,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
     ) -> ProviderResult:
         if not self.configured:
             raise ProviderUnavailable(f"Provider {self.name} is not configured")
@@ -93,21 +96,34 @@ class OpenAICompatibleProvider:
                 timeout=75.0,
                 max_retries=0,
             )
-            completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=False,
-            )
+            kwargs: dict[str, Any] = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": False,
+            }
+            if tools:
+                kwargs["tools"] = tools
+                kwargs["tool_choice"] = tool_choice or "auto"
+            completion = client.chat.completions.create(**kwargs)
             message = completion.choices[0].message
             usage = getattr(completion, "usage", None)
+            tool_calls = tuple(
+                {
+                    "id": call.id,
+                    "name": call.function.name,
+                    "arguments": call.function.arguments,
+                }
+                for call in (getattr(message, "tool_calls", None) or [])
+            )
             return ProviderResult(
                 provider=self.name,
                 model=model,
                 content=_coerce_text(getattr(message, "content", "") or ""),
                 prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
                 completion_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
+                tool_calls=tool_calls,
             )
 
         return await asyncio.to_thread(request)

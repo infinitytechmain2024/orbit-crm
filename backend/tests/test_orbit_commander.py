@@ -14,6 +14,7 @@ from backend.services.orbit_commander import (
     _project_match_score,
 )
 from backend.services.openclaw_client import OpenClawHealth
+from backend.services.coding_executor import CodingExecutorUnavailable
 
 
 class FakeStore:
@@ -173,9 +174,14 @@ class OrbitCommanderQATests(unittest.IsolatedAsyncioTestCase):
 
 
 class OrbitCommanderEndToEndTests(unittest.IsolatedAsyncioTestCase):
+    @patch("backend.services.orbit_commander.coding_executor.run", new_callable=AsyncMock)
     @patch("backend.services.orbit_commander.openclaw_client.health", new_callable=AsyncMock)
-    async def test_finance_scenario_reaches_completed_only_after_final_qa(self, health_mock):
+    async def test_finance_scenario_reaches_completed_only_after_final_qa(self, health_mock, coding_executor_mock):
         health_mock.return_value = OpenClawHealth(status="offline", gateway=False)
+        # Engineering roles now try coding_executor first — force it "unavailable"
+        # here so this test stays offline and hits the local model-chain fallback,
+        # exactly like before coding_executor existed.
+        coding_executor_mock.side_effect = CodingExecutorUnavailable("not configured in tests")
         organization_id = "org-1"
         user_id = "user-1"
         root = {

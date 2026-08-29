@@ -13,41 +13,48 @@ export const Route = createFileRoute("/api/lead-search")({
 async function proxyLeadSearch(request: Request): Promise<Response> {
   try {
     const body = await request.json();
-    const res = await fetch(`${API_URL.replace(/\/$/, "")}/api/lead-search`, {
+    const headers = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+
+    const direct = await fetch(`${API_URL.replace(/\/$/, "")}/api/lead-search`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(120000),
+    });
+
+    const directResult = await readLeadSearchResponse(direct);
+    if (directResult.ok) {
+      return directResult.response;
+    }
+
+    const fallback = await fetch(new URL("/api/backend/api/lead-search", request.url), {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        ...headers,
+        authorization: request.headers.get("authorization") || "",
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(120000),
     });
 
-    const text = await res.text();
-    const contentType = res.headers.get("content-type") || "";
-    const looksLikeJson =
-      contentType.includes("application/json") ||
-      text.trimStart().startsWith("{") ||
-      text.trimStart().startsWith("[");
-
-    if (!looksLikeJson) {
-      return Response.json(
-        {
-          error: "Lead search backend returned an unexpected response",
-          upstreamStatus: res.status,
-          upstreamContentType: contentType || null,
-          detail: text.slice(0, 500),
-          leads: [],
-          total: 0,
-        },
-        { status: 502 },
-      );
+    const fallbackResult = await readLeadSearchResponse(fallback);
+    if (fallbackResult.ok) {
+      return fallbackResult.response;
     }
 
-    return new Response(text, {
-      status: res.status,
-      headers: { "Content-Type": contentType || "application/json" },
-    });
+    return Response.json(
+      {
+        error: "Lead search backend returned an unexpected response",
+        direct: directResult.error,
+        fallback: fallbackResult.error,
+        leads: [],
+        total: 0,
+      },
+      { status: 502 },
+    );
   } catch (error) {
     return Response.json(
       {
@@ -58,4 +65,42 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
       { status: 500 },
     );
   }
+}
+
+async function readLeadSearchResponse(response: Response): Promise<
+  | { ok: true; response: Response }
+  | {
+      ok: false;
+      error: {
+        status: number;
+        contentType: string | null;
+        detail: string;
+      };
+    }
+> {
+  const text = await response.text();
+  const contentType = response.headers.get("content-type");
+  const looksLikeJson =
+    (contentType?.includes("application/json") ?? false) ||
+    text.trimStart().startsWith("{") ||
+    text.trimStart().startsWith("[");
+
+  if (!looksLikeJson) {
+    return {
+      ok: false,
+      error: {
+        status: response.status,
+        contentType,
+        detail: text.slice(0, 500),
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    response: new Response(text, {
+      status: response.status,
+      headers: { "Content-Type": contentType || "application/json" },
+    }),
+  };
 }
