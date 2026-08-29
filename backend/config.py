@@ -149,6 +149,12 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = Field(default="", validation_alias="STRIPE_PUBLISHABLE_KEY")
     STRIPE_WEBHOOK_SECRET: str = Field(default="", validation_alias="STRIPE_WEBHOOK_SECRET")
 
+    # Self-development autopilot: coding_executor git/PR automation.
+    # Fine-grained PAT scoped to Contents + Pull requests (+ Administration only
+    # once project-scoped repo auto-creation ships). Never logged, never sent to the frontend.
+    GITHUB_TOKEN: str = Field(default="", validation_alias="GITHUB_TOKEN")
+    GITHUB_REPO: str = Field(default="", validation_alias="GITHUB_REPO")
+
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":
         expected = self.EXPECTED_SUPABASE_PROJECT_REF.strip()

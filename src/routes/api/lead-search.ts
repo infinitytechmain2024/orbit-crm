@@ -15,13 +15,16 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
     const body = await request.json();
     const res = await fetch(`${API_URL.replace(/\/$/, "")}/api/lead-search`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(120000),
     });
 
     const text = await res.text();
-    const contentType = res.headers.get("Content-Type") || "";
+    const contentType = res.headers.get("content-type") || "";
     const looksLikeJson =
       contentType.includes("application/json") ||
       text.trimStart().startsWith("{") ||
@@ -30,7 +33,9 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
     if (!looksLikeJson) {
       return Response.json(
         {
-          error: "Lead search backend returned a non-JSON response",
+          error: "Lead search backend returned an unexpected response",
+          upstreamStatus: res.status,
+          upstreamContentType: contentType || null,
           detail: text.slice(0, 500),
           leads: [],
           total: 0,
