@@ -18,6 +18,7 @@ import {
   createTaskComment as createRemoteTaskComment,
   deleteChecklistItem as deleteRemoteChecklistItem,
   deleteTask,
+  deleteFinanceTransaction as deleteRemoteFinanceTransaction,
   fetchTaskById,
   getTaskFileSignedUrl,
   loadCrmWorkspace,
@@ -27,6 +28,8 @@ import {
   uploadTaskFile as uploadRemoteTaskFile,
   type CrmSnapshot,
   type FinanceTransactionInput,
+  type FinanceTransactionUpdateInput,
+  updateFinanceTransaction as updateRemoteFinanceTransaction,
 } from "@/lib/crm-repository";
 import { fetchEmails } from "@/lib/agentmail";
 import {
@@ -83,6 +86,11 @@ type Store = {
   deleteChecklistItem: (taskId: string, itemId: string) => Promise<boolean>;
   addTaskComment: (taskId: string, body: string) => Promise<TaskComment | null>;
   addFinanceTransaction: (input: FinanceTransactionInput) => Promise<Tx | null>;
+  updateFinanceTransaction: (
+    id: string,
+    input: FinanceTransactionUpdateInput,
+  ) => Promise<Tx | null>;
+  deleteFinanceTransaction: (id: string) => Promise<boolean>;
   uploadTaskFile: (taskId: string, file: File) => Promise<TaskFile | null>;
   openTaskFile: (storagePath: string) => Promise<string | null>;
   markRead: (id: string) => void;
@@ -439,6 +447,26 @@ export function CrmProvider({
           setTxs((prev) => [tx, ...prev]);
           return tx;
         });
+      },
+      updateFinanceTransaction: async (id, input) => {
+        if (!user || !organization) return null;
+
+        return runMutation("Финансовая операция обновлена", async () => {
+          const tx = await updateRemoteFinanceTransaction(user.id, organization.id, id, input);
+          setTxs((prev) => prev.map((item) => (item.id === tx.id ? tx : item)));
+          return tx;
+        });
+      },
+      deleteFinanceTransaction: async (id) => {
+        if (!user || !organization) return false;
+
+        const deleted = await runMutation("Финансовая операция удалена", async () => {
+          await deleteRemoteFinanceTransaction(user.id, organization.id, id);
+          setTxs((prev) => prev.filter((item) => item.id !== id));
+          return true;
+        });
+
+        return deleted ?? false;
       },
       uploadTaskFile: async (taskId, file) => {
         if (!user || !organization) return null;

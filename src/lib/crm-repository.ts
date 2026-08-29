@@ -90,6 +90,8 @@ export type FinanceTransactionInput = {
   taskId?: string | null;
 };
 
+export type FinanceTransactionUpdateInput = Partial<FinanceTransactionInput>;
+
 export type TaskPage = {
   tasks: Task[];
   total: number;
@@ -584,6 +586,44 @@ function normalizeFinanceTransactionInput(input: FinanceTransactionInput): {
   };
 }
 
+function normalizeFinanceTransactionUpdateInput(
+  input: FinanceTransactionUpdateInput,
+  fallback: FinanceTransactionRow,
+): {
+  amount: number;
+  category: string;
+  label: string;
+  occurredOn: string;
+  taskId: string | null;
+  type: "income" | "expense";
+} {
+  const label = (input.label ?? fallback.label).trim();
+  if (!label) throw new Error("Название операции обязательно.");
+
+  const category = (input.category ?? fallback.category).trim();
+  if (!category) throw new Error("Категория операции обязательна.");
+
+  const amount = Number(input.amount ?? fallback.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Сумма должна быть положительным числом.");
+  }
+
+  const occurredOn = /^\d{4}-\d{2}-\d{2}$/.test(input.occurredOn ?? fallback.occurred_on)
+    ? (input.occurredOn ?? fallback.occurred_on)
+    : todayIsoDate();
+
+  const type = input.type ?? fallback.type;
+
+  return {
+    amount: Math.round(amount * 100) / 100,
+    category,
+    label,
+    occurredOn,
+    taskId: input.taskId ?? fallback.task_id ?? null,
+    type,
+  };
+}
+
 function mapStripeCustomer(row: StripeCustomerRow): StripeCustomer {
   return {
     id: row.id,
@@ -994,6 +1034,81 @@ export async function createFinanceTransaction(
     .single();
   if (error) throw toMessage("Не удалось создать финансовую операцию", error.message);
   return mapTx(ensureData(data, "Supabase не вернул созданную финансовую операцию."));
+}
+
+export async function updateFinanceTransaction(
+  userId: string,
+  organizationId: string,
+  transactionId: string,
+  input: FinanceTransactionUpdateInput,
+): Promise<Tx> {
+  const supabase = getSupabaseClient();
+  const { data: existing, error: existingError } = await supabase
+    .from("finance_transactions")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("id", transactionId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw toMessage("Не удалось загрузить финансовую операцию", existingError.message);
+  }
+  if (!existing) throw new Error("Финансовая операция не найдена.");
+  if (existing.created_by !== userId) {
+    throw new Error("Редактировать можно только свои финансовые операции.");
+  }
+
+  const normalized = normalizeFinanceTransactionUpdateInput(input, existing);
+  const payload: TablesUpdate<"finance_transactions"> = {
+    label: normalized.label,
+    amount: normalized.amount,
+    category: normalized.category,
+    type: normalized.type,
+    occurred_on: normalized.occurredOn,
+    task_id: normalized.taskId,
+  };
+
+  const { data, error } = await supabase
+    .from("finance_transactions")
+    .update(payload)
+    .eq("organization_id", organizationId)
+    .eq("id", transactionId)
+    .select()
+    .single();
+
+  if (error) throw toMessage("Не удалось обновить финансовую операцию", error.message);
+  return mapTx(ensureData(data, "Supabase не вернул обновлённую финансовую операцию."));
+}
+
+export async function deleteFinanceTransaction(
+  userId: string,
+  organizationId: string,
+  transactionId: string,
+): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data: existing, error: existingError } = await supabase
+    .from("finance_transactions")
+    .select("id, created_by")
+    .eq("organization_id", organizationId)
+    .eq("id", transactionId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw toMessage("Не удалось загрузить финансовую операцию", existingError.message);
+  }
+  if (!existing) throw new Error("Финансовая операция не найдена.");
+  if (existing.created_by !== userId) {
+    throw new Error("Удалять можно только свои финансовые операции.");
+  }
+
+  const { error } = await supabase
+    .from("finance_transactions")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("id", transactionId);
+
+  if (error) throw toMessage("Не удалось удалить финансовую операцию", error.message);
+  return true;
 }
 
 export async function fetchStripeTransactions(

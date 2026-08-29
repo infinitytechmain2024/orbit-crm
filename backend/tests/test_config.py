@@ -34,6 +34,18 @@ class SettingsTests(unittest.TestCase):
             configured = Settings(_env_file=None)
         self.assertEqual(configured.EXPECTED_SUPABASE_PROJECT_REF, "currentproject")
 
+    def test_skips_validation_when_expected_project_ref_not_set(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "SUPABASE_URL": "https://anyproject.supabase.co",
+                "EXPECTED_SUPABASE_PROJECT_REF": "",
+            },
+            clear=False,
+        ):
+            configured = Settings(_env_file=None)
+        self.assertEqual(configured.SUPABASE_URL, "https://anyproject.supabase.co")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,11 +15,22 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight, CreditCard, Plus } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
 import { StripePaymentForm } from "@/components/crm/StripePaymentForm";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -48,10 +59,18 @@ export const Route = createFileRoute("/finance")({
 const COLORS = ["var(--acc-1)", "var(--acc-2)", "var(--acc-3)", "var(--acc-4)"];
 
 function FinancePage() {
-  const { txs, stripeTransactions, stripeSubscriptions, isLoading, addFinanceTransaction } =
-    useCrm();
+  const {
+    txs,
+    stripeTransactions,
+    stripeSubscriptions,
+    isLoading,
+    addFinanceTransaction,
+    deleteFinanceTransaction,
+    updateFinanceTransaction,
+  } = useCrm();
   const [view, setView] = useState<"area" | "bar">("area");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [entryType, setEntryType] = useState<"income" | "expense">("income");
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
@@ -62,6 +81,7 @@ function FinancePage() {
     return local.toISOString().slice(0, 10);
   });
   const [savingFinance, setSavingFinance] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const allTransactions = useMemo(() => {
     const manual = txs.map((t) => ({
@@ -141,23 +161,60 @@ function FinancePage() {
     setShowPaymentForm(false);
   };
 
+  const resetFinanceForm = () => {
+    setEditingId(null);
+    setEntryType("income");
+    setLabel("");
+    setAmount("");
+    setCategory("Прочее");
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    setOccurredOn(local.toISOString().slice(0, 10));
+  };
+
   const submitManualTransaction = async () => {
-    if (!addFinanceTransaction || savingFinance) return;
+    if ((!addFinanceTransaction && !updateFinanceTransaction) || savingFinance) return;
 
     setSavingFinance(true);
-    const saved = await addFinanceTransaction({
+    const payload = {
       label: label.trim(),
       amount: Number(amount),
       type: entryType,
       category: category.trim(),
       occurredOn,
       taskId: null,
-    });
+    };
+    const saved = editingId
+      ? await updateFinanceTransaction?.(editingId, payload)
+      : await addFinanceTransaction?.(payload);
     setSavingFinance(false);
     if (!saved) return;
-    setLabel("");
-    setAmount("");
-    setCategory(entryType === "income" ? "Доход" : "Расход");
+    resetFinanceForm();
+  };
+
+  const beginEdit = (transaction: {
+    id: string;
+    label: string;
+    amount: number;
+    type: "income" | "expense";
+    category: string;
+    dateIso: string;
+    source: "manual" | "stripe";
+  }) => {
+    if (transaction.source !== "manual") return;
+    setEditingId(transaction.id);
+    setEntryType(transaction.type);
+    setLabel(transaction.label);
+    setAmount(String(transaction.amount));
+    setCategory(transaction.category);
+    setOccurredOn(transaction.dateIso);
+  };
+
+  const finishDelete = async () => {
+    if (!deletingId) return;
+    await deleteFinanceTransaction?.(deletingId);
+    setDeletingId(null);
+    if (editingId === deletingId) resetFinanceForm();
   };
 
   return (
@@ -254,14 +311,26 @@ function FinancePage() {
           </div>
 
           <div className="flex items-end">
-            <Button
-              className="w-full"
-              onClick={submitManualTransaction}
-              disabled={savingFinance || !label.trim() || !amount || !category.trim()}
-            >
-              <Plus className="mr-2 size-4" />
-              {savingFinance ? "Сохраняю..." : "Добавить"}
-            </Button>
+            <div className="flex w-full gap-2">
+              <Button
+                className="flex-1"
+                onClick={submitManualTransaction}
+                disabled={savingFinance || !label.trim() || !amount || !category.trim()}
+              >
+                <Plus className="mr-2 size-4" />
+                {savingFinance ? "Сохраняю..." : editingId ? "Сохранить" : "Добавить"}
+              </Button>
+              {editingId && (
+                <Button
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={resetFinanceForm}
+                  disabled={savingFinance}
+                >
+                  Отмена
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -454,6 +523,7 @@ function FinancePage() {
               <th className="px-4 py-3">Категория</th>
               <th className="px-4 py-3">Дата</th>
               <th className="px-4 py-3 text-right">Сумма</th>
+              <th className="px-4 py-3 text-right">Действия</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -478,11 +548,33 @@ function FinancePage() {
                   {t.type === "income" ? "+" : "−"}
                   {t.amount.toLocaleString("ru-RU")} €
                 </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {t.source === "manual" ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => beginEdit(t)}>
+                          Изменить
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-acc-4 hover:text-acc-4"
+                          onClick={() => setDeletingId(t.id)}
+                        >
+                          <Trash2 className="mr-1.5 size-4" />
+                          Удалить
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Только Stripe</span>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
             {!allTransactions.length && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Операций пока нет.
                 </td>
               </tr>
@@ -490,6 +582,27 @@ function FinancePage() {
           </tbody>
         </table>
       </section>
+
+      <AlertDialog open={Boolean(deletingId)} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent className="border-border bg-surface">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить платеж?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите это удалить? Действие нельзя будет отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={savingFinance}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void finishDelete()}
+              className="bg-acc-4 text-white hover:bg-acc-4/90"
+              disabled={savingFinance}
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
