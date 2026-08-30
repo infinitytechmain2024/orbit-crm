@@ -217,6 +217,25 @@ async def review_diff(
 
 # ── phase 4: end-to-end browser self test ────────────────────────────
 
+def _cache_root() -> Path | None:
+    """Directory for the shared npm/Playwright caches, created on demand.
+
+    Returns None if it cannot be created — a missing cache must degrade to a
+    slow run, never to a failed one.
+    """
+    configured = (settings.AUTOPILOT_CACHE_DIR or "").strip()
+    if not configured:
+        return None
+    root = Path(configured)
+    try:
+        (root / "npm").mkdir(parents=True, exist_ok=True)
+        (root / "playwright").mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        logger.warning("autopilot: cache dir %s unusable (%s), falling back to a cold run", root, exc)
+        return None
+    return root
+
+
 def e2e_environment() -> dict[str, str]:
     """Minimal environment for the browser test.
 
@@ -234,7 +253,21 @@ def e2e_environment() -> dict[str, str]:
         "VITE_SUPABASE_URL": settings.SUPABASE_URL,
         "VITE_SUPABASE_PUBLISHABLE_KEY": settings.AUTOPILOT_E2E_SUPABASE_ANON_KEY,
     }
-    for key in ("TMPDIR", "LANG", "PLAYWRIGHT_BROWSERS_PATH", "npm_config_cache"):
+    for key in ("TMPDIR", "LANG"):
+        value = os.environ.get(key)
+        if value:
+            env[key] = value
+
+    # Persistent caches. Each run works in a throwaway clone, so without a cache
+    # that outlives it every run re-downloads the whole dependency tree and a
+    # browser — by far the largest slice of the verification budget. An
+    # explicitly exported value from the host still wins, so an operator can
+    # point these somewhere else.
+    cache_root = _cache_root()
+    if cache_root is not None:
+        env.setdefault("npm_config_cache", str(cache_root / "npm"))
+        env.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(cache_root / "playwright"))
+    for key in ("PLAYWRIGHT_BROWSERS_PATH", "npm_config_cache"):
         value = os.environ.get(key)
         if value:
             env[key] = value
@@ -348,13 +381,23 @@ async def run_browser_self_test(
             steps=steps,
         )
 
-    install = await _run_step(
-        "install",
-        ["npm", "install", "--no-audit", "--no-fund"],
-        workdir,
-        budget.slice_for(INSTALL_TIMEOUT_SECONDS),
-        env,
+    # `npm ci` is both faster and deterministic, but it requires a lockfile that
+    # agrees with package.json — fall back rather than fail the phase over it.
+    install_cmd = (
+        ["npm", "ci", "--no-audit", "--no-fund"]
+        if (workdir / "package-lock.json").is_file()
+        else ["npm", "install", "--no-audit", "--no-fund"]
     )
+    install = await _run_step("install", install_cmd, workdir, budget.slice_for(INSTALL_TIMEOUT_SECONDS), env)
+    if not install["ok"] and install_cmd[1] == "ci" and not budget.exhausted(MIN_BUDGET_SECONDS):
+        logger.info("autopilot: npm ci failed, retrying with npm install")
+        install = await _run_step(
+            "install",
+            ["npm", "install", "--no-audit", "--no-fund"],
+            workdir,
+            budget.slice_for(INSTALL_TIMEOUT_SECONDS),
+            env,
+        )
     steps.append(install)
     if not install["ok"]:
         return VerificationResult(

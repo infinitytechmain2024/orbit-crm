@@ -191,6 +191,14 @@ class Settings(BaseSettings):
         default="",
         validation_alias="AUTOPILOT_E2E_SUPABASE_ANON_KEY",
     )
+    # Persistent npm/Playwright caches shared across runs. Every run works in a
+    # throwaway clone, so without this each one re-downloads the dependency tree
+    # and a browser — the dominant cost of the verification phase. Lives under
+    # the already-git-ignored `.selfdev/`.
+    AUTOPILOT_CACHE_DIR: str = Field(
+        default=str(PROJECT_ROOT / ".selfdev" / "cache"),
+        validation_alias="AUTOPILOT_CACHE_DIR",
+    )
 
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":

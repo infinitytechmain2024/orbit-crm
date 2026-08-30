@@ -326,3 +326,80 @@ class DeliveryFailureTests(unittest.IsolatedAsyncioTestCase):
             await coding_executor._find_open_pull_request(BrokenClient(), "acme/repo", "autopilot/x"),
             "",
         )
+
+
+class ChangedFileCheckTests(unittest.IsolatedAsyncioTestCase):
+    """The repository carries pre-existing failures (141 tsc diagnostics and 3
+    failing tests at the time of writing). Handing the model that wall of noise
+    makes "did I break something?" unanswerable, so a check reports the delta."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workdir = Path(self._tmp.name)
+        (self.workdir / "node_modules").mkdir()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    async def test_unknown_check_is_rejected_with_the_valid_names(self):
+        out = await coding_executor._run_check(self.workdir, "vibes")
+        self.assertIn("неизвестная проверка", out)
+        self.assertIn("typescript", out)
+
+    async def test_missing_node_modules_explains_itself(self):
+        import shutil
+
+        shutil.rmtree(self.workdir / "node_modules")
+        out = await coding_executor._run_check(self.workdir, "typescript")
+        self.assertIn("node_modules", out)
+
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_nothing_changed_means_nothing_to_check(self, changed):
+        changed.return_value = set()
+        self.assertIn("не изменил", await coding_executor._run_check(self.workdir, "typescript"))
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_only_diagnostics_in_changed_files_are_reported(self, changed, run_mock):
+        changed.return_value = {"src/mine.tsx"}
+        run_mock.return_value = (
+            1,
+            "src/mine.tsx(10,5): error TS2532: Object is possibly 'undefined'.\n"
+            "src/theirs.tsx(1,1): error TS4111: pre-existing\n"
+            "src/also-theirs.tsx(2,2): error TS2322: pre-existing\n",
+            "",
+        )
+        out = await coding_executor._run_check(self.workdir, "typescript")
+
+        self.assertIn("src/mine.tsx(10,5)", out)
+        self.assertNotIn("src/theirs.tsx", out)
+        self.assertNotIn("src/also-theirs.tsx", out)
+        # The ambient total is still stated, so the number is not mysterious.
+        self.assertIn("1 замечани", out)
+        self.assertIn("3", out)
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_clean_delta_says_so_even_when_the_project_is_dirty(self, changed, run_mock):
+        changed.return_value = {"src/mine.tsx"}
+        run_mock.return_value = (1, "src/theirs.tsx(1,1): error TS4111: pre-existing\n", "")
+        out = await coding_executor._run_check(self.workdir, "typescript")
+        self.assertIn("чисто", out)
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_absolute_paths_in_output_still_match_changed_files(self, changed, run_mock):
+        changed.return_value = {"src/mine.tsx"}
+        run_mock.return_value = (1, f"{self.workdir}/src/mine.tsx(4,1): error TS2532: mine\n", "")
+        self.assertIn("mine", await coding_executor._run_check(self.workdir, "typescript"))
+        self.assertIn("1 замечани", await coding_executor._run_check(self.workdir, "typescript"))
+
+
+class CheckToolExposureTests(unittest.TestCase):
+    def test_e2e_and_lint_commands_are_runnable_by_the_executor(self):
+        for prefix in ("npx playwright test", "npx eslint", "npm run test:e2e"):
+            self.assertIn(prefix, coding_executor.ALLOWED_COMMAND_PREFIXES)
+
+    def test_check_changes_is_offered_to_the_model(self):
+        names = {tool["function"]["name"] for tool in coding_executor.TOOLS}
+        self.assertIn("check_changes", names)

@@ -108,12 +108,38 @@ ALLOWED_COMMAND_PREFIXES = (
     "npm run lint",
     "npm run test",
     "npx tsc --noEmit",
+    "npx eslint",
+    "npx playwright test",
+    "npm run test:e2e",
     "pytest",
     "python -m pytest",
     "python3 -m pytest",
     "git status",
     "git diff",
 )
+
+# Checks `check_changes` can run, and how to read their output. `path_group`
+# names the regex group holding the file a diagnostic belongs to.
+CHECKS: dict[str, dict[str, Any]] = {
+    "typescript": {
+        "command": ["npx", "tsc", "--noEmit"],
+        # src/routes/tasks.tsx(160,36): error TS2532: ...
+        "diagnostic": re.compile(r"^(?P<path>[^\s(]+)\((?P<line>\d+),\d+\):"),
+        "needs": "node_modules",
+    },
+    "lint": {
+        "command": ["npx", "eslint", "."],
+        # eslint prints the file on its own line, then indented messages.
+        "diagnostic": re.compile(r"^(?P<path>[^\s]+\.(?:ts|tsx|js|jsx|mjs|cjs))$"),
+        "needs": "node_modules",
+    },
+    "tests": {
+        "command": ["python3", "-m", "pytest", "-q", "backend/tests"],
+        "diagnostic": None,
+        "needs": None,
+    },
+}
+MAX_CHECK_LINES = 40
 
 TOOLS: list[dict[str, Any]] = [
     {
@@ -212,6 +238,28 @@ TOOLS: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {"command": {"type": "string"}},
                 "required": ["command"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_changes",
+            "description": (
+                "Прогнать проверку и показать ТОЛЬКО те замечания, которые относятся к изменённым "
+                "тобой файлам. В проекте есть накопленные чужие ошибки — эта команда отделяет твою "
+                "дельту от фона. Запускай перед finish, чтобы убедиться, что ты ничего не сломал."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "check": {
+                        "type": "string",
+                        "enum": ["typescript", "lint", "tests"],
+                        "description": "typescript — tsc --noEmit; lint — eslint; tests — pytest.",
+                    }
+                },
+                "required": ["check"],
             },
         },
     },
@@ -667,6 +715,73 @@ def _dispatch_plan_tool(
     return None
 
 
+async def _changed_files(workdir: Path) -> set[str]:
+    """Repository-relative paths the run has touched so far."""
+    await _run(["git", "add", "-A", "-N"], cwd=workdir, timeout=30)
+    _code, out, _err = await _run(["git", "diff", "--name-only"], cwd=workdir, timeout=30)
+    return {line.strip() for line in out.splitlines() if line.strip()}
+
+
+def _belongs_to_changed(raw_path: str, workdir: Path, changed: set[str]) -> bool:
+    candidate = raw_path.strip()
+    if not candidate:
+        return False
+    try:
+        relative = str(Path(candidate).resolve().relative_to(workdir.resolve()))
+    except (ValueError, OSError):
+        relative = candidate.lstrip("./")
+    return relative in changed
+
+
+async def _run_check(workdir: Path, check_name: str) -> str:
+    """Run a project check and report the delta, not the absolute.
+
+    The repository carries pre-existing failures (at the time of writing, 141
+    `tsc` diagnostics and 3 failing tests). Handing the model that wall of noise
+    makes any "did I break something?" question unanswerable, so the output is
+    filtered down to files this run actually touched.
+    """
+    spec = CHECKS.get(check_name)
+    if spec is None:
+        return f"Ошибка: неизвестная проверка {check_name!r}. Доступны: {', '.join(CHECKS)}"
+
+    if spec["needs"] == "node_modules" and not (workdir / "node_modules").is_dir():
+        return (
+            "Проверка недоступна: в рабочей копии нет node_modules — зависимости ставятся "
+            "только на этапе браузерной верификации, после коммита. Опирайся на чтение кода; "
+            "эта проверка всё равно будет прогнана позже."
+        )
+
+    changed = await _changed_files(workdir)
+    if not changed:
+        return "Ты пока не изменил ни одного файла — проверять нечего."
+
+    try:
+        code, out, err = await _run(spec["command"], cwd=workdir, timeout=COMMAND_TIMEOUT_SECONDS)
+    except TimeoutError as exc:
+        return f"Ошибка: {exc}"
+    output = f"{out}\n{err}"
+
+    pattern = spec["diagnostic"]
+    if pattern is None:
+        tail = output.strip()[-3000:]
+        return f"exit={code}\n{tail}"
+
+    all_lines = [line for line in output.splitlines() if pattern.match(line.strip())]
+    mine = [
+        line
+        for line in all_lines
+        if _belongs_to_changed(pattern.match(line.strip()).group("path"), workdir, changed)
+    ]
+    header = (
+        f"Проверка «{check_name}»: {len(mine)} замечани(й) в изменённых тобой файлах "
+        f"(всего в проекте — {len(all_lines)}, остальное существовало до тебя)."
+    )
+    if not mine:
+        return f"{header}\nВ твоих файлах чисто."
+    return header + "\n" + "\n".join(mine[:MAX_CHECK_LINES])
+
+
 async def _working_diff(workdir: Path) -> str:
     """The real diff of the working copy, including files created this run.
 
@@ -719,7 +834,7 @@ async def _tool_loop(
                     "role": "user",
                     "content": (
                         "Используй один из инструментов read_file/edit_file/write_file/search/list_dir/"
-                        "run_command/show_plan/complete_step/block_step, либо finish."
+                        "run_command/check_changes/show_plan/complete_step/block_step, либо finish."
                     ),
                 }
             )
@@ -764,6 +879,8 @@ async def _tool_loop(
                 else:
                     finish_payload = arguments
                     tool_output = "ok"
+            elif tool_name == "check_changes":
+                tool_output = await _run_check(workdir, str(arguments.get("check") or ""))
             else:
                 plan_output = _dispatch_plan_tool(plan, workdir, tool_name, arguments)
                 tool_output = (
@@ -833,6 +950,8 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
             f"{repo} через инструменты read_file/edit_file/write_file/search/list_dir/run_command. "
             "Работай строго по плану ниже. Как только шаг реально сделан — вызывай complete_step; "
             "если шаг выполнить нельзя — block_step с причиной и продолжай остальные шаги. "
+            "Перед finish прогони check_changes — в проекте есть накопленные чужие ошибки, и эта "
+            "команда покажет только те замечания, которые относятся к изменённым тобой файлам. "
             f"Файл плана `{plan.relative_path}` веду я сам, не редактируй его инструментами файлов. "
             "Вноси только изменения, необходимые для задачи. Никогда не читай и не пиши в .git "
             "или файлы .env*. Когда все шаги закрыты — вызови finish с summary и commit_message. "
