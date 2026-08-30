@@ -3,6 +3,16 @@ import { useCallback, useEffect, useState } from "react";
 export const DISPLAY_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "PLN", "TRY", "UAH"] as const;
 export type DisplayCurrency = (typeof DISPLAY_CURRENCIES)[number];
 
+export const CURRENCY_LABELS: Record<DisplayCurrency, string> = {
+  EUR: "€",
+  USD: "$",
+  GBP: "£",
+  CHF: "CHF",
+  PLN: "PLN",
+  TRY: "TRY",
+  UAH: "UAH",
+};
+
 export const DEFAULT_RATES: Record<DisplayCurrency, number> = {
   EUR: 1,
   USD: 1,
@@ -48,6 +58,14 @@ export function formatMoney(amount: number, currency: string) {
     currency,
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+export function formatMoneyWithRates(
+  amountInEur: number,
+  currency: DisplayCurrency,
+  rates: Record<DisplayCurrency, number>,
+) {
+  return formatMoney(convertEurToDisplay(amountInEur, currency, rates[currency] || 1), currency);
 }
 
 export function useExchangeRates() {

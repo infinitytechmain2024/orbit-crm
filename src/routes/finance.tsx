@@ -85,6 +85,7 @@ function FinancePage() {
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Прочее");
+  const [paymentAmount, setPaymentAmount] = useState("100");
   const { rates, status: ratesStatus, updatedAt: ratesUpdatedAt, reload: reloadRates } =
     useExchangeRates();
   const [occurredOn, setOccurredOn] = useState(() => {
@@ -168,7 +169,7 @@ function FinancePage() {
     (s) => s.status === "active" || s.status === "trialing",
   );
 
-  const handlePaymentSuccess = (paymentIntentId: string) => {
+  const handlePaymentSuccess = (_paymentIntentId: string) => {
     setShowPaymentForm(false);
   };
 
@@ -386,8 +387,32 @@ function FinancePage() {
               ×
             </button>
           </div>
+          <div className="mb-4 grid gap-4 md:grid-cols-[220px_1fr]">
+            <div className="space-y-2">
+              <Label htmlFor="stripe-amount">Сумма платежа</Label>
+              <Input
+                id="stripe-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={paymentAmount}
+                onChange={(event) => setPaymentAmount(event.target.value)}
+              />
+            </div>
+            <div className="rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm text-muted-foreground">
+              {paymentAmount
+                ? `Платеж будет создан на ${formatMoney(Number(paymentAmount), currency)}`
+                : "Введите сумму в выбранной валюте"}
+              <div className="mt-1">
+                {paymentAmount
+                  ? `Эквивалент в EUR: ${formatMoney(convertCurrent(Number(paymentAmount), currency as DisplayCurrency, "EUR"), "EUR")}`
+                  : null}
+              </div>
+            </div>
+          </div>
           <StripePaymentForm
-            amount={100}
+            amount={Number(paymentAmount) || 0}
             currency={currency}
             description="Тестовый платеж"
             onSuccess={handlePaymentSuccess}

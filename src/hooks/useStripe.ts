@@ -40,10 +40,16 @@ export async function createPaymentIntent(
   currency = "EUR",
   metadata?: Record<string, string>,
 ) {
+  const amountInCents = Math.round(amount * 100);
   const response = await fetch("/api/backend/api/stripe/payment-intents", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ organization_id: organizationId, amount: amount * 100, currency, metadata }),
+    body: JSON.stringify({
+      organization_id: organizationId,
+      amount: amountInCents,
+      currency,
+      metadata,
+    }),
   });
 
   if (!response.ok) {

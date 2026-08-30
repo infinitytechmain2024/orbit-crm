@@ -7,6 +7,7 @@ import { useCrm } from "@/lib/crm-store";
 import { Button } from "@/components/ui/button";
 import { Loader2, CreditCard, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { convertDisplayToEur, formatMoney, type DisplayCurrency, useExchangeRates } from "@/lib/currency";
 
 interface PaymentFormProps {
   amount: number;
@@ -25,9 +26,13 @@ export function StripePaymentForm({
 }: PaymentFormProps) {
   const { stripe, elements } = useStripeHook();
   const { organization } = useCrm();
+  const { rates } = useExchangeRates();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [succeeded, setSucceeded] = useState(false);
+  const displayCurrency = currency as DisplayCurrency;
+  const selectedRate = rates[displayCurrency] || 1;
+  const amountInEur = convertDisplayToEur(amount, displayCurrency, selectedRate);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -79,7 +84,12 @@ export function StripePaymentForm({
         <CheckCircle className="size-12 text-acc-1 mx-auto mb-4" />
         <h3 className="text-lg font-semibold">Оплата прошла успешно!</h3>
         <p className="text-muted-foreground mt-1">{description}</p>
-        <p className="text-2xl font-display font-bold mt-2">{amount.toLocaleString("ru-RU")} {currency}</p>
+        <p className="text-2xl font-display font-bold mt-2">
+          {formatMoney(amount, currency)}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Эквивалент в EUR: {formatMoney(amountInEur, "EUR")}
+        </p>
       </div>
     );
   }
@@ -93,7 +103,10 @@ export function StripePaymentForm({
       )}
 
       <div className="text-3xl font-display font-bold text-center">
-        {amount.toLocaleString("ru-RU")} {currency}
+        {formatMoney(amount, currency)}
+        <div className="mt-2 text-sm font-normal text-muted-foreground">
+          Эквивалент в EUR: {formatMoney(amountInEur, "EUR")}
+        </div>
       </div>
 
       <div className="relative">
@@ -137,7 +150,7 @@ export function StripePaymentForm({
         ) : (
           <>
             <CreditCard className="size-4 mr-2" />
-            Оплатить {amount.toLocaleString("ru-RU")} {currency}
+            Оплатить {formatMoney(amount, currency)}
           </>
         )}
       </Button>
