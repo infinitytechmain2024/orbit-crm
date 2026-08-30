@@ -207,6 +207,14 @@ class Settings(BaseSettings):
         default=2,
         validation_alias="AUTOPILOT_WORKSPACE_SLOTS",
     )
+    # What an unrepaired blocking finding does to the pull request. Until now the
+    # run reported success regardless, and the finding only surfaced in the PR
+    # body — easy to merge straight past. "draft" opens the PR as a draft so it
+    # cannot be merged by accident; "warn" keeps the old behaviour.
+    AUTOPILOT_BLOCKER_POLICY: str = Field(
+        default="draft",
+        validation_alias="AUTOPILOT_BLOCKER_POLICY",
+    )
 
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":

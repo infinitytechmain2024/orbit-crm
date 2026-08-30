@@ -31,6 +31,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import shutil
 import time
 from dataclasses import dataclass, field
@@ -90,11 +91,31 @@ def _secret_values() -> list[str]:
     return [str(value) for value in candidates if value and len(str(value)) >= 8]
 
 
+# Shapes of credentials this process may never have seen — a Supabase JWT echoed
+# by a Playwright network log, a token pasted into a fixture. Value-based
+# scrubbing alone can only redact what is already in `settings`.
+SECRET_PATTERNS = (
+    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),  # JWT
+    re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),  # GitHub token (classic/fine-grained prefixes)
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
+    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),  # OpenAI-style key
+    re.compile(r"nvapi-[A-Za-z0-9_-]{20,}"),  # NVIDIA key
+    re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),  # Slack token
+)
+
+
 def scrub(text: str) -> str:
-    """Redact known secret values from anything about to be persisted or logged."""
+    """Redact secrets from anything about to be persisted or logged.
+
+    Two passes, because either alone leaks: known values catch a credential that
+    has no recognisable shape, and shape matching catches one this process never
+    held — such as a JWT the browser test printed out of a network log.
+    """
     cleaned = text or ""
     for secret in _secret_values():
         cleaned = cleaned.replace(secret, "***")
+    for pattern in SECRET_PATTERNS:
+        cleaned = pattern.sub("***", cleaned)
     return cleaned
 
 
@@ -134,6 +155,9 @@ class VerificationResult:
     reason: str = ""
     steps: list[dict[str, Any]] = field(default_factory=list)
     defects: list[str] = field(default_factory=list)
+    # Which user flow was actually exercised. A report that omits this implies
+    # more coverage than the run bought.
+    spec: str = "" 
 
     @property
     def passed(self) -> bool:
@@ -145,12 +169,19 @@ class VerificationResult:
             "reason": self.reason,
             "steps": self.steps,
             "defects": self.defects,
+            "spec": self.spec,
         }
 
 
 # ── phase 3: self review over the real diff ──────────────────────────
 
 MAX_DIFF_CHARS = 60_000
+# A diff bigger than one review call is split by file rather than cut off. Two
+# ceilings keep that bounded: a very large single file is still truncated (with
+# the fact recorded), and a run touching hundreds of files does not turn into
+# hundreds of model calls.
+MAX_REVIEW_CHUNKS = 4
+MAX_FILE_DIFF_CHARS = 20_000
 
 
 def parse_findings(payload: dict[str, Any] | None) -> list[ReviewFinding]:
@@ -178,6 +209,73 @@ def parse_findings(payload: dict[str, Any] | None) -> list[ReviewFinding]:
     return findings
 
 
+def split_diff_by_file(diff: str) -> list[tuple[str, str]]:
+    """Split a unified diff into `(path, hunk)` pairs, in order."""
+    pieces: list[tuple[str, str]] = []
+    current_path = ""
+    current: list[str] = []
+    for line in (diff or "").splitlines(keepends=True):
+        if line.startswith("diff --git "):
+            if current:
+                pieces.append((current_path, "".join(current)))
+            parts = line.split()
+            current_path = parts[-1][2:] if len(parts) >= 4 and parts[-1].startswith("b/") else "?"
+            current = [line]
+        elif current:
+            current.append(line)
+    if current:
+        pieces.append((current_path, "".join(current)))
+    return pieces
+
+
+def chunk_diff(diff: str) -> tuple[list[str], list[str]]:
+    """Group a diff into review-sized chunks.
+
+    Returns `(chunks, skipped_paths)`. Truncation used to be silent: everything
+    past 60k characters simply vanished and the report said only "(обрезан)",
+    never which files went unread.
+    """
+    if len(diff) <= MAX_DIFF_CHARS:
+        return ([diff] if diff.strip() else []), []
+
+    chunks: list[str] = []
+    skipped: list[str] = []
+    current: list[str] = []
+    current_size = 0
+
+    for path, piece in split_diff_by_file(diff):
+        if len(piece) > MAX_FILE_DIFF_CHARS:
+            piece = piece[:MAX_FILE_DIFF_CHARS] + f"\n… (файл {path} обрезан)\n"
+        if current and current_size + len(piece) > MAX_DIFF_CHARS:
+            chunks.append("".join(current))
+            current, current_size = [], 0
+            if len(chunks) >= MAX_REVIEW_CHUNKS:
+                skipped.append(path)
+                continue
+        if len(chunks) >= MAX_REVIEW_CHUNKS:
+            skipped.append(path)
+            continue
+        current.append(piece)
+        current_size += len(piece)
+
+    if current and len(chunks) < MAX_REVIEW_CHUNKS:
+        chunks.append("".join(current))
+    return chunks, skipped
+
+
+def _dedupe_findings(findings: list[ReviewFinding]) -> list[ReviewFinding]:
+    """Same defect reported from two chunks is one defect."""
+    seen: set[tuple[str, str]] = set()
+    unique: list[ReviewFinding] = []
+    for finding in findings:
+        key = (finding.file, finding.summary.strip().lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(finding)
+    return unique
+
+
 async def review_diff(
     complete: Callable[[list[dict[str, Any]]], Awaitable[Any]],
     task: dict[str, Any],
@@ -187,32 +285,53 @@ async def review_diff(
     """Review the actual diff. Never raises — a failed review is not a failed run."""
     if not (diff or "").strip():
         return []
-    truncated = diff[:MAX_DIFF_CHARS]
+
+    chunks, skipped = chunk_diff(diff)
     plan_block = ""
     if plan is not None:
         plan_block = "\nПлан работ и статусы:\n" + "\n".join(
             f"- [{step.status}] {step.id}. {step.title}" for step in plan.steps
         )
-    user_prompt = (
-        f"Задача: {task.get('title') or ''}\n"
-        f"Критерии приёмки: {json.dumps(task.get('acceptance_criteria') or [], ensure_ascii=False)}"
-        f"{plan_block}\n\n"
-        f"git diff{' (обрезан)' if len(diff) > MAX_DIFF_CHARS else ''}:\n```diff\n{truncated}\n```"
-    )
-    try:
-        result = await complete(
-            [
-                {"role": "system", "content": REVIEWER_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ]
+
+    findings: list[ReviewFinding] = []
+    for index, chunk in enumerate(chunks, start=1):
+        part = f" (часть {index} из {len(chunks)})" if len(chunks) > 1 else ""
+        user_prompt = (
+            f"Задача: {task.get('title') or ''}\n"
+            f"Критерии приёмки: {json.dumps(task.get('acceptance_criteria') or [], ensure_ascii=False)}"
+            f"{plan_block}\n\n"
+            f"git diff{part}:\n```diff\n{chunk}\n```"
         )
-    except Exception:  # pragma: no cover - defensive
-        logger.exception("autopilot self-review call failed")
-        return []
-    if result is None:
-        logger.info("autopilot self-review: provider returned nothing")
-        return []
-    return parse_findings(_extract_json_object(getattr(result, "content", "") or ""))
+        try:
+            result = await complete(
+                [
+                    {"role": "system", "content": REVIEWER_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ]
+            )
+        except Exception:  # pragma: no cover - defensive
+            logger.exception("autopilot self-review call failed on chunk %s", index)
+            continue
+        if result is None:
+            logger.info("autopilot self-review: provider returned nothing for chunk %s", index)
+            continue
+        findings.extend(parse_findings(_extract_json_object(getattr(result, "content", "") or "")))
+
+    if skipped:
+        # Never let unreviewed files pass as reviewed.
+        logger.info("autopilot self-review: %s file(s) exceeded the review budget", len(skipped))
+        findings.append(
+            ReviewFinding(
+                severity="minor",
+                summary=(
+                    f"Не проверено ревизией — изменения не поместились в бюджет: "
+                    f"{', '.join(skipped[:10])}"
+                    + (f" и ещё {len(skipped) - 10}" if len(skipped) > 10 else "")
+                ),
+                file=skipped[0],
+            )
+        )
+    return _dedupe_findings(findings)
 
 
 # ── phase 4: end-to-end browser self test ────────────────────────────
@@ -356,10 +475,12 @@ async def run_browser_self_test(
     """
     blocked = _missing_e2e_config()
     if blocked:
-        return VerificationResult(status="skipped", reason=blocked)
+        return VerificationResult(status="skipped", reason=blocked, spec=spec)
 
     if not (workdir / spec).is_file():
-        return VerificationResult(status="skipped", reason=f"Сценарий {spec} отсутствует в рабочей копии")
+        return VerificationResult(
+            status="skipped", reason=f"Сценарий {spec} отсутствует в рабочей копии", spec=spec
+        )
 
     budget = _Budget(NOMINAL_BUDGET_SECONDS if budget_seconds is None else budget_seconds)
     if budget.exhausted(MIN_BUDGET_SECONDS):
@@ -369,6 +490,7 @@ async def run_browser_self_test(
                 f"Осталось {budget.remaining:.0f}с из бюджета рана — недостаточно для браузерного "
                 f"теста (нужно минимум {MIN_BUDGET_SECONDS}с)"
             ),
+            spec=spec,
         )
 
     env = e2e_environment()
@@ -379,6 +501,7 @@ async def run_browser_self_test(
             status="skipped",
             reason=f"Бюджет рана исчерпан до этапа «{stage}» — браузерный тест не запускался целиком",
             steps=steps,
+            spec=spec,
         )
 
     # `npm ci` is both faster and deterministic, but it requires a lockfile that
@@ -405,6 +528,7 @@ async def run_browser_self_test(
             reason="Не удалось установить зависимости для браузерного теста",
             steps=steps,
             defects=[install["output"][-800:]],
+            spec=spec,
         )
 
     if budget.exhausted(MIN_BUDGET_SECONDS):
@@ -432,6 +556,7 @@ async def run_browser_self_test(
             reason="Не удалось установить браузер Playwright",
             steps=steps,
             defects=[browsers["output"][-800:]],
+            spec=spec,
         )
 
     if budget.exhausted(MIN_BUDGET_SECONDS):
@@ -445,13 +570,59 @@ async def run_browser_self_test(
     )
     steps.append(run)
     if run["ok"]:
-        return VerificationResult(status="passed", reason="Браузерный сценарий пройден", steps=steps)
+        return VerificationResult(status="passed", reason="Браузерный сценарий пройден", steps=steps, spec=spec)
     return VerificationResult(
         status="failed",
         reason="Браузерный сценарий не прошёл",
         steps=steps,
         defects=[run["output"][-1500:]],
+        spec=spec,
     )
+
+
+# ── choosing what to verify ──────────────────────────────────────────
+
+SMOKE_SPEC = "e2e/autopilot-smoke.spec.ts"
+# Routes the smoke spec already walks; a task confined to these adds nothing by
+# selecting a spec of its own.
+SMOKE_ROUTES = ("/", "/clients", "/tasks", "/projects", "/self-development")
+
+
+def select_spec(workdir: Path, task: dict[str, Any], changed_files: list[str] | None = None) -> str:
+    """Pick the Playwright spec that actually exercises this task's user flow.
+
+    The smoke spec is the floor, not the ceiling. When a task's own changes point
+    at a route with a dedicated spec in `e2e/`, run that one instead — verifying
+    a checkout change by logging in and looking at the dashboard proves nothing
+    about the checkout.
+    """
+    e2e_dir = workdir / "e2e"
+    if not e2e_dir.is_dir():
+        return SMOKE_SPEC
+
+    haystack = " ".join(
+        [
+            str(task.get("title") or ""),
+            str(task.get("description") or ""),
+            " ".join(str(item) for item in (task.get("acceptance_criteria") or [])),
+            " ".join(changed_files or []),
+        ]
+    ).lower()
+
+    best: tuple[int, str] | None = None
+    for spec in sorted(e2e_dir.glob("*.spec.ts")):
+        relative = f"e2e/{spec.name}"
+        if relative == SMOKE_SPEC:
+            continue
+        # "approval-workflow.spec.ts" -> {"approval", "workflow"}
+        words = {word for word in re.split(r"[^a-z0-9]+", spec.stem.lower()) if len(word) > 3}
+        if not words:
+            continue
+        score = sum(1 for word in words if word in haystack)
+        if score and (best is None or score > best[0]):
+            best = (score, relative)
+
+    return best[1] if best else SMOKE_SPEC
 
 
 # ── phase 5: the report ──────────────────────────────────────────────
@@ -500,6 +671,9 @@ def render_report(
 
     lines += ["", f"### 3. Браузерный самотест — {_VERIFICATION_LABEL.get(verification.status, verification.status)}", ""]
     lines.append(verification.reason or "—")
+    if verification.spec:
+        lines.append("")
+        lines.append(f"Сценарий: `{verification.spec}`")
     if verification.defects:
         lines += ["", "<details><summary>Вывод теста</summary>", "", "```"]
         lines += [scrub(defect)[-1500:] for defect in verification.defects]

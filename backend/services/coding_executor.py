@@ -590,7 +590,7 @@ async def _find_open_pull_request(client: httpx.AsyncClient, repo: str, branch: 
 
 
 async def _open_pull_request(
-    repo: str, token: str, branch: str, base_branch: str, title: str, body: str
+    repo: str, token: str, branch: str, base_branch: str, title: str, body: str, draft: bool = False
 ) -> str:
     async with httpx.AsyncClient(
         base_url=GITHUB_API,
@@ -607,7 +607,13 @@ async def _open_pull_request(
             return existing
         response = await client.post(
             f"/repos/{repo}/pulls",
-            json={"title": title[:250], "head": branch, "base": base_branch, "body": body[:60000]},
+            json={
+                "title": title[:250],
+                "head": branch,
+                "base": base_branch,
+                "body": body[:60000],
+                "draft": draft,
+            },
         )
         if response.status_code == 422:
             # Lost a race, or the branch already had a PR the listing missed.
@@ -1096,8 +1102,11 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
         phase_started = time.monotonic()
         verification = VerificationResult(status="skipped", reason="Верификация не запускалась")
         try:
+            spec = autopilot_verifier.select_spec(workdir, task, sorted(await _changed_files(workdir)))
+            if spec != autopilot_verifier.SMOKE_SPEC:
+                logger.info("autopilot: verifying task %s with %s", task["id"], spec)
             verification = await autopilot_verifier.run_browser_self_test(
-                workdir, budget_seconds=run_deadline - time.monotonic()
+                workdir, spec=spec, budget_seconds=run_deadline - time.monotonic()
             )
         except Exception as exc:  # pragma: no cover - a broken test rig must not lose the PR
             logger.exception("autopilot: browser self test crashed")
@@ -1111,13 +1120,22 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
         phase_started = time.monotonic()
         try:
             await _push_branch(workdir, branch, token)
+            # An unrepaired blocker (or a failed browser test) should not produce
+            # a PR that looks ready to merge — the finding used to live only in
+            # the body, where it is easy to scroll past.
+            unresolved = [finding for finding in findings if finding.blocking]
+            as_draft = settings.AUTOPILOT_BLOCKER_POLICY == "draft" and (
+                bool(unresolved) or verification.status == "failed"
+            )
+            title_prefix = "[Autopilot][требует внимания] " if as_draft else "[Autopilot] "
             pr_url = await _open_pull_request(
                 repo,
                 token,
                 branch,
                 default_branch,
-                title=f"[Autopilot] {task['title']}",
+                title=f"{title_prefix}{task['title']}",
                 body=f"{report}\n\n---\nСоздано автопилотом Orbit CRM по задаче `{task['id']}`.",
+                draft=as_draft,
             )
         except (RuntimeError, httpx.HTTPError) as exc:
             # Delivery failed, the work did not. Returning a result instead of

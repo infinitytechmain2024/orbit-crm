@@ -464,3 +464,47 @@ class PersistentWorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 Path("/tmp/mirror.git"), "acme/repo", "tok", {"id": "task-9", "title": "T"}, "main", {}
             )
         )
+
+
+class BlockerPolicyTests(unittest.IsolatedAsyncioTestCase):
+    """An unrepaired blocker used to leave a PR that looked ready to merge — the
+    finding lived only in the body, where it is easy to scroll past."""
+
+    @patch("backend.services.coding_executor._find_open_pull_request", new_callable=AsyncMock)
+    async def test_pull_request_carries_the_draft_flag_through(self, find_mock):
+        import httpx
+
+        find_mock.return_value = ""
+        captured: dict = {}
+
+        class Response:
+            status_code = 201
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"html_url": "https://github.com/acme/repo/pull/1"}
+
+        class Client:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def post(self, _path, json):
+                captured.update(json)
+                return Response()
+
+        with patch.object(httpx, "AsyncClient", lambda **_kwargs: Client()):
+            await coding_executor._open_pull_request(
+                "acme/repo", "tok", "autopilot/x", "main", "t", "b", draft=True
+            )
+        self.assertTrue(captured["draft"])
+
+    def test_the_policy_is_configurable(self):
+        from backend.config import settings
+
+        # "draft" is the default: an unrepaired blocker must not look mergeable.
+        self.assertIn(settings.AUTOPILOT_BLOCKER_POLICY, ("draft", "warn"))

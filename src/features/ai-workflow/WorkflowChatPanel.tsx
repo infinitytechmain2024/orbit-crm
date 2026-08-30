@@ -77,6 +77,10 @@ export function WorkflowChatPanel({
     () => threads.find((thread) => thread.id === activeThreadId) ?? null,
     [activeThreadId, threads],
   );
+  const activeThreadIndex = useMemo(
+    () => threads.findIndex((thread) => thread.id === activeThreadId),
+    [activeThreadId, threads],
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -166,8 +170,8 @@ export function WorkflowChatPanel({
         side="right"
         className="w-[100vw] border-border bg-background p-0 sm:w-[min(94vw,50rem)] lg:w-[min(96vw,68rem)]"
       >
-        <div className="flex h-full min-h-0 flex-col">
-          <SheetHeader className="border-b border-border px-5 py-4">
+        <div className="flex h-full min-h-0 flex-col animate-in fade-in-0 slide-in-from-right-3 duration-300">
+          <SheetHeader className="border-b border-border bg-background/95 px-5 py-4 backdrop-blur">
             <SheetTitle className="flex items-center gap-2">
               <span className="grid size-8 place-items-center rounded-full bg-primary/10 text-primary">
                 <Bot className="h-4 w-4" />
@@ -199,7 +203,7 @@ export function WorkflowChatPanel({
                     Пока нет чатов. Создайте первый скрытый диалог.
                   </div>
                 ) : (
-                  threads.map((thread) => {
+                  threads.map((thread, index) => {
                     const active = thread.id === activeThreadId;
                     return (
                       <button
@@ -207,11 +211,12 @@ export function WorkflowChatPanel({
                         type="button"
                         onClick={() => setActiveThreadId(thread.id)}
                         className={cn(
-                          "flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition",
+                          "group flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-all duration-200",
                           active
                             ? "border-primary/40 bg-primary/10 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
-                            : "border-border bg-background/60 hover:bg-surface-2/70",
+                            : "border-border bg-background/60 hover:border-primary/25 hover:bg-surface-2/70",
                         )}
+                        style={{ animationDelay: `${index * 40}ms` }}
                       >
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium">{thread.title}</div>
@@ -220,7 +225,13 @@ export function WorkflowChatPanel({
                             {thread.messages.length} сообщений
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                            active && "translate-x-0.5 text-primary",
+                            !active && "group-hover:translate-x-0.5",
+                          )}
+                        />
                       </button>
                     );
                   })
@@ -249,7 +260,7 @@ export function WorkflowChatPanel({
                   </div>
                 </div>
                 <div className="shrink-0 rounded-full border border-border bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">
-                  Hidden mode
+                  Hidden mode {activeThreadIndex >= 0 ? `#${activeThreadIndex + 1}` : ""}
                 </div>
               </div>
 
@@ -263,7 +274,7 @@ export function WorkflowChatPanel({
                     <div
                       key={message.id}
                       className={cn(
-                        "max-w-[85%] rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+                        "max-w-[85%] animate-in fade-in-0 slide-in-from-bottom-2 rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-sm duration-200",
                         message.role === "user"
                           ? "ml-auto border border-primary/25 bg-primary text-primary-foreground"
                           : "border border-border bg-surface-2 text-foreground",
@@ -290,7 +301,7 @@ export function WorkflowChatPanel({
               </div>
 
               <div className="border-t border-border p-3 sm:p-4">
-                <div className="rounded-3xl border border-border bg-surface-2/70 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+                <div className="rounded-3xl border border-border bg-surface-2/70 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)] animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
                   <Textarea
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}

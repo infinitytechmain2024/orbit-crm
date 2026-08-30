@@ -22,7 +22,7 @@ from backend.services.ai_providers import (
 )
 from backend.services.ai_workflow_store import AIWorkflowStore, ai_workflow_store
 from backend.services.openclaw_client import openclaw_client, OpenClawExecutionResult
-from backend.services import coding_executor
+from backend.services import autopilot_metrics, coding_executor
 
 logger = logging.getLogger(__name__)
 
@@ -1643,6 +1643,13 @@ class OrbitCommander:
             "pull_request_opened",
             f"{agent['role']} открыл Pull Request: {coding_result.pr_url}",
             metadata={"pr_url": coding_result.pr_url, "branch": coding_result.branch},
+        )
+        metrics = autopilot_metrics.run_metrics(coding_result)
+        await self.create_event(
+            task,
+            "autopilot_metrics",
+            "Метрики рана автопилота записаны.",
+            metadata={"metrics": metrics},
         )
         counts = (coding_result.plan or {}).get("counts") or {}
         if counts:

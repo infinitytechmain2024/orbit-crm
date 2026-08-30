@@ -263,3 +263,165 @@ class VerificationBudgetTests(unittest.IsolatedAsyncioTestCase):
             + autopilot_verifier.BROWSER_INSTALL_TIMEOUT_SECONDS
             + autopilot_verifier.E2E_TIMEOUT_SECONDS,
         )
+
+
+class DiffChunkingTests(unittest.IsolatedAsyncioTestCase):
+    """Truncation used to be silent: everything past 60k characters vanished and
+    the report said only "(обрезан)", never which files went unread."""
+
+    @staticmethod
+    def _diff_for(path: str, size: int) -> str:
+        return f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n" + ("+x\n" * (size // 3))
+
+    def test_a_small_diff_is_one_chunk(self):
+        chunks, skipped = autopilot_verifier.chunk_diff(self._diff_for("a.py", 100))
+        self.assertEqual(len(chunks), 1)
+        self.assertEqual(skipped, [])
+
+    def test_an_empty_diff_produces_no_chunks(self):
+        self.assertEqual(autopilot_verifier.chunk_diff("   "), ([], []))
+
+    def test_split_keeps_files_whole_and_in_order(self):
+        diff = self._diff_for("a.py", 60) + self._diff_for("b.py", 60)
+        pieces = autopilot_verifier.split_diff_by_file(diff)
+        self.assertEqual([path for path, _ in pieces], ["a.py", "b.py"])
+        for _path, piece in pieces:
+            self.assertTrue(piece.startswith("diff --git "))
+
+    def test_a_large_diff_is_chunked_rather_than_cut_off(self):
+        diff = "".join(self._diff_for(f"file{index}.py", 18_000) for index in range(6))
+        chunks, skipped = autopilot_verifier.chunk_diff(diff)
+        self.assertGreater(len(chunks), 1)
+        self.assertLessEqual(len(chunks), autopilot_verifier.MAX_REVIEW_CHUNKS)
+        for chunk in chunks:
+            self.assertLessEqual(len(chunk), autopilot_verifier.MAX_DIFF_CHARS + autopilot_verifier.MAX_FILE_DIFF_CHARS)
+
+    def test_files_beyond_the_budget_are_named_not_silently_dropped(self):
+        diff = "".join(self._diff_for(f"file{index}.py", 19_000) for index in range(40))
+        chunks, skipped = autopilot_verifier.chunk_diff(diff)
+        self.assertLessEqual(len(chunks), autopilot_verifier.MAX_REVIEW_CHUNKS)
+        self.assertTrue(skipped, "files past the budget must be reported")
+
+    async def test_unreviewed_files_surface_as_a_finding(self):
+        calls: list[str] = []
+
+        class Result:
+            content = '{"findings": []}'
+
+        async def complete(messages):
+            calls.append(messages[-1]["content"])
+            return Result()
+
+        diff = "".join(self._diff_for(f"file{index}.py", 19_000) for index in range(40))
+        findings = await autopilot_verifier.review_diff(complete, {"title": "t"}, diff)
+
+        self.assertGreater(len(calls), 1, "a large diff should take more than one review call")
+        self.assertTrue(any("Не проверено ревизией" in f.summary for f in findings))
+
+    async def test_the_same_defect_from_two_chunks_is_reported_once(self):
+        class Result:
+            content = '{"findings": [{"severity": "major", "summary": "битый импорт", "file": "x.py"}]}'
+
+        async def complete(_messages):
+            return Result()
+
+        diff = "".join(self._diff_for(f"file{index}.py", 19_000) for index in range(6))
+        findings = await autopilot_verifier.review_diff(complete, {"title": "t"}, diff)
+        self.assertEqual(len([f for f in findings if f.summary == "битый импорт"]), 1)
+
+    async def test_one_failing_chunk_does_not_lose_the_others(self):
+        class Result:
+            content = '{"findings": [{"severity": "major", "summary": "found", "file": "x.py"}]}'
+
+        state = {"calls": 0}
+
+        async def complete(_messages):
+            state["calls"] += 1
+            if state["calls"] == 1:
+                raise RuntimeError("provider hiccup")
+            return Result()
+
+        diff = "".join(self._diff_for(f"file{index}.py", 19_000) for index in range(6))
+        findings = await autopilot_verifier.review_diff(complete, {"title": "t"}, diff)
+        self.assertTrue(any(f.summary == "found" for f in findings))
+
+
+class SecretShapeScrubbingTests(unittest.TestCase):
+    """Value-based scrubbing can only redact what this process already holds. A
+    JWT echoed by a Playwright network log was never in `settings`."""
+
+    def test_credentials_are_redacted_by_shape(self):
+        cases = [
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36P",
+            "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+            "github_pat_11ABCDEFG0abcdefghijklmnopqrstuvwxyz",
+            "sk-proj-abcdefghijklmnopqrstuvwxyz0123",
+            "nvapi-abcdefghijklmnopqrstuvwxyz01234",
+        ]
+        for secret in cases:
+            with self.subTest(secret=secret[:12]):
+                cleaned = autopilot_verifier.scrub(f"header: {secret} tail")
+                self.assertNotIn(secret, cleaned)
+                self.assertIn("***", cleaned)
+                self.assertIn("tail", cleaned)
+
+    def test_ordinary_text_is_left_alone(self):
+        for text in ("обычный текст", "eyJ короткий", "sk-short", "версия 1.2.3"):
+            with self.subTest(text=text):
+                self.assertEqual(autopilot_verifier.scrub(text), text)
+
+
+class SpecSelectionTests(unittest.TestCase):
+    """Verifying a checkout change by logging in and looking at the dashboard
+    proves nothing about the checkout — the smoke spec is the floor, not the
+    ceiling."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workdir = Path(self._tmp.name)
+        e2e = self.workdir / "e2e"
+        e2e.mkdir()
+        for name in ("autopilot-smoke.spec.ts", "approval-workflow.spec.ts", "checkout-flow.spec.ts"):
+            (e2e / name).write_text("// spec", encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_a_matching_spec_wins_over_the_smoke_spec(self):
+        chosen = autopilot_verifier.select_spec(
+            self.workdir, {"title": "Починить checkout"}, ["src/routes/checkout.tsx"]
+        )
+        self.assertEqual(chosen, "e2e/checkout-flow.spec.ts")
+
+    def test_changed_files_alone_can_select_a_spec(self):
+        chosen = autopilot_verifier.select_spec(
+            self.workdir, {"title": "x"}, ["e2e/approval-workflow.spec.ts"]
+        )
+        self.assertEqual(chosen, "e2e/approval-workflow.spec.ts")
+
+    def test_acceptance_criteria_are_considered(self):
+        chosen = autopilot_verifier.select_spec(
+            self.workdir, {"title": "x", "acceptance_criteria": ["Approval проходит"]}, []
+        )
+        self.assertEqual(chosen, "e2e/approval-workflow.spec.ts")
+
+    def test_an_unrelated_task_falls_back_to_the_smoke_spec(self):
+        chosen = autopilot_verifier.select_spec(
+            self.workdir, {"title": "Обновить README"}, ["README.md"]
+        )
+        self.assertEqual(chosen, autopilot_verifier.SMOKE_SPEC)
+
+    def test_a_repository_without_e2e_still_returns_the_smoke_spec(self):
+        with tempfile.TemporaryDirectory() as empty:
+            self.assertEqual(
+                autopilot_verifier.select_spec(Path(empty), {"title": "checkout"}),
+                autopilot_verifier.SMOKE_SPEC,
+            )
+
+    def test_the_smoke_spec_never_selects_itself_by_name(self):
+        # "autopilot" and "smoke" appearing in a task title must not shortcut
+        # the search and hide a better-matching spec.
+        chosen = autopilot_verifier.select_spec(
+            self.workdir, {"title": "autopilot smoke checkout"}, []
+        )
+        self.assertEqual(chosen, "e2e/checkout-flow.spec.ts")
