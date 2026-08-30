@@ -4,6 +4,7 @@ import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
 import { transcribeAudio } from "@/agents/whisper";
 import { authenticatedFetch } from "@/lib/api-client";
+import { convertCurrency, formatMoney, useExchangeRates, type DisplayCurrency } from "@/lib/currency";
 
 type Msg = { id: string; role: "user" | "ai"; text: string };
 
@@ -11,6 +12,7 @@ const suggestions = ["Создай задачу", "Покажи аналитик
 
 export function AiAssistant() {
   const { addTask, tasks, txs, currency } = useCrm();
+  const { rates } = useExchangeRates();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -26,12 +28,8 @@ export function AiAssistant() {
   const [transcribing, setTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const money = (value: number) =>
-    new Intl.NumberFormat("ru-RU", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 2,
-    }).format(value);
+  const money = (value: number, from: DisplayCurrency = "EUR") =>
+    formatMoney(convertCurrency(value, from, currency as DisplayCurrency, rates), currency);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

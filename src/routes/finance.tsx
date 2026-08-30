@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  convertCurrency,
   convertDisplayToEur,
   convertEurToDisplay,
   formatMoney,
@@ -99,6 +100,8 @@ function FinancePage() {
     convertEurToDisplay(valueInEUR, currency as DisplayCurrency, selectedRate);
   const toBaseEUR = (valueInDisplayCurrency: number) =>
     convertDisplayToEur(valueInDisplayCurrency, currency as DisplayCurrency, selectedRate);
+  const convertCurrent = (amount: number, from: DisplayCurrency, to: DisplayCurrency) =>
+    convertCurrency(amount, from, to, rates);
 
   const allTransactions = useMemo(() => {
     const manual = txs.map((t) => ({
@@ -314,7 +317,9 @@ function FinancePage() {
               onChange={(event) => setAmount(event.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Будет сохранено как {currency === "EUR" ? "EUR" : `≈ EUR по текущему курсу`}
+              {amount
+                ? `≈ ${formatMoney(convertCurrent(Number(amount), currency as DisplayCurrency, "EUR"), "EUR")} при сохранении`
+                : "Введите сумму в выбранной валюте"}
             </p>
           </div>
 

@@ -41,6 +41,10 @@ logger = logging.getLogger(__name__)
 
 MAX_STEPS = 20
 STEP_TIMEOUT_SECONDS = 90
+# A --depth 1 clone of this repository checks out ~23k files (~465 MB) and takes
+# about two minutes on a warm connection, so the ceiling has to sit well clear of
+# that — a marginal limit here fails the whole run before any work starts.
+CLONE_TIMEOUT_SECONDS = 420
 COMMAND_TIMEOUT_SECONDS = 120
 RUN_TIMEOUT_SECONDS = 900
 MAX_FILE_BYTES = 200_000
@@ -201,7 +205,7 @@ async def _clone_repo(repo: str, workdir: Path, token: str) -> str:
     code, _out, err = await _run(
         ["git", "-c", f"credential.helper={CREDENTIAL_HELPER}", "clone", "--depth", "1", remote_url, str(workdir)],
         cwd=workdir.parent,
-        timeout=120,
+        timeout=CLONE_TIMEOUT_SECONDS,
         env=env,
     )
     if code != 0:

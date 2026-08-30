@@ -72,9 +72,23 @@ export function useAiWorkflow(
       } catch (unknownError) {
         const message =
           unknownError instanceof Error ? unknownError.message : "Не удалось загрузить AI Workflow";
+        const isAuthFailure =
+          /401|bearer token|authentication is required|invalid authenticated session/i.test(
+            message,
+          );
         const transient = /502|503|waking up|просып|failed to fetch|backend is unavailable/i.test(
           message,
         );
+        if (isAuthFailure) {
+          setOverview(createDemoOverview(projectId));
+          setError(null);
+          setIsRecovering(false);
+          setHasLoadedInitialData(true);
+          toast.info("AI Workflow работает в demo-режиме", {
+            description: "Backend запросил bearer token, поэтому показываем локальные данные.",
+          });
+          return;
+        }
         setIsRecovering(transient);
         if (!transient) {
           setError(message);

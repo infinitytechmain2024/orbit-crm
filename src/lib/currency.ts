@@ -29,6 +29,19 @@ export function convertDisplayToEur(valueInDisplayCurrency: number, currency: Di
   return currency === "EUR" ? valueInDisplayCurrency : valueInDisplayCurrency / rate;
 }
 
+export function convertCurrency(
+  amount: number,
+  from: DisplayCurrency,
+  to: DisplayCurrency,
+  rates: Record<DisplayCurrency, number>,
+) {
+  if (from === to) return amount;
+  const fromRate = rates[from] || 1;
+  const toRate = rates[to] || 1;
+  const amountInEur = from === "EUR" ? amount : amount / fromRate;
+  return to === "EUR" ? amountInEur : amountInEur * toRate;
+}
+
 export function formatMoney(amount: number, currency: string) {
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
