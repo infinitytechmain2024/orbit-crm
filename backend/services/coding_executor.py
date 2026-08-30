@@ -68,11 +68,38 @@ STEP_TIMEOUT_SECONDS = 90
 # that — a marginal limit here fails the whole run before any work starts.
 CLONE_TIMEOUT_SECONDS = 420
 COMMAND_TIMEOUT_SECONDS = 120
-# The lifecycle now spans planning, execution, a repair round and verification,
-# so the ceiling covers the whole run, not just the execution loop.
-RUN_TIMEOUT_SECONDS = 1800
+
+# ── Time budgets ─────────────────────────────────────────────────────
+# These are derived, not guessed, and they have to reconcile with the caller:
+# the queue worker kills a job at `workflow_jobs.timeout_seconds`, so a run whose
+# phases can legitimately outlast that value simply never finishes. Anything that
+# changes a phase budget must therefore flow through `total_run_budget_seconds()`
+# into the job's timeout — which is why the numbers live in one place.
+#
+# Planning + the tool loops + self review + one repair round.
+EXECUTION_BUDGET_SECONDS = 1200
+# Dependency install + browser install + the Playwright run. Generous because a
+# cold `npm install` in a fresh clone genuinely takes minutes; the verifier
+# subdivides whatever slice of this is actually left.
+VERIFICATION_BUDGET_SECONDS = 1500
+# Everything after the clone. The run enforces this itself rather than trusting
+# the job timeout, so the executor is self-limiting even if it is called from
+# somewhere that sizes the job wrong.
+RUN_TIMEOUT_SECONDS = EXECUTION_BUDGET_SECONDS + VERIFICATION_BUDGET_SECONDS
+# Slack for commit/push/PR round-trips and store writes on either side of a run.
+JOB_TIMEOUT_MARGIN_SECONDS = 240
 # Extra tool steps granted after the self review finds blocking defects.
 REPAIR_STEPS = 12
+
+
+def total_run_budget_seconds() -> int:
+    """Wall-clock ceiling for one autopilot run, clone included.
+
+    The caller must size `workflow_jobs.timeout_seconds` from this. With the
+    queue's old 900s default, a run that reached the browser self test was killed
+    mid-verification every time — the phase could never complete.
+    """
+    return CLONE_TIMEOUT_SECONDS + RUN_TIMEOUT_SECONDS + JOB_TIMEOUT_MARGIN_SECONDS
 MAX_FILE_BYTES = 200_000
 GITHUB_API = "https://api.github.com"
 
@@ -272,11 +299,22 @@ class CodingExecutionResult:
     review_findings: list[dict[str, Any]] = field(default_factory=list)
     verification: dict[str, Any] = field(default_factory=dict)
     report: str = ""
+    # Per-phase wall clock, in seconds. The budgets can only be calibrated
+    # against real numbers, and until now a run reported none.
+    timings: dict[str, float] = field(default_factory=dict)
 
 
-def _branch_name(task_id: str, title: str) -> str:
+def _branch_name(task_id: str, title: str, attempt: int = 1) -> str:
+    """`autopilot/<task>-<slug>`, with an attempt suffix from the second try on.
+
+    The name used to be a pure function of the task, which broke retries: if a
+    run pushed its branch and then failed to open the PR, the next attempt hit a
+    non-fast-forward on push and a 422 on the pull request. Distinct attempts get
+    distinct branches, so a retry is always able to complete.
+    """
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:40] or "task"
-    return f"autopilot/{task_id}-{slug}"
+    suffix = f"-a{attempt}" if attempt > 1 else ""
+    return f"autopilot/{task_id}-{slug}{suffix}"
 
 
 def _is_protected(path: Path) -> bool:
@@ -485,6 +523,26 @@ async def _push_branch(workdir: Path, branch: str, token: str) -> None:
         raise RuntimeError(f"git push failed: {err[-2000:]}")
 
 
+async def _find_open_pull_request(client: httpx.AsyncClient, repo: str, branch: str) -> str:
+    """URL of an already-open PR for `branch`, or "" if there is none.
+
+    Makes PR creation idempotent: a run that pushed successfully and then failed
+    while opening the PR (or while reporting it) must be able to finish on a
+    retry instead of dying on GitHub's "a pull request already exists" 422.
+    """
+    owner = repo.split("/", 1)[0]
+    try:
+        response = await client.get(f"/repos/{repo}/pulls", params={"head": f"{owner}:{branch}", "state": "open"})
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        logger.info("coding_executor: could not look up an existing PR for %s: %s", branch, exc)
+        return ""
+    payload = response.json()
+    if isinstance(payload, list) and payload:
+        return str(payload[0].get("html_url") or "")
+    return ""
+
+
 async def _open_pull_request(
     repo: str, token: str, branch: str, base_branch: str, title: str, body: str
 ) -> str:
@@ -497,10 +555,19 @@ async def _open_pull_request(
         },
         timeout=30.0,
     ) as client:
+        existing = await _find_open_pull_request(client, repo, branch)
+        if existing:
+            logger.info("coding_executor: reusing the pull request already open for %s", branch)
+            return existing
         response = await client.post(
             f"/repos/{repo}/pulls",
             json={"title": title[:250], "head": branch, "base": base_branch, "body": body[:60000]},
         )
+        if response.status_code == 422:
+            # Lost a race, or the branch already had a PR the listing missed.
+            recovered = await _find_open_pull_request(client, repo, branch)
+            if recovered:
+                return recovered
         response.raise_for_status()
         return str(response.json().get("html_url") or "")
 
@@ -728,14 +795,25 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
 
     with tempfile.TemporaryDirectory(prefix="orbit-autopilot-") as base:
         workdir = Path(base) / "repo"
+        timings: dict[str, float] = {}
+        clone_started = time.monotonic()
         default_branch = await _clone_repo(repo, workdir, token)
-        branch = _branch_name(str(task["id"]), task["title"])
-        deadline = time.monotonic() + RUN_TIMEOUT_SECONDS
+        timings["clone"] = round(time.monotonic() - clone_started, 1)
+
+        branch = _branch_name(str(task["id"]), task["title"], int(task.get("attempt_count") or 1))
+        # Two deadlines, not one: the execution loops must leave the verification
+        # phase its share of the run, and the run as a whole must stay inside the
+        # budget the job timeout was sized from.
+        run_started = time.monotonic()
+        run_deadline = run_started + RUN_TIMEOUT_SECONDS
+        deadline = run_started + EXECUTION_BUDGET_SECONDS
         steps: list[dict[str, Any]] = []
 
         # ── Phase 1: plan ────────────────────────────────────────────
+        phase_started = time.monotonic()
         plan = await autopilot_plan.generate(complete_without_tools, task)
         plan.write(workdir)
+        timings["plan"] = round(time.monotonic() - phase_started, 1)
         logger.info("autopilot: plan for task %s has %s steps", task["id"], len(plan.steps))
 
         def failure(error: str, summary: str = "") -> CodingExecutionResult:
@@ -746,6 +824,7 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
                 summary=summary,
                 error=error,
                 plan=plan.to_dict(),
+                timings=dict(timings),
             )
 
         # ── Phase 2: execute, tracking every step ────────────────────
@@ -770,9 +849,11 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
             {"role": "user", "content": user_prompt},
         ]
 
+        phase_started = time.monotonic()
         finish_payload, error = await _tool_loop(
             provider, model_name, messages, workdir, plan, steps, MAX_STEPS, deadline
         )
+        timings["execute"] = round(time.monotonic() - phase_started, 1)
         if finish_payload is None:
             return failure(error or "Модель не вызвала finish")
 
@@ -780,6 +861,7 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
         commit_message = str(finish_payload.get("commit_message") or task["title"])[:200]
 
         # ── Phase 3: self review over the real diff, one repair round ─
+        phase_started = time.monotonic()
         findings: list[ReviewFinding] = []
         if settings.AUTOPILOT_SELF_REVIEW_ENABLED:
             diff = await _working_diff(workdir)
@@ -801,6 +883,7 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
                 findings = await autopilot_verifier.review_diff(
                     complete_without_tools, task, await _working_diff(workdir), plan
                 )
+        timings["review"] = round(time.monotonic() - phase_started, 1)
 
         # ── Commit (before verification, so npm artefacts stay out) ───
         try:
@@ -809,26 +892,55 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
             return failure(str(exc), summary=summary)
 
         # ── Phase 4: browser self test ───────────────────────────────
+        phase_started = time.monotonic()
         verification = VerificationResult(status="skipped", reason="Верификация не запускалась")
         try:
-            verification = await autopilot_verifier.run_browser_self_test(workdir)
+            verification = await autopilot_verifier.run_browser_self_test(
+                workdir, budget_seconds=run_deadline - time.monotonic()
+            )
         except Exception as exc:  # pragma: no cover - a broken test rig must not lose the PR
             logger.exception("autopilot: browser self test crashed")
             verification = VerificationResult(
                 status="error", reason=f"Браузерный самотест упал: {autopilot_verifier.scrub(str(exc))}"
             )
+        timings["verify"] = round(time.monotonic() - phase_started, 1)
 
         # ── Phase 5: report, push, PR ────────────────────────────────
         report = autopilot_verifier.render_report(task, plan, summary, findings, verification)
-        await _push_branch(workdir, branch, token)
-        pr_url = await _open_pull_request(
-            repo,
-            token,
-            branch,
-            default_branch,
-            title=f"[Autopilot] {task['title']}",
-            body=f"{report}\n\n---\nСоздано автопилотом Orbit CRM по задаче `{task['id']}`.",
-        )
+        phase_started = time.monotonic()
+        try:
+            await _push_branch(workdir, branch, token)
+            pr_url = await _open_pull_request(
+                repo,
+                token,
+                branch,
+                default_branch,
+                title=f"[Autopilot] {task['title']}",
+                body=f"{report}\n\n---\nСоздано автопилотом Orbit CRM по задаче `{task['id']}`.",
+            )
+        except (RuntimeError, httpx.HTTPError) as exc:
+            # Delivery failed, the work did not. Returning a result instead of
+            # raising keeps this out of the worker's generic retry path, which
+            # would re-clone and re-run the whole model loop from scratch while
+            # the finished commit died with the temporary directory.
+            timings["deliver"] = round(time.monotonic() - phase_started, 1)
+            logger.warning("coding_executor: could not deliver branch %s: %s", branch, exc)
+            return CodingExecutionResult(
+                success=False,
+                branch=branch,
+                commit_sha=commit_sha,
+                summary=summary,
+                steps=steps,
+                error=f"Изменения закоммичены, но не доставлены в GitHub: {autopilot_verifier.scrub(str(exc))}",
+                plan=plan.to_dict(),
+                review_findings=[finding.to_dict() for finding in findings],
+                verification=verification.to_dict(),
+                report=report,
+                timings=dict(timings),
+            )
+        timings["deliver"] = round(time.monotonic() - phase_started, 1)
+        timings["total"] = round(time.monotonic() - clone_started, 1)
+        logger.info("autopilot: task %s finished, phase timings %s", task["id"], timings)
 
         return CodingExecutionResult(
             success=True,
@@ -841,4 +953,5 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
             review_findings=[finding.to_dict() for finding in findings],
             verification=verification.to_dict(),
             report=autopilot_verifier.render_report(task, plan, summary, findings, verification, pr_url),
+            timings=dict(timings),
         )

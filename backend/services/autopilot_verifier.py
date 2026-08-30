@@ -32,6 +32,7 @@ import json
 import logging
 import os
 import shutil
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Awaitable, Callable
@@ -41,9 +42,18 @@ from backend.services.autopilot_plan import AutopilotPlan, _extract_json_object
 
 logger = logging.getLogger(__name__)
 
+# Nominal per-step ceilings. The real ceiling is whatever budget the caller has
+# left: `run_browser_self_test` hands each step `min(nominal, remaining)`, so a
+# run that spent most of its time on the tool loop degrades to a clean "skipped"
+# instead of overrunning the job timeout and being killed mid-verification.
 INSTALL_TIMEOUT_SECONDS = 900
 BROWSER_INSTALL_TIMEOUT_SECONDS = 600
 E2E_TIMEOUT_SECONDS = 900
+NOMINAL_BUDGET_SECONDS = INSTALL_TIMEOUT_SECONDS + BROWSER_INSTALL_TIMEOUT_SECONDS + E2E_TIMEOUT_SECONDS
+# Below this there is no point starting: a warm install plus the shortest useful
+# Playwright run does not fit, and a half-run that gets cut off reads as a
+# verification failure when it is really a scheduling failure.
+MIN_BUDGET_SECONDS = 300
 OUTPUT_TAIL = 3000
 
 SEVERITIES = ("blocker", "major", "minor")
@@ -280,8 +290,33 @@ async def _run_step(
     return {"name": name, "command": " ".join(cmd), "exit_code": exit_code, "ok": exit_code == 0, "output": output}
 
 
-async def run_browser_self_test(workdir: Path, spec: str = "e2e/autopilot-smoke.spec.ts") -> VerificationResult:
+class _Budget:
+    """Hands out per-step timeouts from a shrinking wall-clock allowance."""
+
+    def __init__(self, total_seconds: float) -> None:
+        self._deadline = time.monotonic() + total_seconds
+
+    @property
+    def remaining(self) -> float:
+        return max(0.0, self._deadline - time.monotonic())
+
+    def slice_for(self, nominal: float) -> float:
+        return min(nominal, self.remaining)
+
+    def exhausted(self, need: float) -> bool:
+        return self.remaining < need
+
+
+async def run_browser_self_test(
+    workdir: Path,
+    spec: str = "e2e/autopilot-smoke.spec.ts",
+    budget_seconds: float | None = None,
+) -> VerificationResult:
     """Install dependencies and drive the app in a real browser.
+
+    `budget_seconds` is the wall-clock the caller has left. Every step is capped
+    by what remains, so verification can never be the reason a run blows past the
+    job timeout — it degrades to `skipped` instead.
 
     Returns `skipped` (not `failed`) when the E2E environment is not configured:
     a missing local test account is an operator gap, not a defect in the change.
@@ -293,11 +328,32 @@ async def run_browser_self_test(workdir: Path, spec: str = "e2e/autopilot-smoke.
     if not (workdir / spec).is_file():
         return VerificationResult(status="skipped", reason=f"Сценарий {spec} отсутствует в рабочей копии")
 
+    budget = _Budget(NOMINAL_BUDGET_SECONDS if budget_seconds is None else budget_seconds)
+    if budget.exhausted(MIN_BUDGET_SECONDS):
+        return VerificationResult(
+            status="skipped",
+            reason=(
+                f"Осталось {budget.remaining:.0f}с из бюджета рана — недостаточно для браузерного "
+                f"теста (нужно минимум {MIN_BUDGET_SECONDS}с)"
+            ),
+        )
+
     env = e2e_environment()
     steps: list[dict[str, Any]] = []
 
+    def out_of_time(stage: str) -> VerificationResult:
+        return VerificationResult(
+            status="skipped",
+            reason=f"Бюджет рана исчерпан до этапа «{stage}» — браузерный тест не запускался целиком",
+            steps=steps,
+        )
+
     install = await _run_step(
-        "install", ["npm", "install", "--no-audit", "--no-fund"], workdir, INSTALL_TIMEOUT_SECONDS, env
+        "install",
+        ["npm", "install", "--no-audit", "--no-fund"],
+        workdir,
+        budget.slice_for(INSTALL_TIMEOUT_SECONDS),
+        env,
     )
     steps.append(install)
     if not install["ok"]:
@@ -308,20 +364,22 @@ async def run_browser_self_test(workdir: Path, spec: str = "e2e/autopilot-smoke.
             defects=[install["output"][-800:]],
         )
 
+    if budget.exhausted(MIN_BUDGET_SECONDS):
+        return out_of_time("установка браузера")
     browsers = await _run_step(
         "browser-install",
         ["npx", "--yes", "playwright", "install", "--with-deps", "chromium"],
         workdir,
-        BROWSER_INSTALL_TIMEOUT_SECONDS,
+        budget.slice_for(BROWSER_INSTALL_TIMEOUT_SECONDS),
         env,
     )
-    if not browsers["ok"]:
+    if not browsers["ok"] and not budget.exhausted(MIN_BUDGET_SECONDS):
         # `--with-deps` needs root on Linux; retry without it before giving up.
         browsers = await _run_step(
             "browser-install",
             ["npx", "--yes", "playwright", "install", "chromium"],
             workdir,
-            BROWSER_INSTALL_TIMEOUT_SECONDS,
+            budget.slice_for(BROWSER_INSTALL_TIMEOUT_SECONDS),
             env,
         )
     steps.append(browsers)
@@ -333,11 +391,13 @@ async def run_browser_self_test(workdir: Path, spec: str = "e2e/autopilot-smoke.
             defects=[browsers["output"][-800:]],
         )
 
+    if budget.exhausted(MIN_BUDGET_SECONDS):
+        return out_of_time("прогон сценария")
     run = await _run_step(
         "e2e",
         ["npx", "--yes", "playwright", "test", spec, "--reporter=line"],
         workdir,
-        E2E_TIMEOUT_SECONDS,
+        budget.slice_for(E2E_TIMEOUT_SECONDS),
         env,
     )
     steps.append(run)

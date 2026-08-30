@@ -251,3 +251,78 @@ class ProtectedPathTests(unittest.TestCase):
         import asyncio
 
         self.assertIn("запрещена", asyncio.run(scenario()))
+
+
+class TimeBudgetTests(unittest.TestCase):
+    """The feature shipped with budgets that did not reconcile with the caller:
+    the queue killed a job at 900s while a run with verification needs far more,
+    so the browser self test could never finish."""
+
+    def test_run_budget_covers_every_phase_it_is_made_of(self):
+        self.assertEqual(
+            coding_executor.RUN_TIMEOUT_SECONDS,
+            coding_executor.EXECUTION_BUDGET_SECONDS + coding_executor.VERIFICATION_BUDGET_SECONDS,
+        )
+        total = coding_executor.total_run_budget_seconds()
+        self.assertGreaterEqual(
+            total,
+            coding_executor.CLONE_TIMEOUT_SECONDS + coding_executor.RUN_TIMEOUT_SECONDS,
+        )
+
+    def test_verification_budget_fits_the_verifier_it_calls(self):
+        from backend.services import autopilot_verifier
+
+        # The executor hands the verifier whatever is left; that slice has to be
+        # able to cover a real install + browser + run, or phase 4 is decorative.
+        self.assertGreaterEqual(
+            coding_executor.VERIFICATION_BUDGET_SECONDS,
+            autopilot_verifier.MIN_BUDGET_SECONDS,
+        )
+
+    def test_total_budget_exceeds_the_queue_default_that_used_to_kill_runs(self):
+        self.assertGreater(coding_executor.total_run_budget_seconds(), 900)
+
+
+class BranchRetryTests(unittest.TestCase):
+    """A retry after a partially delivered run must not collide with itself."""
+
+    def test_first_attempt_keeps_the_plain_name(self):
+        self.assertEqual(
+            coding_executor._branch_name("task-1", "Экспорт", 1),
+            coding_executor._branch_name("task-1", "Экспорт"),
+        )
+
+    def test_later_attempts_get_distinct_branches(self):
+        names = {coding_executor._branch_name("task-1", "Экспорт", attempt) for attempt in (1, 2, 3)}
+        self.assertEqual(len(names), 3)
+        for name in names:
+            self.assertTrue(name.startswith("autopilot/task-1-"))
+            self.assertNotIn(name, ("main", "master"))
+
+
+class DeliveryFailureTests(unittest.IsolatedAsyncioTestCase):
+    """A push/PR failure used to escape as an unhandled exception: the worker
+    retried the whole job from a fresh clone while the finished commit died with
+    the temporary directory."""
+
+    @patch("backend.services.coding_executor._find_open_pull_request", new_callable=AsyncMock)
+    async def test_existing_pull_request_is_reused_instead_of_recreated(self, find_mock):
+        find_mock.return_value = "https://github.com/acme/repo/pull/9"
+        url = await coding_executor._open_pull_request(
+            "acme/repo", "token", "autopilot/task-1-x", "main", "title", "body"
+        )
+        self.assertEqual(url, "https://github.com/acme/repo/pull/9")
+        find_mock.assert_awaited()
+
+    async def test_pull_request_lookup_survives_a_broken_listing(self):
+        import httpx
+
+        class BrokenClient:
+            async def get(self, *_args, **_kwargs):
+                raise httpx.ConnectError("no route to host")
+
+        # A failed lookup must degrade to "no existing PR", not blow up the run.
+        self.assertEqual(
+            await coding_executor._find_open_pull_request(BrokenClient(), "acme/repo", "autopilot/x"),
+            "",
+        )

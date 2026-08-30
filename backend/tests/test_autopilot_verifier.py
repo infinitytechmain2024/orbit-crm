@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from backend.services import autopilot_verifier
 from backend.services.autopilot_plan import STATUS_BLOCKED, STATUS_DONE, AutopilotPlan, PlanStep
@@ -209,3 +209,57 @@ class ReportTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VerificationBudgetTests(unittest.IsolatedAsyncioTestCase):
+    """Verification must never be the reason a run overruns its job timeout: it
+    is handed whatever wall clock is left and degrades to `skipped` when that is
+    not enough, instead of being killed halfway through."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workdir = Path(self._tmp.name)
+        spec = self.workdir / "e2e" / "autopilot-smoke.spec.ts"
+        spec.parent.mkdir(parents=True)
+        spec.write_text("// spec", encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_ENABLED", True)
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_EMAIL", "qa@example.local")
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_PASSWORD", TEST_PASSWORD)
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_SUPABASE_ANON_KEY", "anon")
+    @patch.object(autopilot_verifier, "_run_step", new_callable=AsyncMock)
+    async def test_too_little_budget_skips_without_running_anything(self, run_step):
+        result = await autopilot_verifier.run_browser_self_test(self.workdir, budget_seconds=10)
+        self.assertEqual(result.status, "skipped")
+        self.assertIn("недостаточно", result.reason)
+        run_step.assert_not_awaited()
+
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_ENABLED", True)
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_EMAIL", "qa@example.local")
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_PASSWORD", TEST_PASSWORD)
+    @patch.object(autopilot_verifier.settings, "AUTOPILOT_E2E_SUPABASE_ANON_KEY", "anon")
+    @patch.object(autopilot_verifier, "_run_step", new_callable=AsyncMock)
+    async def test_step_timeouts_are_capped_by_the_remaining_budget(self, run_step):
+        run_step.return_value = {"name": "x", "command": "x", "exit_code": 0, "ok": True, "output": ""}
+        budget = autopilot_verifier.MIN_BUDGET_SECONDS + 60
+        await autopilot_verifier.run_browser_self_test(self.workdir, budget_seconds=budget)
+
+        self.assertTrue(run_step.await_args_list, "no step ran")
+        for call in run_step.await_args_list:
+            timeout = call.args[3]
+            self.assertLessEqual(timeout, budget)
+        # ...and the nominal ceilings still apply when the budget is generous.
+        run_step.reset_mock()
+        await autopilot_verifier.run_browser_self_test(self.workdir, budget_seconds=100_000)
+        self.assertEqual(run_step.await_args_list[0].args[3], autopilot_verifier.INSTALL_TIMEOUT_SECONDS)
+
+    def test_nominal_budget_is_the_sum_of_its_steps(self):
+        self.assertEqual(
+            autopilot_verifier.NOMINAL_BUDGET_SECONDS,
+            autopilot_verifier.INSTALL_TIMEOUT_SECONDS
+            + autopilot_verifier.BROWSER_INSTALL_TIMEOUT_SECONDS
+            + autopilot_verifier.E2E_TIMEOUT_SECONDS,
+        )

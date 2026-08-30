@@ -861,6 +861,33 @@ class OrbitCommander:
         await self.enqueue_job(run, task, "plan")
         return task, run
 
+    async def _job_timeout_seconds(self, task: dict[str, Any], job_type: JobType) -> int:
+        """Job timeout the phase can actually fit inside.
+
+        An execute job routed to the coding executor spans clone, planning, the
+        tool loop, self review and a browser test. Under the queue's 900s default
+        it was killed mid-verification every time — the phase could never finish.
+        Only that path gets the larger budget, so a hung OpenClaw or model-chain
+        job is still declared dead on the old schedule.
+        """
+        configured = int(task.get("timeout_seconds") or 900)
+        if job_type != "execute":
+            return configured
+        agent_id = task.get("agent_id")
+        if not agent_id:
+            return configured
+        try:
+            agent = await self.store.one(
+                "ai_agents", organization_id=task["organization_id"], row_id=agent_id
+            )
+        except Exception as error:  # pragma: no cover - sizing must never block enqueueing
+            logger.warning("Could not size execute job timeout for task %s: %s", task["id"], error)
+            return configured
+        mapping = OPENCLAW_AGENT_MAP.get(str(agent.get("role") or "")) or {}
+        if "github" not in (mapping.get("allowed_tools") or []):
+            return configured
+        return max(configured, coding_executor.total_run_budget_seconds())
+
     async def enqueue_job(
         self,
         run: dict[str, Any],
@@ -882,7 +909,7 @@ class OrbitCommander:
                 "idempotency_key": key,
                 "payload": payload or {},
                 "max_attempts": int(task.get("max_attempts") or 3),
-                "timeout_seconds": int(task.get("timeout_seconds") or 900),
+                "timeout_seconds": await self._job_timeout_seconds(task, job_type),
             },
             upsert=True,
             on_conflict="organization_id,idempotency_key",
@@ -1517,6 +1544,7 @@ class OrbitCommander:
                         "steps": len(coding_result.steps),
                         # A failed run still reports how far the plan got.
                         "plan": coding_result.plan,
+                        "timings": coding_result.timings,
                     },
                 },
             )
@@ -1534,13 +1562,31 @@ class OrbitCommander:
                     },
                 )
             )[0]
+            # A commit without a PR means the work succeeded and only delivery to
+            # GitHub failed — worth saying plainly, because the retry re-does the
+            # model work rather than just re-pushing.
+            delivery_failure = bool(coding_result.commit_sha) and not coding_result.pr_url
             await self.create_event(
                 task,
-                "coding_executor_failed",
-                "Coding executor не справился, будет повторная попытка."
-                if retry_allowed
-                else "Coding executor исчерпал попытки.",
-                metadata={"error": coding_result.error, "steps": len(coding_result.steps), "retry": retry_allowed},
+                "coding_executor_delivery_failed" if delivery_failure else "coding_executor_failed",
+                (
+                    "Изменения были готовы, но не доставлены в GitHub. "
+                    + ("Будет повторная попытка." if retry_allowed else "Попытки исчерпаны.")
+                )
+                if delivery_failure
+                else (
+                    "Coding executor не справился, будет повторная попытка."
+                    if retry_allowed
+                    else "Coding executor исчерпал попытки."
+                ),
+                metadata={
+                    "error": coding_result.error,
+                    "steps": len(coding_result.steps),
+                    "retry": retry_allowed,
+                    "branch": coding_result.branch,
+                    "commit_sha": coding_result.commit_sha,
+                    "timings": coding_result.timings,
+                },
             )
             if retry_allowed:
                 await self.enqueue_job(run, task, "execute")
@@ -1560,6 +1606,7 @@ class OrbitCommander:
             "review_findings": coding_result.review_findings,
             "verification": coding_result.verification,
             "report": coding_result.report,
+            "timings": coding_result.timings,
         }
         artifact = await self._create_artifact(
             task,
