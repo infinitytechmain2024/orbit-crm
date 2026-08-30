@@ -15,12 +15,12 @@ export const CURRENCY_LABELS: Record<DisplayCurrency, string> = {
 
 export const DEFAULT_RATES: Record<DisplayCurrency, number> = {
   EUR: 1,
-  USD: 1,
-  GBP: 1,
-  CHF: 1,
-  PLN: 1,
-  TRY: 1,
-  UAH: 1,
+  USD: 1.08,
+  GBP: 0.84,
+  CHF: 0.94,
+  PLN: 4.27,
+  TRY: 46.5,
+  UAH: 48.5,
 };
 
 const RATES_CACHE_KEY = "crm-exchange-rates";
@@ -35,7 +35,11 @@ export function convertEurToDisplay(valueInEUR: number, currency: DisplayCurrenc
   return currency === "EUR" ? valueInEUR : valueInEUR * rate;
 }
 
-export function convertDisplayToEur(valueInDisplayCurrency: number, currency: DisplayCurrency, rate: number) {
+export function convertDisplayToEur(
+  valueInDisplayCurrency: number,
+  currency: DisplayCurrency,
+  rate: number,
+) {
   return currency === "EUR" ? valueInDisplayCurrency : valueInDisplayCurrency / rate;
 }
 
@@ -97,9 +101,12 @@ export function useExchangeRates() {
     try {
       const nextRates: Record<DisplayCurrency, number> = { ...DEFAULT_RATES };
 
-      const ecbResponse = await fetch("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml", {
-        signal: AbortSignal.timeout(8000),
-      });
+      const ecbResponse = await fetch(
+        "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+        {
+          signal: AbortSignal.timeout(8000),
+        },
+      );
       if (!ecbResponse.ok) throw new Error("Failed to load exchange rates");
       const xml = await ecbResponse.text();
       const document = new DOMParser().parseFromString(xml, "application/xml");
@@ -111,7 +118,9 @@ export function useExchangeRates() {
         nextRates[currencyCode] = rate;
       }
 
-      const missingCurrencies = DISPLAY_CURRENCIES.filter((code) => nextRates[code] === 1 && code !== "EUR");
+      const missingCurrencies = DISPLAY_CURRENCIES.filter(
+        (code) => nextRates[code] === 1 && code !== "EUR",
+      );
       if (missingCurrencies.length) {
         const fallbackResponse = await fetch("https://open.er-api.com/v6/latest/EUR", {
           signal: AbortSignal.timeout(8000),
@@ -125,6 +134,29 @@ export function useExchangeRates() {
 
           if (ratesMap) {
             for (const code of missingCurrencies) {
+              const rate = normalizeRate(ratesMap[code]);
+              if (rate) nextRates[code] = rate;
+            }
+          }
+        }
+      }
+
+      const stillMissingCurrencies = DISPLAY_CURRENCIES.filter(
+        (code) => nextRates[code] === 1 && code !== "EUR",
+      );
+      if (stillMissingCurrencies.length) {
+        const frankfurterResponse = await fetch("https://api.frankfurter.app/latest?from=EUR", {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (frankfurterResponse.ok) {
+          const frankfurterData: unknown = await frankfurterResponse.json();
+          const ratesMap =
+            typeof frankfurterData === "object" && frankfurterData && "rates" in frankfurterData
+              ? (frankfurterData as { rates?: Record<string, unknown> }).rates
+              : null;
+
+          if (ratesMap) {
+            for (const code of stillMissingCurrencies) {
               const rate = normalizeRate(ratesMap[code]);
               if (rate) nextRates[code] = rate;
             }
