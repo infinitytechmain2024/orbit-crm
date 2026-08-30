@@ -565,6 +565,17 @@ docker compose logs -f selfdev-provider
 
 ## 9. Частые ошибки
 
+## 10. Переменные GitHub-автопилота
+
+### 10.1 GITHUB_TOKEN
+Фин‑гранулярный PAT с правами: Contents, Pull requests, Administration. Используется для доступа к репозиториям и управления pull‑реквестами.
+
+### 10.2 GITHUB_REPO
+Формат `owner/repo`. Указывает репозиторий, в котором будет работать автопилот.
+
+### 10.3 GITHUB_PROJECTS_ORG
+Необязательная переменная. Указывает организацию, в которой находятся репозитории проектов. Если не задана, автопилот будет использовать репозиторий по умолчанию.
+
 ### `401 Invalid or missing provider token`
 
 - Сравните `SELFDEV_PROVIDER_TOKEN` в Render backend и `.env.selfdev`.
