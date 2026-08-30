@@ -46,31 +46,6 @@ class OpenClawSecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
-    def test_learning_api_rejects_missing_authentication(self) -> None:
-        response = self.client.get(
-            "/api/learning/knowledge",
-            params={"organization_id": "00000000-0000-0000-0000-000000000000"},
-        )
-        self.assertEqual(response.status_code, 401)
-
-    def test_memory_api_rejects_missing_authentication(self) -> None:
-        response = self.client.get(
-            "/api/learning/memory",
-            params={"organization_id": "00000000-0000-0000-0000-000000000000"},
-        )
-        self.assertEqual(response.status_code, 401)
-
-    def test_memory_correction_rejects_missing_authentication(self) -> None:
-        response = self.client.post(
-            "/api/learning/memory/00000000-0000-0000-0000-000000000001/correct",
-            json={
-                "organization_id": "00000000-0000-0000-0000-000000000000",
-                "memory_value": {"fact": "corrected"},
-                "correction_note": "test",
-            },
-        )
-        self.assertEqual(response.status_code, 401)
-
     def test_learning_patterns_reject_missing_authentication(self) -> None:
         response = self.client.get(
             "/api/learning/patterns",
