@@ -107,7 +107,15 @@ class OpenAICompatibleProvider:
                 kwargs["tools"] = tools
                 kwargs["tool_choice"] = tool_choice or "auto"
             completion = client.chat.completions.create(**kwargs)
-            message = completion.choices[0].message
+            # Some OpenAI-compatible endpoints answer 200 with `choices: null`
+            # (throttling, capacity, a refused request). Treat that as a provider
+            # failure so the caller can fall back, rather than a TypeError.
+            choices = getattr(completion, "choices", None)
+            if not choices:
+                raise ProviderUnavailable(
+                    f"Provider {self.name} returned no choices for model {model}"
+                )
+            message = choices[0].message
             usage = getattr(completion, "usage", None)
             tool_calls = tuple(
                 {

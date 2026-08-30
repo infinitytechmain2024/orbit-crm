@@ -158,6 +158,10 @@ class Settings(BaseSettings):
     # instead of the token owner's personal account. Requires Administration
     # (read & write) on GITHUB_TOKEN.
     GITHUB_PROJECTS_ORG: str = Field(default="", validation_alias="GITHUB_PROJECTS_ORG")
+    # Overrides the coding executor's model. Must support function calling —
+    # the app-wide chat default does not, so leave empty to use the verified
+    # per-provider choice in coding_executor.TOOL_CAPABLE_MODELS.
+    CODING_EXECUTOR_MODEL: str = Field(default="", validation_alias="CODING_EXECUTOR_MODEL")
 
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":

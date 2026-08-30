@@ -24,6 +24,7 @@ export function useAiWorkflow(
   const retryRef = useRef<number | null>(null);
   const retryAttemptRef = useRef(0);
   const autoRetryEnabledRef = useRef(true);
+  const refreshRef = useRef<(quiet?: boolean) => Promise<void>>(() => Promise.resolve());
 
   const clearRetryTimer = useCallback(() => {
     if (retryRef.current) {
@@ -38,7 +39,7 @@ export function useAiWorkflow(
     retryAttemptRef.current += 1;
     const delay = 60_000;
     retryRef.current = window.setTimeout(() => {
-      void refresh(true);
+      void refreshRef.current(true);
     }, delay);
   }, [clearRetryTimer, preview]);
 
@@ -107,6 +108,8 @@ export function useAiWorkflow(
     },
     [accessToken, clearRetryTimer, organizationId, preview, projectId, scheduleRetry],
   );
+
+  refreshRef.current = refresh;
 
   useEffect(() => {
     void refresh(true);

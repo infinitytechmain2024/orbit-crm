@@ -39,7 +39,9 @@ from backend.services.ai_providers import ai_provider_registry
 
 logger = logging.getLogger(__name__)
 
-MAX_STEPS = 20
+# Observed: a documentation edit spent ~20 steps on reads and searches before
+# it was ready to finish, so a 20-step ceiling cut off otherwise-healthy runs.
+MAX_STEPS = 45
 STEP_TIMEOUT_SECONDS = 90
 # A --depth 1 clone of this repository checks out ~23k files (~465 MB) and takes
 # about two minutes on a warm connection, so the ceiling has to sit well clear of
@@ -80,8 +82,33 @@ TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "edit_file",
+            "description": (
+                "Replace an exact snippet inside an existing file. This is the correct way to "
+                "modify a file you did not write yourself — prefer it over write_file always. "
+                "old_string must appear exactly once in the file; include enough surrounding "
+                "context to make it unique. Everything outside the snippet is left untouched."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Path relative to the repository root."},
+                    "old_string": {"type": "string", "description": "Exact text to replace, unique in the file."},
+                    "new_string": {"type": "string", "description": "Replacement text."},
+                },
+                "required": ["path", "old_string", "new_string"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "write_file",
-            "description": "Create or overwrite a text file in the repository working copy.",
+            "description": (
+                "Write a file's ENTIRE contents, replacing whatever was there. Use only for files "
+                "you are creating from scratch. To change part of an existing file use edit_file — "
+                "write_file on an existing file discards every line you do not repeat."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -89,6 +116,25 @@ TOOLS: list[dict[str, Any]] = [
                     "content": {"type": "string", "description": "Full new file content."},
                 },
                 "required": ["path", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search",
+            "description": (
+                "Search the repository for a literal string and return matching file paths with "
+                "line numbers. Use this to locate where something lives instead of reading files "
+                "one by one."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Literal text to search for."},
+                    "path": {"type": "string", "description": "Optional subdirectory to limit the search to."},
+                },
+                "required": ["query"],
             },
         },
     },
@@ -159,6 +205,11 @@ def _branch_name(task_id: str, title: str) -> str:
     return f"autopilot/{task_id}-{slug}"
 
 
+def _is_protected(path: Path) -> bool:
+    """Paths the model must never write to, whatever the task says."""
+    return ".git" in path.parts or path.name.startswith(".env")
+
+
 def _safe_path(workdir: Path, relative: str) -> Path:
     candidate = (workdir / (relative or ".")).resolve()
     root = workdir.resolve()
@@ -224,14 +275,65 @@ async def _dispatch_tool(workdir: Path, name: str, arguments: dict[str, Any]) ->
                 return f"Ошибка: файл не найден: {arguments.get('path')}"
             return path.read_bytes()[:MAX_FILE_BYTES].decode("utf-8", "replace")
 
+        if name == "edit_file":
+            path = _safe_path(workdir, str(arguments.get("path") or ""))
+            if _is_protected(path):
+                return "Ошибка: запись в этот путь запрещена"
+            if not path.is_file():
+                return f"Ошибка: файл не найден: {arguments.get('path')}"
+            old = str(arguments.get("old_string") or "")
+            new = str(arguments.get("new_string") or "")
+            if not old:
+                return "Ошибка: old_string обязателен и не может быть пустым"
+            current = path.read_text(encoding="utf-8", errors="replace")
+            occurrences = current.count(old)
+            if occurrences == 0:
+                return "Ошибка: old_string не найден в файле. Прочитай файл и скопируй фрагмент точно."
+            if occurrences > 1:
+                return (
+                    f"Ошибка: old_string встречается {occurrences} раз — нужен уникальный фрагмент. "
+                    "Добавь окружающий контекст, чтобы совпадение было единственным."
+                )
+            path.write_text(current.replace(old, new, 1), encoding="utf-8")
+            return f"Заменён фрагмент в {arguments.get('path')}"
+
         if name == "write_file":
             path = _safe_path(workdir, str(arguments.get("path") or ""))
-            if ".git" in path.parts or path.name.startswith(".env"):
+            if _is_protected(path):
                 return "Ошибка: запись в этот путь запрещена"
-            path.parent.mkdir(parents=True, exist_ok=True)
             content = str(arguments.get("content") or "")
+            # Guard against the classic whole-file-overwrite failure: the model
+            # cannot hold a large file in context, writes back only its new
+            # section, and silently deletes everything else. An edit that drops
+            # most of an existing file is virtually never intended.
+            if path.is_file():
+                existing = path.read_text(encoding="utf-8", errors="replace")
+                if len(existing) > 2000 and len(content) < len(existing) * 0.5:
+                    return (
+                        f"Ошибка: отказано — это перезаписало бы {len(existing)} байт на {len(content)} "
+                        "и удалило бы большую часть файла. Используй edit_file для точечной правки."
+                    )
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
             return f"Записано {len(content)} байт в {arguments.get('path')}"
+
+        if name == "search":
+            query = str(arguments.get("query") or "")
+            if not query:
+                return "Ошибка: query обязателен"
+            root = _safe_path(workdir, str(arguments.get("path") or "."))
+            # -F: literal, not regex — the model supplies plain text, and a stray
+            # metacharacter should not silently change what gets matched.
+            code, out, _err = await _run(
+                ["grep", "-rnI", "-F", "--exclude-dir=.git", "--exclude-dir=node_modules", query, str(root)],
+                cwd=workdir,
+                timeout=30,
+            )
+            if code != 0 or not out.strip():
+                return "Совпадений не найдено"
+            lines = out.splitlines()[:40]
+            rel = [line.replace(f"{workdir}/", "", 1) for line in lines]
+            return "\n".join(rel)[:4000]
 
         if name == "list_dir":
             path = _safe_path(workdir, str(arguments.get("path") or "."))
@@ -317,15 +419,48 @@ async def _open_pull_request(
         return str(response.json().get("html_url") or "")
 
 
+# Models verified to answer a tools= request on each provider. These are
+# deliberately NOT the project-wide defaults: `openai/gpt-oss-120b`, which the
+# rest of the app uses, never returns at all once `tools` is present on the
+# NVIDIA endpoint (it hangs past a 180s read timeout), so a chat-only default
+# is not safe to reuse here.
+TOOL_CAPABLE_MODELS = {
+    "nvidia": "openai/gpt-oss-20b",
+    "openai": "gpt-4o-mini",
+    "groq": "llama-3.3-70b-versatile",
+}
+
+
+PROVIDER_ATTEMPTS = 4
+
+
+async def _complete_with_retry(provider: Any, model: str, messages: list[dict[str, Any]]) -> Any | None:
+    """One agent step, retried past transient provider hiccups.
+
+    The NVIDIA endpoint intermittently answers with no choices at all (and
+    occasionally just stalls) for a model that served a request seconds earlier,
+    so a single bad response must not end an otherwise healthy run.
+    """
+    for attempt in range(1, PROVIDER_ATTEMPTS + 1):
+        try:
+            return await asyncio.wait_for(
+                provider.complete(model, messages, temperature=0.1, max_tokens=4096, tools=TOOLS),
+                timeout=STEP_TIMEOUT_SECONDS,
+            )
+        except Exception as exc:
+            if attempt == PROVIDER_ATTEMPTS:
+                logger.warning("coding_executor: provider gave up after %s attempts: %s", attempt, exc)
+                return None
+            logger.info("coding_executor: provider attempt %s failed (%s), retrying", attempt, exc)
+            await asyncio.sleep(2 * attempt)
+    return None
+
+
 def _resolve_provider() -> tuple[str, str]:
-    chain = [
-        ("nvidia", settings.NVIDIA_MODEL or "openai/gpt-oss-120b"),
-        ("openai", settings.OPENAI_MODEL or "gpt-4o-mini"),
-        ("groq", settings.GROQ_MODEL or "openai/gpt-oss-120b"),
-    ]
-    for name, model in chain:
+    override = settings.CODING_EXECUTOR_MODEL.strip()
+    for name in ("nvidia", "openai", "groq"):
         if ai_provider_registry.is_configured(name):
-            return name, model
+            return name, override or TOOL_CAPABLE_MODELS[name]
     raise CodingExecutorUnavailable("Ни один AI-провайдер с поддержкой function calling не настроен")
 
 
@@ -345,7 +480,7 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
 
         system_prompt = (
             "Ты — автономный инженер Orbit Autopilot с доступом к рабочей копии репозитория "
-            f"{repo} через инструменты read_file/write_file/list_dir/run_command. "
+            f"{repo} через инструменты read_file/edit_file/write_file/search/list_dir/run_command. "
             "Вноси только изменения, необходимые для задачи. Никогда не читай и не пиши в .git "
             "или файлы .env*. Когда закончишь — вызови finish с summary и commit_message. "
             "Если задачу нельзя выполнить — вызови finish, объяснив почему, и не меняй файлы."
@@ -368,17 +503,20 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
             if time.monotonic() > deadline:
                 return CodingExecutionResult(success=False, steps=steps, error="Превышен общий лимит времени выполнения")
 
-            result = await asyncio.wait_for(
-                provider.complete(model_name, messages, temperature=0.1, max_tokens=4096, tools=TOOLS),
-                timeout=STEP_TIMEOUT_SECONDS,
-            )
+            result = await _complete_with_retry(provider, model_name, messages)
+            if result is None:
+                return CodingExecutionResult(
+                    success=False,
+                    steps=steps,
+                    error=f"Провайдер {provider.name} не ответил после {PROVIDER_ATTEMPTS} попыток",
+                )
 
             if not result.tool_calls:
                 messages.append({"role": "assistant", "content": result.content})
                 messages.append(
                     {
                         "role": "user",
-                        "content": "Используй один из инструментов read_file/write_file/list_dir/run_command, либо finish.",
+                        "content": "Используй один из инструментов read_file/edit_file/write_file/search/list_dir/run_command, либо finish.",
                     }
                 )
                 continue

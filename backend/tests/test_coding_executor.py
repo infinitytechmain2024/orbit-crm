@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -66,6 +67,81 @@ class CodingExecutorTokenRedactionTests(unittest.IsolatedAsyncioTestCase):
     def test_credential_helper_script_has_no_hardcoded_secret(self):
         self.assertNotIn("github_pat", coding_executor.CREDENTIAL_HELPER)
         self.assertIn("$ORBIT_GIT_TOKEN", coding_executor.CREDENTIAL_HELPER)
+
+
+class FileEditingSafetyTests(unittest.IsolatedAsyncioTestCase):
+    """The first live run destroyed a 613-line document: the model called
+    write_file with only its new section, silently dropping everything else.
+    write_file must refuse a large truncation, and edit_file must exist as the
+    safe way to change part of a file."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workdir = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    async def test_write_file_refuses_to_truncate_a_large_existing_file(self):
+        target = self.workdir / "runbook.md"
+        target.write_text("original line\n" * 500, encoding="utf-8")
+        before = target.read_text(encoding="utf-8")
+
+        out = await coding_executor._dispatch_tool(
+            self.workdir, "write_file", {"path": "runbook.md", "content": "## Only a new section\n"}
+        )
+
+        self.assertIn("Ошибка", out)
+        self.assertEqual(target.read_text(encoding="utf-8"), before, "file must be left untouched")
+
+    async def test_write_file_still_allows_creating_new_files(self):
+        out = await coding_executor._dispatch_tool(
+            self.workdir, "write_file", {"path": "docs/new.md", "content": "hello"}
+        )
+        self.assertNotIn("Ошибка", out)
+        self.assertEqual((self.workdir / "docs/new.md").read_text(encoding="utf-8"), "hello")
+
+    async def test_edit_file_replaces_only_the_named_snippet(self):
+        target = self.workdir / "doc.md"
+        target.write_text("# Title\n\nkeep me\n\nOLD BLOCK\n\nkeep me too\n", encoding="utf-8")
+
+        out = await coding_executor._dispatch_tool(
+            self.workdir,
+            "edit_file",
+            {"path": "doc.md", "old_string": "OLD BLOCK", "new_string": "NEW BLOCK"},
+        )
+
+        self.assertNotIn("Ошибка", out)
+        result = target.read_text(encoding="utf-8")
+        self.assertIn("NEW BLOCK", result)
+        self.assertIn("keep me", result)
+        self.assertIn("keep me too", result)
+        self.assertIn("# Title", result)
+
+    async def test_edit_file_rejects_ambiguous_snippet(self):
+        target = self.workdir / "doc.md"
+        target.write_text("same\nsame\n", encoding="utf-8")
+        out = await coding_executor._dispatch_tool(
+            self.workdir, "edit_file", {"path": "doc.md", "old_string": "same", "new_string": "x"}
+        )
+        self.assertIn("встречается 2 раз", out)
+        self.assertEqual(target.read_text(encoding="utf-8"), "same\nsame\n")
+
+    async def test_edit_file_reports_missing_snippet_without_writing(self):
+        target = self.workdir / "doc.md"
+        target.write_text("content\n", encoding="utf-8")
+        out = await coding_executor._dispatch_tool(
+            self.workdir, "edit_file", {"path": "doc.md", "old_string": "absent", "new_string": "x"}
+        )
+        self.assertIn("не найден", out)
+        self.assertEqual(target.read_text(encoding="utf-8"), "content\n")
+
+    async def test_protected_paths_are_never_writable(self):
+        for path in [".env", ".env.local", ".git/config"]:
+            out = await coding_executor._dispatch_tool(
+                self.workdir, "write_file", {"path": path, "content": "x"}
+            )
+            self.assertIn("запрещена", out, f"{path} must be refused")
 
 
 if __name__ == "__main__":
