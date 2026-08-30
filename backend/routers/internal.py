@@ -36,6 +36,27 @@ class SupabaseProjectWebhook(BaseModel):
     record: dict[str, Any]
 
 
+def _short_error(exc: Exception) -> str:
+    """Compact, secret-free description of a failure for the webhook response."""
+    return f"{type(exc).__name__}: {str(exc)[:200]}"
+
+
+async def _mark_repo_failed(organization_id: str, project_id: str) -> str | None:
+    """Best-effort `github_repo_status = failed`. Returns an error string if the
+    write itself failed, so the caller can report *which* step actually broke."""
+    try:
+        await ai_workflow_store.update(
+            "projects",
+            organization_id=organization_id,
+            filters={"id": f"eq.{project_id}"},
+            payload={"github_repo_status": "failed"},
+        )
+        return None
+    except Exception as exc:
+        logger.exception("provision_project_repo: could not mark project %s as failed", project_id)
+        return _short_error(exc)
+
+
 def _repo_name_for_project(name: str, project_id: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:40] or "project"
     short_id = str(project_id).replace("-", "")[:8]
@@ -85,25 +106,41 @@ async def provision_project_repo(payload: SupabaseProjectWebhook):
 
     if response.status_code >= 400:
         error_text = response.text[:500]
-        logger.error("provision_project_repo failed for project %s: %s", project_id, error_text)
+        logger.error(
+            "provision_project_repo: GitHub %s %s -> %s: %s",
+            create_path, repo_name, response.status_code, error_text,
+        )
+        db_error = await _mark_repo_failed(organization_id, project_id)
+        return {
+            "success": False,
+            "stage": "github",
+            "github_status": response.status_code,
+            "error": error_text,
+            "db_write_error": db_error,
+        }
+
+    data = response.json()
+    repo_url = data.get("html_url")
+    try:
         await ai_workflow_store.update(
             "projects",
             organization_id=organization_id,
             filters={"id": f"eq.{project_id}"},
-            payload={"github_repo_status": "failed"},
+            payload={
+                "github_repo_owner": (data.get("owner") or {}).get("login"),
+                "github_repo_name": data.get("name"),
+                "github_repo_url": repo_url,
+                "github_repo_status": "created",
+            },
         )
-        return {"success": False, "error": error_text}
-
-    data = response.json()
-    await ai_workflow_store.update(
-        "projects",
-        organization_id=organization_id,
-        filters={"id": f"eq.{project_id}"},
-        payload={
-            "github_repo_owner": (data.get("owner") or {}).get("login"),
-            "github_repo_name": data.get("name"),
-            "github_repo_url": data.get("html_url"),
-            "github_repo_status": "created",
-        },
-    )
-    return {"success": True, "repo_url": data.get("html_url")}
+    except Exception as exc:
+        # The repository exists — losing the DB write must not read as a total
+        # failure, or a retry would try to create the same repository again.
+        logger.exception("provision_project_repo: repo %s created but DB write failed", repo_name)
+        return {
+            "success": True,
+            "repo_url": repo_url,
+            "warning": "repository created but project row was not updated",
+            "db_write_error": _short_error(exc),
+        }
+    return {"success": True, "repo_url": repo_url}
