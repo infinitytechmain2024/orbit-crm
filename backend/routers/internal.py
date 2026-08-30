@@ -23,9 +23,19 @@ router = APIRouter(
 GITHUB_API = "https://api.github.com"
 
 
+# Bumped whenever this router changes, so a deploy can be confirmed from outside
+# without guessing whether the running instance already has the newest code.
+INTERNAL_ROUTER_REVISION = "provision-repo-diagnostics-2"
+
+
 @router.get("/health")
 async def internal_health():
-    return {"status": "ok", "service": settings.APP_NAME, "version": settings.APP_VERSION}
+    return {
+        "status": "ok",
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "router_revision": INTERNAL_ROUTER_REVISION,
+    }
 
 
 class SupabaseProjectWebhook(BaseModel):
@@ -90,19 +100,31 @@ async def provision_project_repo(payload: SupabaseProjectWebhook):
     repo_name = _repo_name_for_project(name, project_id)
     create_path = f"/orgs/{settings.GITHUB_PROJECTS_ORG}/repos" if settings.GITHUB_PROJECTS_ORG else "/user/repos"
 
-    async with httpx.AsyncClient(
-        base_url=GITHUB_API,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        },
-        timeout=30.0,
-    ) as client:
-        response = await client.post(
-            create_path,
-            json={"name": repo_name, "private": True, "description": f"Orbit CRM project: {name}"[:350]},
-        )
+    try:
+        async with httpx.AsyncClient(
+            base_url=GITHUB_API,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            timeout=30.0,
+        ) as client:
+            response = await client.post(
+                create_path,
+                json={"name": repo_name, "private": True, "description": f"Orbit CRM project: {name}"[:350]},
+            )
+    except Exception as exc:
+        # Transport-level failure (DNS, TLS, timeout, blocked egress) — distinct
+        # from GitHub answering with an error status, and worth saying so.
+        logger.exception("provision_project_repo: GitHub request to %s failed to complete", create_path)
+        db_error = await _mark_repo_failed(organization_id, project_id)
+        return {
+            "success": False,
+            "stage": "github_transport",
+            "error": _short_error(exc),
+            "db_write_error": db_error,
+        }
 
     if response.status_code >= 400:
         error_text = response.text[:500]
