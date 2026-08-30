@@ -162,7 +162,10 @@ export function WorkflowChatPanel({
           Чаты
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[min(94vw,50rem)] border-border bg-background p-0">
+      <SheetContent
+        side="right"
+        className="w-[100vw] border-border bg-background p-0 sm:w-[min(94vw,50rem)] lg:w-[min(96vw,68rem)]"
+      >
         <div className="flex h-full min-h-0 flex-col">
           <SheetHeader className="border-b border-border px-5 py-4">
             <SheetTitle className="flex items-center gap-2">
@@ -176,8 +179,8 @@ export function WorkflowChatPanel({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[18rem_1fr]">
-            <aside className="border-b border-border bg-surface/40 p-3 md:border-b-0 md:border-r">
+          <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+            <aside className="border-b border-border bg-surface/40 p-3 md:h-full md:w-[18rem] md:flex-shrink-0 md:border-b-0 md:border-r">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                   История
@@ -190,7 +193,7 @@ export function WorkflowChatPanel({
                   Новый
                 </button>
               </div>
-              <div className="space-y-2 overflow-y-auto pr-1">
+              <div className="max-h-[28vh] space-y-2 overflow-y-auto pr-1 md:max-h-none md:flex-1">
                 {threads.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-border bg-background/40 p-4 text-sm text-muted-foreground">
                     Пока нет чатов. Создайте первый скрытый диалог.
@@ -233,8 +236,8 @@ export function WorkflowChatPanel({
               </button>
             </aside>
 
-            <section className="flex min-h-0 flex-col bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.03),transparent_36%)]">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <section className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.03),transparent_36%)]">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">
                     {activeThread?.title ?? "Выберите чат"}
@@ -245,14 +248,14 @@ export function WorkflowChatPanel({
                       : "Чат будет создан при первом сообщении"}
                   </div>
                 </div>
-                <div className="rounded-full border border-border bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">
+                <div className="shrink-0 rounded-full border border-border bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">
                   Hidden mode
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              <div className="min-h-[38vh] flex-1 space-y-3 overflow-y-auto p-4 md:min-h-0">
                 {!activeThread ? (
-                  <div className="grid h-full place-items-center rounded-3xl border border-dashed border-border bg-background/40 px-4 text-center text-sm text-muted-foreground">
+                  <div className="grid min-h-[32vh] place-items-center rounded-3xl border border-dashed border-border bg-background/40 px-4 text-center text-sm text-muted-foreground md:min-h-full">
                     Выберите чат слева или создайте новый.
                   </div>
                 ) : (
@@ -286,7 +289,7 @@ export function WorkflowChatPanel({
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="border-t border-border p-4">
+              <div className="border-t border-border p-3 sm:p-4">
                 <div className="rounded-3xl border border-border bg-surface-2/70 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
                   <Textarea
                     value={draft}
