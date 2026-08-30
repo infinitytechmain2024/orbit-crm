@@ -14,11 +14,17 @@ create table if not exists public.activity_log (
 
 alter table public.activity_log enable row level security;
 
-create policy "activity_log_select_auth" on public.activity_log
-  for select to authenticated using (true);
+DO $$ BEGIN
+    create policy "activity_log_select_auth" on public.activity_log
+      for select to authenticated using (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-create policy "activity_log_insert_auth" on public.activity_log
-  for insert to authenticated with check (true);
+DO $$ BEGIN
+    create policy "activity_log_insert_auth" on public.activity_log
+      for insert to authenticated with check (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 2. ceo_approval_requests
 create table if not exists public.ceo_approval_requests (
@@ -40,14 +46,23 @@ create table if not exists public.ceo_approval_requests (
 
 alter table public.ceo_approval_requests enable row level security;
 
-create policy "ceo_approval_requests_select_auth" on public.ceo_approval_requests
-  for select to authenticated using (true);
+DO $$ BEGIN
+    create policy "ceo_approval_requests_select_auth" on public.ceo_approval_requests
+      for select to authenticated using (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-create policy "ceo_approval_requests_insert_auth" on public.ceo_approval_requests
-  for insert to authenticated with check (true);
+DO $$ BEGIN
+    create policy "ceo_approval_requests_insert_auth" on public.ceo_approval_requests
+      for insert to authenticated with check (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-create policy "ceo_approval_requests_update_auth" on public.ceo_approval_requests
-  for update to authenticated using (true) with check (true);
+DO $$ BEGIN
+    create policy "ceo_approval_requests_update_auth" on public.ceo_approval_requests
+      for update to authenticated using (true) with check (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 3. deployment_queue
 create table if not exists public.deployment_queue (
@@ -69,14 +84,23 @@ create table if not exists public.deployment_queue (
 
 alter table public.deployment_queue enable row level security;
 
-create policy "deployment_queue_select_auth" on public.deployment_queue
-  for select to authenticated using (true);
+DO $$ BEGIN
+    create policy "deployment_queue_select_auth" on public.deployment_queue
+      for select to authenticated using (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-create policy "deployment_queue_insert_auth" on public.deployment_queue
-  for insert to authenticated with check (true);
+DO $$ BEGIN
+    create policy "deployment_queue_insert_auth" on public.deployment_queue
+      for insert to authenticated with check (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-create policy "deployment_queue_update_auth" on public.deployment_queue
-  for update to authenticated using (true) with check (true);
+DO $$ BEGIN
+    create policy "deployment_queue_update_auth" on public.deployment_queue
+      for update to authenticated using (true) with check (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 4. CEO columns on tasks table
 do $$

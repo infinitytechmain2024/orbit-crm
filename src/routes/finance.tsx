@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -40,6 +40,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  convertDisplayToEur,
+  convertEurToDisplay,
+  formatMoney,
+  type DisplayCurrency,
+  useExchangeRates,
+} from "@/lib/currency";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({
@@ -57,21 +64,6 @@ export const Route = createFileRoute("/finance")({
 });
 
 const COLORS = ["var(--acc-1)", "var(--acc-2)", "var(--acc-3)", "var(--acc-4)"];
-const DISPLAY_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "PLN", "TRY", "UAH"] as const;
-type DisplayCurrency = (typeof DISPLAY_CURRENCIES)[number];
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
-function normalizeRate(rate: unknown): number | null {
-  const value = typeof rate === "string" ? Number(rate) : typeof rate === "number" ? rate : NaN;
-  return Number.isFinite(value) && value > 0 ? value : null;
-}
 
 function FinancePage() {
   const {
@@ -92,17 +84,8 @@ function FinancePage() {
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Прочее");
-  const [rates, setRates] = useState<Record<DisplayCurrency, number>>({
-    EUR: 1,
-    USD: 1,
-    GBP: 1,
-    CHF: 1,
-    PLN: 1,
-    TRY: 1,
-    UAH: 1,
-  });
-  const [ratesStatus, setRatesStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
+  const { rates, status: ratesStatus, updatedAt: ratesUpdatedAt, reload: reloadRates } =
+    useExchangeRates();
   const [occurredOn, setOccurredOn] = useState(() => {
     const now = new Date();
     const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
@@ -111,50 +94,11 @@ function FinancePage() {
   const [savingFinance, setSavingFinance] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const loadRates = async () => {
-    setRatesStatus("loading");
-    try {
-      const response = await fetch("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml", {
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!response.ok) throw new Error("Failed to load exchange rates");
-      const xml = await response.text();
-      const document = new DOMParser().parseFromString(xml, "application/xml");
-      const cubes = [...document.querySelectorAll("Cube[currency][rate]")];
-      const nextRates: Record<DisplayCurrency, number> = {
-        EUR: 1,
-        USD: 1,
-        GBP: 1,
-        CHF: 1,
-        PLN: 1,
-        TRY: 1,
-        UAH: 1,
-      };
-
-      for (const cube of cubes) {
-        const currencyCode = cube.getAttribute("currency") as DisplayCurrency | null;
-        const rate = normalizeRate(cube.getAttribute("rate"));
-        if (!currencyCode || !rate || !(currencyCode in nextRates)) continue;
-        nextRates[currencyCode] = rate;
-      }
-
-      setRates(nextRates);
-      setRatesStatus("ready");
-      setRatesUpdatedAt(new Date().toLocaleString("ru-RU"));
-    } catch {
-      setRatesStatus("error");
-    }
-  };
-
-  useEffect(() => {
-    void loadRates();
-  }, []);
-
   const selectedRate = rates[currency as DisplayCurrency] || 1;
   const toDisplayCurrency = (valueInEUR: number) =>
-    currency === "EUR" ? valueInEUR : valueInEUR * selectedRate;
+    convertEurToDisplay(valueInEUR, currency as DisplayCurrency, selectedRate);
   const toBaseEUR = (valueInDisplayCurrency: number) =>
-    currency === "EUR" ? valueInDisplayCurrency : valueInDisplayCurrency / selectedRate;
+    convertDisplayToEur(valueInDisplayCurrency, currency as DisplayCurrency, selectedRate);
 
   const allTransactions = useMemo(() => {
     const manual = txs.map((t) => ({
@@ -318,7 +262,7 @@ function FinancePage() {
                 Обновлено: {ratesUpdatedAt}
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => void loadRates()} disabled={ratesStatus === "loading"}>
+            <Button variant="outline" size="sm" onClick={() => void reloadRates()} disabled={ratesStatus === "loading"}>
               <RefreshCw className="mr-2 size-4" />
               {ratesStatus === "loading" ? "Обновляю курс..." : "Обновить курс"}
             </Button>

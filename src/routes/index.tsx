@@ -25,6 +25,7 @@ import { QuickInputTextarea } from "@/components/crm/QuickInputTextarea";
 import { STATUS_LABEL, type Priority } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { convertEurToDisplay, formatMoney, useExchangeRates } from "@/lib/currency";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -115,6 +116,7 @@ type AiAnalyzeResponse = {
 function Dashboard() {
   const { tasks, emails, txs, addTask, projects, organization, currency } = useCrm();
   const { session } = useAuth();
+  const { rates } = useExchangeRates();
   const [draft, setDraft] = useState("");
   const [stage, setStage] = useState<"idle" | "loading" | "preview">("idle");
   const [parsed, setParsed] = useState<ParsedTask[]>([]);
@@ -125,6 +127,9 @@ function Dashboard() {
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const open = tasks.filter((t) => t.status !== "completed" && !t.archivedAt);
+  const selectedRate = rates[currency as keyof typeof rates] || 1;
+  const toDisplayCurrency = (valueInEUR: number) =>
+    convertEurToDisplay(valueInEUR, currency as keyof typeof rates, selectedRate);
 
   const analyze = useCallback(async () => {
     if (!draft.trim() || stage === "loading") return;
@@ -525,13 +530,13 @@ function Dashboard() {
           <Metric
             icon={<Wallet className="size-4" />}
             label="Доход за месяц"
-            value={money(income, currency)}
+            value={formatMoney(toDisplayCurrency(income), currency)}
             delta="+18%"
           />
           <Metric
             icon={<TrendingUp className="size-4" />}
             label="Чистая прибыль"
-            value={money(income - expense, currency)}
+            value={formatMoney(toDisplayCurrency(income - expense), currency)}
             delta="+9%"
           />
           <Metric
@@ -871,10 +876,3 @@ function MiniMetric({ label, value, helper }: { label: string; value: string; he
     </div>
   );
 }
-
-const money = (value: number, currency: string) =>
-  new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(value);
