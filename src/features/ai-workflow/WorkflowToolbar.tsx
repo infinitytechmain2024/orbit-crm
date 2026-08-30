@@ -1,4 +1,4 @@
-import { Mic, Plus, Search } from "lucide-react";
+import { Mic, MessageSquarePlus, Plus, Search } from "lucide-react";
 
 import type { WorkflowProject } from "./types";
 
@@ -10,6 +10,7 @@ export function WorkflowToolbar({
   onSearchChange,
   onCreate,
   onVoice,
+  onChat,
 }: {
   projects: WorkflowProject[];
   projectId: string;
@@ -18,6 +19,7 @@ export function WorkflowToolbar({
   onSearchChange: (value: string) => void;
   onCreate: () => void;
   onVoice: () => void;
+  onChat: () => void;
 }) {
   return (
     <div className="flex basis-full flex-wrap items-center gap-2 xl:basis-auto">
@@ -60,6 +62,14 @@ export function WorkflowToolbar({
       >
         <Plus className="size-4" />
         Новая задача
+      </button>
+      <button
+        type="button"
+        onClick={onChat}
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-4 text-xs font-semibold text-primary transition hover:border-primary/55 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+      >
+        <MessageSquarePlus className="size-4" />
+        Чат задач
       </button>
       <button
         type="button"
