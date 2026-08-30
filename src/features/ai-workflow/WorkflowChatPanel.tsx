@@ -157,7 +157,10 @@ export function WorkflowChatPanel({
           Чаты
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[min(92vw,44rem)] border-border bg-background p-0">
+      <SheetContent
+        side="right"
+        className="h-[100dvh] w-[100vw] max-w-none border-border bg-background p-0 sm:w-[min(98vw,72rem)] lg:w-[min(98vw,88rem)]"
+      >
         <div className="flex h-full min-h-0 flex-col">
           <SheetHeader className="border-b border-border px-5 py-4">
             <SheetTitle className="flex items-center gap-2">
