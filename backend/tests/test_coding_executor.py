@@ -403,3 +403,64 @@ class CheckToolExposureTests(unittest.TestCase):
     def test_check_changes_is_offered_to_the_model(self):
         names = {tool["function"]["name"] for tool in coding_executor.TOOLS}
         self.assertIn("check_changes", names)
+
+
+class PersistentWorkspaceTests(unittest.IsolatedAsyncioTestCase):
+    """A persistent worktree keeps refs between runs, so names that were unique
+    by construction with a throwaway clone no longer are."""
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    async def test_free_branch_name_returns_the_first_unused_name(self, run_mock):
+        # show-ref exits non-zero when the ref does not exist.
+        run_mock.return_value = (1, "", "")
+        name = await coding_executor._free_branch_name(Path("/tmp/wd"), "autopilot/task-1-x")
+        self.assertEqual(name, "autopilot/task-1-x")
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    async def test_free_branch_name_steps_past_names_a_previous_attempt_left(self, run_mock):
+        run_mock.side_effect = [(0, "", ""), (0, "", ""), (1, "", "")]
+        name = await coding_executor._free_branch_name(Path("/tmp/wd"), "autopilot/task-1-x")
+        self.assertEqual(name, "autopilot/task-1-x-2")
+        self.assertTrue(name.startswith("autopilot/"))
+
+    @patch("backend.services.coding_executor._open_pull_request", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.autopilot_workspace.pending_delivery", new_callable=AsyncMock)
+    async def test_a_pending_commit_is_redelivered_without_redoing_the_work(
+        self, pending, run_mock, open_pr
+    ):
+        pending.return_value = ("autopilot/task-9-demo", "5531e07c" * 5)
+        run_mock.return_value = (0, "", "")
+        open_pr.return_value = "https://github.com/acme/repo/pull/3"
+
+        result = await coding_executor._resume_delivery(
+            Path("/tmp/mirror.git"), "acme/repo", "tok", {"id": "task-9", "title": "T"}, "main", {}
+        )
+
+        self.assertIsNotNone(result)
+        self.assertTrue(result.success)
+        self.assertEqual(result.pr_url, "https://github.com/acme/repo/pull/3")
+        self.assertIn("не выполнялась заново", result.summary)
+        # The token must not appear in the push argv.
+        for call in run_mock.call_args_list:
+            self.assertNotIn("tok", " ".join(call.args[0]))
+
+    @patch("backend.services.autopilot_workspace.pending_delivery", new_callable=AsyncMock)
+    async def test_nothing_pending_means_a_normal_run(self, pending):
+        pending.return_value = ("", "")
+        self.assertIsNone(
+            await coding_executor._resume_delivery(
+                Path("/tmp/mirror.git"), "acme/repo", "tok", {"id": "task-9", "title": "T"}, "main", {}
+            )
+        )
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.autopilot_workspace.pending_delivery", new_callable=AsyncMock)
+    async def test_a_failed_resume_falls_through_instead_of_failing_the_run(self, pending, run_mock):
+        pending.return_value = ("autopilot/task-9-demo", "abc123")
+        run_mock.return_value = (1, "", "remote hung up")
+        self.assertIsNone(
+            await coding_executor._resume_delivery(
+                Path("/tmp/mirror.git"), "acme/repo", "tok", {"id": "task-9", "title": "T"}, "main", {}
+            )
+        )

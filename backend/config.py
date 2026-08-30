@@ -199,6 +199,14 @@ class Settings(BaseSettings):
         default=str(PROJECT_ROOT / ".selfdev" / "cache"),
         validation_alias="AUTOPILOT_CACHE_DIR",
     )
+    # Long-lived worktrees reused across runs. Each keeps its own node_modules,
+    # which is what makes the browser self test affordable. One slot per
+    # concurrent run; a run that finds them all busy falls back to a throwaway
+    # clone rather than queueing and burning its own time budget.
+    AUTOPILOT_WORKSPACE_SLOTS: int = Field(
+        default=2,
+        validation_alias="AUTOPILOT_WORKSPACE_SLOTS",
+    )
 
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":

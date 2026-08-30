@@ -36,6 +36,7 @@ Safety invariants enforced in code, not by prompt:
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -50,7 +51,7 @@ from typing import Any
 import httpx
 
 from backend.config import settings
-from backend.services import autopilot_plan, autopilot_verifier
+from backend.services import autopilot_plan, autopilot_verifier, autopilot_workspace
 from backend.services.ai_providers import ai_provider_registry
 from backend.services.autopilot_plan import STATUS_BLOCKED, STATUS_DONE, AutopilotPlan
 from backend.services.autopilot_verifier import ReviewFinding, VerificationResult
@@ -350,6 +351,8 @@ class CodingExecutionResult:
     # Per-phase wall clock, in seconds. The budgets can only be calibrated
     # against real numbers, and until now a run reported none.
     timings: dict[str, float] = field(default_factory=dict)
+    # "worktree" (persistent, node_modules reused) or "clone" (throwaway).
+    workspace: str = "clone"
 
 
 def _branch_name(task_id: str, title: str, attempt: int = 1) -> str:
@@ -390,36 +393,12 @@ def _safe_path(workdir: Path, relative: str) -> Path:
     return candidate
 
 
-async def _run(
-    cmd: list[str], cwd: Path, timeout: float, env: dict[str, str] | None = None
-) -> tuple[int, str, str]:
-    """Run a subprocess. `cmd` must never itself contain a secret value — pass
-    secrets via `env` instead, so they can never leak into a logged/raised
-    command line, a process listing, or a subprocess exception message."""
-    process = await asyncio.create_subprocess_exec(
-        *cmd,
-        cwd=str(cwd),
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        env=env,
-    )
-    try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-    except asyncio.TimeoutError:
-        process.kill()
-        await process.wait()
-        raise TimeoutError(f"Команда не уложилась в {timeout}с: {' '.join(cmd)}")
-    return process.returncode or 0, stdout.decode("utf-8", "replace"), stderr.decode("utf-8", "replace")
-
-
-def _git_credential_env(token: str) -> dict[str, str]:
-    """Environment for a git subprocess that authenticates as x-access-token
-    without ever placing the token in argv (command line / process list /
-    any exception message that echoes `cmd`)."""
-    return {**os.environ, "GIT_TERMINAL_PROMPT": "0", "ORBIT_GIT_TOKEN": token}
-
-
-CREDENTIAL_HELPER = "!f() { echo username=x-access-token; echo password=$ORBIT_GIT_TOKEN; }; f"
+# Git primitives live in `autopilot_workspace` so that module can manage mirrors
+# and worktrees without importing this one. They are re-exported here because
+# this module's own helpers (and their tests) address them by these names.
+_run = autopilot_workspace.run_git
+_git_credential_env = autopilot_workspace.git_credential_env
+CREDENTIAL_HELPER = autopilot_workspace.CREDENTIAL_HELPER
 
 
 async def _clone_repo(repo: str, workdir: Path, token: str) -> str:
@@ -529,6 +508,25 @@ async def _dispatch_tool(workdir: Path, name: str, arguments: dict[str, Any]) ->
     except Exception as exc:  # pragma: no cover - defensive, tool failures must not crash the loop
         logger.exception("coding_executor tool %s failed", name)
         return f"Ошибка: {exc}"
+
+
+async def _free_branch_name(workdir: Path, branch: str) -> str:
+    """A branch name that does not already exist locally.
+
+    With a throwaway clone this was moot. A persistent worktree keeps refs
+    between runs, so `git checkout -b` on a name a previous attempt left behind
+    would fail — and force-creating it would destroy a commit the resume path
+    may still need to deliver.
+    """
+    candidate = branch
+    for suffix in range(1, 20):
+        code, _out, _err = await _run(
+            ["git", "show-ref", "--verify", "--quiet", f"refs/heads/{candidate}"], cwd=workdir, timeout=15
+        )
+        if code != 0:
+            return candidate
+        candidate = f"{branch}-{suffix}"
+    return f"{branch}-{int(time.monotonic())}"
 
 
 async def _create_branch_and_commit(workdir: Path, branch: str, commit_message: str) -> str:
@@ -898,6 +896,69 @@ async def _tool_loop(
     return None, f"Достигнут лимит шагов ({max_steps}) без вызова finish"
 
 
+async def _resume_delivery(
+    mirror: Path,
+    repo: str,
+    token: str,
+    task: dict[str, Any],
+    default_branch: str,
+    timings: dict[str, float],
+) -> CodingExecutionResult | None:
+    """Re-deliver a commit a previous attempt made but could not push.
+
+    Returns None when there is nothing to resume. Any failure here is swallowed:
+    falling through to a normal run is always correct, just slower.
+    """
+    try:
+        branch, commit_sha = await autopilot_workspace.pending_delivery(mirror, str(task["id"]))
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("autopilot: could not check for a pending delivery: %s", exc)
+        return None
+    if not branch:
+        return None
+
+    logger.info("autopilot: resuming delivery of %s from a previous attempt", branch)
+    started = time.monotonic()
+    try:
+        code, _out, err = await _run(
+            ["git", "--git-dir", str(mirror), "push", "-u", "origin", branch],
+            cwd=mirror.parent,
+            timeout=120,
+            env=_git_credential_env(token),
+        )
+        if code != 0:
+            raise RuntimeError(f"git push failed: {err[-2000:]}")
+        pr_url = await _open_pull_request(
+            repo,
+            token,
+            branch,
+            default_branch,
+            title=f"[Autopilot] {task['title']}",
+            body=(
+                f"Изменения были готовы в предыдущей попытке, но не доставлены в GitHub "
+                f"(сетевой сбой). Эта попытка только досылает уже сделанный коммит "
+                f"`{commit_sha[:8]}` — работа заново не выполнялась.\n\n---\n"
+                f"Создано автопилотом Orbit CRM по задаче `{task['id']}`."
+            ),
+        )
+    except (RuntimeError, httpx.HTTPError) as exc:
+        logger.warning("autopilot: resuming delivery of %s failed again: %s", branch, exc)
+        return None
+
+    timings["resume_delivery"] = round(time.monotonic() - started, 1)
+    return CodingExecutionResult(
+        success=True,
+        branch=branch,
+        commit_sha=commit_sha,
+        pr_url=pr_url,
+        summary="Досланы изменения предыдущей попытки — работа не выполнялась заново.",
+        plan={},
+        report=f"Доставлен коммит `{commit_sha[:8]}` из предыдущей попытки: {pr_url}",
+        timings=dict(timings),
+        workspace="worktree",
+    )
+
+
 async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionResult:
     repo = str(settings.GITHUB_REPO or "").strip()
     token = str(settings.GITHUB_TOKEN or "").strip()
@@ -910,14 +971,34 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
     async def complete_without_tools(messages: list[dict[str, Any]]) -> Any | None:
         return await _complete_with_retry(provider, model_name, messages, tools=None)
 
-    with tempfile.TemporaryDirectory(prefix="orbit-autopilot-") as base:
-        workdir = Path(base) / "repo"
+    async with contextlib.AsyncExitStack() as stack:
         timings: dict[str, float] = {}
         clone_started = time.monotonic()
-        default_branch = await _clone_repo(repo, workdir, token)
+        space = await stack.enter_async_context(
+            autopilot_workspace.acquire(
+                repo, token, settings.AUTOPILOT_CACHE_DIR, settings.AUTOPILOT_WORKSPACE_SLOTS
+            )
+        )
+        if space.persistent:
+            workdir = space.path
+            default_branch = space.default_branch
+        else:
+            base = stack.enter_context(tempfile.TemporaryDirectory(prefix="orbit-autopilot-"))
+            workdir = Path(base) / "repo"
+            default_branch = await _clone_repo(repo, workdir, token)
         timings["clone"] = round(time.monotonic() - clone_started, 1)
 
+        # A previous attempt may have committed and then failed to deliver. With
+        # a persistent workspace that commit still exists, so re-push it instead
+        # of spending a whole run reproducing work that is already done.
+        if space.persistent and space.git_dir is not None:
+            resumed = await _resume_delivery(space.git_dir, repo, token, task, default_branch, timings)
+            if resumed is not None:
+                return resumed
+
         branch = _branch_name(str(task["id"]), task["title"], int(task.get("attempt_count") or 1))
+        if space.persistent:
+            branch = await _free_branch_name(workdir, branch)
         # Two deadlines, not one: the execution loops must leave the verification
         # phase its share of the run, and the run as a whole must stay inside the
         # budget the job timeout was sized from.
@@ -942,6 +1023,7 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
                 error=error,
                 plan=plan.to_dict(),
                 timings=dict(timings),
+                workspace=space.kind,
             )
 
         # ── Phase 2: execute, tracking every step ────────────────────
@@ -1056,6 +1138,7 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
                 verification=verification.to_dict(),
                 report=report,
                 timings=dict(timings),
+                workspace=space.kind,
             )
         timings["deliver"] = round(time.monotonic() - phase_started, 1)
         timings["total"] = round(time.monotonic() - clone_started, 1)
@@ -1073,4 +1156,5 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
             verification=verification.to_dict(),
             report=autopilot_verifier.render_report(task, plan, summary, findings, verification, pr_url),
             timings=dict(timings),
+            workspace=space.kind,
         )
