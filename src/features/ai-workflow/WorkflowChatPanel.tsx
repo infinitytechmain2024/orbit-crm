@@ -53,10 +53,13 @@ function buildAssistantReply(text: string) {
 
 export function WorkflowChatPanel({
   onCreateTask,
+  open,
+  onOpenChange,
 }: {
   onCreateTask: (title: string, description: string) => Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<ChatThread[]>(() => loadThreads());
   const [activeThreadId, setActiveThreadId] = useState<string | null>(threads[0]?.id ?? null);
   const [draft, setDraft] = useState("");
@@ -146,7 +149,7 @@ export function WorkflowChatPanel({
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
         <Button
           variant="outline"

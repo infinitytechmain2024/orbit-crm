@@ -119,6 +119,7 @@ function AIWorkflowPage() {
   const [departmentId, setDepartmentId] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<WorkflowAgent | null>(null);
   const [selectedTask, setSelectedTask] = useState<WorkflowTask | null>(null);
   const [rejectTask, setRejectTask] = useState<WorkflowTask | null>(null);
@@ -614,6 +615,7 @@ function AIWorkflowPage() {
       onSearchChange={setSearch}
       onCreate={() => setCreateOpen(true)}
       onVoice={() => setVoiceOpen(true)}
+      onChat={() => setChatOpen(true)}
     />
   );
 
@@ -885,6 +887,8 @@ function AIWorkflowPage() {
                       <h3 className="text-xs font-medium">CEO Dashboard</h3>
                     </div>
                     <WorkflowChatPanel
+                      open={chatOpen}
+                      onOpenChange={setChatOpen}
                       onCreateTask={async (title, description) => {
                         await handleCreate({
                           organization_id: organizationId ?? "",
