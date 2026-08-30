@@ -35,6 +35,7 @@ import type {
 import { useAiWorkflow } from "@/features/ai-workflow/use-ai-workflow";
 import { WorkflowToolbar } from "@/features/ai-workflow/WorkflowToolbar";
 import { WorkflowPlanCard } from "@/features/ai-workflow/WorkflowPlanCard";
+import { WorkflowChatPanel } from "@/features/ai-workflow/WorkflowChatPanel";
 import { DEMO_ORGANIZATION_ID, DEMO_USER_ID } from "@/features/ai-workflow/demo-data";
 import { ApprovalGateway } from "@/features/ai-ceo/components/ApprovalGateway";
 import { CeoDashboard } from "@/features/ai-ceo/components/CeoDashboard";
@@ -616,11 +617,38 @@ function AIWorkflowPage() {
     />
   );
 
+  const hiddenChat = (
+    <WorkflowChatPanel
+      onCreateTask={async (title, description) => {
+        await handleCreate({
+          organization_id: organizationId ?? "",
+          project_id: initialProjectId,
+          title,
+          description,
+          priority: "medium",
+          due_at: null,
+          attachments: [],
+          links: [],
+          department_id: null,
+          agent_id: null,
+          auto_assign: true,
+          source: "manual",
+          original_request: description,
+        });
+      }}
+    />
+  );
+
   return (
     <AppShell
       title="AI Workflow"
       subtitle="Единый канал работы AI-команды"
-      headerActions={toolbar}
+      headerActions={
+        <div className="flex items-center gap-2">
+          {hiddenChat}
+          {toolbar}
+        </div>
+      }
       hideAssistant
       mainClassName="ai-workflow-page !px-3 !py-4 sm:!px-5 sm:!py-5"
     >
