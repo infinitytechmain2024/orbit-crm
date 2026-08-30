@@ -124,5 +124,29 @@ class ProvisionRepoEndpointTests(unittest.TestCase):
         self.assertEqual(kwargs["payload"]["github_repo_status"], "failed")
 
 
+class InternalTokenNonAsciiTests(unittest.TestCase):
+    """A stray non-ASCII character in the *configured* token must produce a 401,
+    never a 500. compare_digest() raises TypeError on non-ASCII str, which
+    previously broke every internal endpoint — including /health — whenever the
+    deployed token held a lookalike character from a copy-paste."""
+
+    def setUp(self) -> None:
+        self.client = TestClient(app)
+
+    def test_non_ascii_configured_token_yields_401_not_500(self) -> None:
+        with patch.object(settings, "INTERNAL_API_TOKEN", "tokenсwith-cyrillic"):
+            response = self.client.get(
+                "/api/internal/health", headers={"Authorization": "Bearer plain-ascii-token"}
+            )
+        self.assertEqual(response.status_code, 401)
+
+    def test_matching_ascii_token_still_authorizes(self) -> None:
+        with patch.object(settings, "INTERNAL_API_TOKEN", "plain-ascii-token"):
+            response = self.client.get(
+                "/api/internal/health", headers={"Authorization": "Bearer plain-ascii-token"}
+            )
+        self.assertEqual(response.status_code, 200)
+
+
 if __name__ == "__main__":
     unittest.main()

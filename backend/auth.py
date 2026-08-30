@@ -14,7 +14,13 @@ async def require_internal_token(authorization: str = Header(default="")):
     expected = settings.INTERNAL_API_TOKEN
     if not expected:
         raise HTTPException(status_code=503, detail="Internal API token is not configured")
-    if not compare_digest(authorization, f"Bearer {expected}"):
+    # compare_digest() raises TypeError on str inputs holding non-ASCII, which a
+    # stray character in either the configured token or the request header would
+    # otherwise turn into a 500 on every internal endpoint. Compare bytes so a
+    # bad token is always a plain 401.
+    supplied = authorization.encode("utf-8", "surrogatepass")
+    wanted = f"Bearer {expected}".encode("utf-8", "surrogatepass")
+    if not compare_digest(supplied, wanted):
         raise HTTPException(status_code=401, detail="Invalid or missing bearer token")
 
 
