@@ -1,5 +1,8 @@
 # ORBIT CRM Self-Development — пошаговая настройка Vercel, Render, Supabase и Docker
 
+> Жизненный цикл задачи внутри автопилота (план → трекинг → ревизия кода →
+> браузерный самотест → отчёт) описан отдельно: [AUTOPILOT_SELF_VERIFICATION.md](AUTOPILOT_SELF_VERIFICATION.md).
+
 Дата проверки инструкций: 2026-08-25
 
 Этот runbook настраивает первый вертикальный срез:

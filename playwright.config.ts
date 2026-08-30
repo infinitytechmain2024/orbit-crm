@@ -1,8 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Playwright configuration for Orbit CRM E2E tests
+ * Playwright configuration for Orbit CRM E2E tests.
+ *
+ * The autopilot's verification run drives a freshly cloned working copy on its
+ * own port, so both the base URL and the dev server it boots come from
+ * `E2E_BASE_URL`. Unset, this is the plain `npm run dev` setup on 8080.
  */
+const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:8080";
+const port = new URL(baseURL).port || "8080";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -11,7 +18,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:8080",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -22,8 +29,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:8080",
+    // --strictPort: fail loudly on a port clash instead of drifting to another
+    // port that `baseURL` would then not point at.
+    command: `npm run dev -- --port ${port} --strictPort`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

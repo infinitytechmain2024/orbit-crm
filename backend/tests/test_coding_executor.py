@@ -146,3 +146,108 @@ class FileEditingSafetyTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlanTrackingTests(unittest.TestCase):
+    """Step tracking is the contract the report depends on: a status change must
+    hit the plan file on disk immediately, so a run killed mid-flight still tells
+    the truth about how far it got."""
+
+    def setUp(self) -> None:
+        from backend.services.autopilot_plan import AutopilotPlan, PlanStep
+
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workdir = Path(self._tmp.name)
+        self.plan = AutopilotPlan(
+            task_id="task-1",
+            task_title="Экспорт клиентов",
+            steps=[PlanStep(id="1", title="Ручка"), PlanStep(id="2", title="Кнопка")],
+        )
+        self.plan.write(self.workdir)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _plan_file(self) -> str:
+        return (self.workdir / self.plan.relative_path).read_text(encoding="utf-8")
+
+    def test_complete_step_is_flushed_to_disk_immediately(self):
+        out = coding_executor._dispatch_plan_tool(
+            self.plan, self.workdir, "complete_step", {"step_id": "1", "note": "добавил /export"}
+        )
+        self.assertIn("выполненным", out)
+        self.assertIn("- [x] 1. Ручка", self._plan_file())
+        self.assertIn("добавил /export", self._plan_file())
+
+    def test_block_step_records_reason_and_keeps_the_run_going(self):
+        out = coding_executor._dispatch_plan_tool(
+            self.plan, self.workdir, "block_step", {"step_id": "2", "reason": "нет макета"}
+        )
+        self.assertIn("Продолжай остальные шаги", out)
+        self.assertIn("- [!] 2. Кнопка", self._plan_file())
+        self.assertIn("нет макета", self._plan_file())
+
+    def test_block_step_requires_a_reason(self):
+        out = coding_executor._dispatch_plan_tool(self.plan, self.workdir, "block_step", {"step_id": "2"})
+        self.assertIn("reason обязателен", out)
+        self.assertIn("- [ ] 2. Кнопка", self._plan_file())
+
+    def test_unknown_step_id_lists_the_real_ones(self):
+        out = coding_executor._dispatch_plan_tool(self.plan, self.workdir, "complete_step", {"step_id": "9"})
+        self.assertIn("Ошибка", out)
+        self.assertIn("1, 2", out)
+
+    def test_non_plan_tools_fall_through(self):
+        self.assertIsNone(coding_executor._dispatch_plan_tool(self.plan, self.workdir, "read_file", {"path": "x"}))
+
+    def test_show_plan_reports_current_statuses(self):
+        coding_executor._dispatch_plan_tool(self.plan, self.workdir, "complete_step", {"step_id": "1"})
+        out = coding_executor._dispatch_plan_tool(self.plan, self.workdir, "show_plan", {})
+        self.assertIn("[done] 1. Ручка", out)
+        self.assertIn("[pending] 2. Кнопка", out)
+
+
+class PlanToolExposureTests(unittest.TestCase):
+    def test_plan_tools_are_offered_to_the_model(self):
+        names = {tool["function"]["name"] for tool in coding_executor.TOOLS}
+        self.assertTrue({"show_plan", "complete_step", "block_step"}.issubset(names))
+
+    def test_result_carries_the_lifecycle_artifacts(self):
+        result = coding_executor.CodingExecutionResult(success=False, error="x")
+        self.assertEqual(result.plan, {})
+        self.assertEqual(result.review_findings, [])
+        self.assertEqual(result.verification, {})
+
+
+class ProtectedPathTests(unittest.TestCase):
+    """The plan file is the run's own progress record. If the model could edit it
+    directly it could mark steps done without doing them — the exact failure the
+    plan exists to catch — so the block is in code, not in the prompt."""
+
+    def test_plan_directory_is_not_writable_by_the_model(self):
+        for relative in ("docs/autopilot/plans/task-1.md", "repo/docs/autopilot/plans/x.md"):
+            with self.subTest(relative=relative):
+                self.assertTrue(coding_executor._is_protected(Path("/tmp/wd") / relative))
+
+    def test_git_and_env_stay_protected(self):
+        for relative in (".git/config", ".env", ".env.local", "backend/.env"):
+            with self.subTest(relative=relative):
+                self.assertTrue(coding_executor._is_protected(Path("/tmp/wd") / relative))
+
+    def test_ordinary_paths_and_nearby_docs_remain_writable(self):
+        for relative in ("src/app.tsx", "docs/autopilot/README.md", "docs/plans/x.md", "backend/main.py"):
+            with self.subTest(relative=relative):
+                self.assertFalse(coding_executor._is_protected(Path("/tmp/wd") / relative))
+
+    def test_write_file_refuses_the_plan_path(self):
+        async def scenario():
+            with tempfile.TemporaryDirectory() as tmp:
+                return await coding_executor._dispatch_tool(
+                    Path(tmp),
+                    "write_file",
+                    {"path": "docs/autopilot/plans/task-1.md", "content": "- [x] 1. Всё сделано"},
+                )
+
+        import asyncio
+
+        self.assertIn("запрещена", asyncio.run(scenario()))

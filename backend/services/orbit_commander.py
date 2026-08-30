@@ -1512,7 +1512,12 @@ class OrbitCommander:
                 filters={"id": f"eq.{agent_run['id']}"},
                 payload={
                     "status": "failed",
-                    "output_snapshot": {"error": coding_result.error, "steps": len(coding_result.steps)},
+                    "output_snapshot": {
+                        "error": coding_result.error,
+                        "steps": len(coding_result.steps),
+                        # A failed run still reports how far the plan got.
+                        "plan": coding_result.plan,
+                    },
                 },
             )
             revisions = int(task.get("attempt_count") or 0)
@@ -1549,6 +1554,12 @@ class OrbitCommander:
             "pr_url": coding_result.pr_url,
             "branch": coding_result.branch,
             "commit_sha": coding_result.commit_sha,
+            # Self-verification lifecycle: what was planned, what the self review
+            # still objects to, and whether a browser actually exercised the flow.
+            "plan": coding_result.plan,
+            "review_findings": coding_result.review_findings,
+            "verification": coding_result.verification,
+            "report": coding_result.report,
         }
         artifact = await self._create_artifact(
             task,
@@ -1586,6 +1597,30 @@ class OrbitCommander:
             f"{agent['role']} открыл Pull Request: {coding_result.pr_url}",
             metadata={"pr_url": coding_result.pr_url, "branch": coding_result.branch},
         )
+        counts = (coding_result.plan or {}).get("counts") or {}
+        if counts:
+            await self.create_event(
+                task,
+                "autopilot_plan_completed",
+                f"План автопилота: {counts.get('done', 0)}/{counts.get('total', 0)} шагов выполнено"
+                + (f", {counts['blocked']} заблокировано" if counts.get("blocked") else ""),
+                metadata={"plan": coding_result.plan},
+            )
+        if coding_result.review_findings:
+            await self.create_event(
+                task,
+                "autopilot_review_findings",
+                f"Самопроверка кода оставила {len(coding_result.review_findings)} замечани(й) для QA.",
+                metadata={"findings": coding_result.review_findings},
+            )
+        verification = coding_result.verification or {}
+        if verification.get("status"):
+            await self.create_event(
+                task,
+                "autopilot_verification",
+                f"Браузерный самотест: {verification['status']}. {verification.get('reason') or ''}".strip(),
+                metadata={"verification": verification},
+            )
         await self.enqueue_job(run, task, "qa", payload={"agent_run_id": agent_run["id"]})
 
     async def execute_specialist(self, task: dict[str, Any], run: dict[str, Any]) -> None:
