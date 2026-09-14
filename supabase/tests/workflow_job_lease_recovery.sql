@@ -106,6 +106,11 @@ begin
     'run phase must be blocked';
   assert (select status from public.ai_tasks where id = v_task_stale) = 'blocked',
     'root task of the run must be blocked';
+  assert (select blocker_reason from public.ai_tasks where id = v_task_other) = 'Worker потерян, попытки исчерпаны',
+    'exhausted task must carry blocker_reason';
+  assert (select blocker_reason from public.ai_tasks where id = v_task_stale)
+    = 'Workflow заблокирован: worker потерян, попытки исчерпаны',
+    'root task must carry workflow blocker_reason';
   assert (select status from public.workflow_jobs where id = v_job_paused) = 'leased',
     'paused-run job must stay leased';
   assert (select status from public.workflow_runs where id = v_run_paused) = 'paused',

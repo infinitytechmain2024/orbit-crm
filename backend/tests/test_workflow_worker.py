@@ -167,6 +167,9 @@ class ProcessTests(unittest.IsolatedAsyncioTestCase):
 
         job_updates = store.updates_for("workflow_jobs")
         self.assertEqual(job_updates[0][1]["status"], "failed")
+        self.assertEqual(
+            job_updates[0][0], {"id": "eq.job-1", "status": "eq.leased", "attempts": "eq.3"}
+        )
         self.assertEqual(store.updates_for("ai_tasks")[0][1]["status"], "blocked")
         commander._block_workflow.assert_awaited_once()
 

@@ -118,6 +118,7 @@ as $$
     from exhausted
     where task.organization_id = exhausted.organization_id
       and task.id = exhausted.task_id
+      and task.status not in ('cancelled', 'done')
     returning task.id
   ),
   blocked_runs as (
@@ -127,6 +128,7 @@ as $$
     from exhausted
     where run.organization_id = exhausted.organization_id
       and run.id = exhausted.workflow_run_id
+      and run.status not in ('paused', 'cancelled', 'completed', 'failed')
     returning run.organization_id, run.root_task_id
   ),
   blocked_roots as (
@@ -139,6 +141,7 @@ as $$
     where root.organization_id = blocked_runs.organization_id
       and root.id = blocked_runs.root_task_id
       and root.id not in (select task_id from exhausted)
+      and root.status not in ('cancelled', 'done')
     returning root.id
   )
   select * from exhausted;
