@@ -27,9 +27,10 @@ def make_job(**overrides):
 
 
 class FakeStore:
-    def __init__(self, exhausted=None, rpc_error=None):
+    def __init__(self, exhausted=None, rpc_error=None, update_rows=True):
         self.exhausted = exhausted or []
         self.rpc_error = rpc_error
+        self.update_rows = update_rows
         self.rpc_calls = []
         self.updates = []
         self.rows = {
@@ -52,7 +53,7 @@ class FakeStore:
 
     async def update(self, table, *, organization_id, filters, payload):
         self.updates.append((table, filters, payload))
-        return [payload]
+        return [payload] if self.update_rows else []
 
     def updates_for(self, table):
         return [(filters, payload) for name, filters, payload in self.updates if name == table]
@@ -64,21 +65,32 @@ def make_worker(store):
 
 
 class SweepTests(unittest.IsolatedAsyncioTestCase):
-    async def test_sweep_blocks_task_of_exhausted_job(self):
+    async def test_sweep_records_blocked_event_for_exhausted_job(self):
         store = FakeStore(exhausted=[make_job(status="failed", attempts=3, max_attempts=3)])
         worker, commander = make_worker(store)
 
         await worker._maybe_sweep(0)
 
         self.assertEqual(store.rpc_calls, ["fail_exhausted_workflow_jobs"])
-        self.assertEqual(store.updates_for("workflow_jobs"), [])
-        task_updates = store.updates_for("ai_tasks")
-        self.assertEqual(len(task_updates), 1)
-        self.assertEqual(task_updates[0][0], {"id": "eq.task-1"})
-        self.assertEqual(task_updates[0][1]["status"], "blocked")
-        commander._block_workflow.assert_awaited_once()
-        event_types = [call.args[1] for call in commander.create_event.await_args_list]
-        self.assertEqual(event_types, ["blocked"])
+        # Task, run and root are blocked atomically by the SQL function.
+        self.assertEqual(store.updates, [])
+        commander._block_workflow.assert_not_awaited()
+        commander.create_event.assert_awaited_once()
+        self.assertEqual(commander.create_event.await_args.args[1], "blocked")
+
+    async def test_sweep_continues_after_event_failure_on_one_job(self):
+        store = FakeStore(
+            exhausted=[
+                make_job(id="job-missing", task_id="task-missing", status="failed", attempts=3),
+                make_job(status="failed", attempts=3, max_attempts=3),
+            ]
+        )
+        worker, commander = make_worker(store)
+
+        await worker._maybe_sweep(0)
+
+        commander.create_event.assert_awaited_once()
+        self.assertEqual(commander.create_event.await_args.args[0]["id"], "task-1")
 
     async def test_sweep_runs_only_on_worker_zero_and_is_throttled(self):
         store = FakeStore()
@@ -105,6 +117,7 @@ class SweepTests(unittest.IsolatedAsyncioTestCase):
         await worker._maybe_sweep(0)
 
         commander._block_workflow.assert_not_awaited()
+        self.assertNotEqual(worker._last_sweep, float("-inf"))
 
 
 class ProcessTests(unittest.IsolatedAsyncioTestCase):
@@ -113,7 +126,7 @@ class ProcessTests(unittest.IsolatedAsyncioTestCase):
         worker, commander = make_worker(store)
         job = make_job(
             attempts=2,
-            last_error={"type": "LeaseExpired", "previous_worker": "dead-worker"},
+            last_error={"type": "LeaseExpired", "previous_worker": "dead-worker", "attempt": 2},
         )
 
         await worker._process(job)
@@ -156,6 +169,58 @@ class ProcessTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(job_updates[0][1]["status"], "failed")
         self.assertEqual(store.updates_for("ai_tasks")[0][1]["status"], "blocked")
         commander._block_workflow.assert_awaited_once()
+
+    async def test_stale_lease_error_from_older_attempt_is_not_reported(self):
+        store = FakeStore()
+        worker, commander = make_worker(store)
+        job = make_job(attempts=3, last_error={"type": "LeaseExpired", "attempt": 2})
+
+        await worker._process(job)
+
+        commander.create_event.assert_not_awaited()
+        commander.process_job.assert_awaited_once()
+
+    async def test_job_writes_are_fenced_by_attempt(self):
+        store = FakeStore()
+        worker, commander = make_worker(store)
+
+        await worker._process(make_job(attempts=2))
+
+        filters = store.updates_for("workflow_jobs")[0][0]
+        self.assertEqual(
+            filters, {"id": "eq.job-1", "status": "eq.leased", "attempts": "eq.2"}
+        )
+
+    async def test_lost_lease_on_success_is_ignored(self):
+        store = FakeStore(update_rows=False)
+        worker, commander = make_worker(store)
+
+        await worker._process(make_job())
+
+        commander.process_job.assert_awaited_once()
+        self.assertEqual(len(store.updates_for("workflow_jobs")), 1)
+
+    async def test_lost_lease_on_retry_does_not_raise(self):
+        store = FakeStore(update_rows=False)
+        worker, commander = make_worker(store)
+        commander.process_job.side_effect = RuntimeError("boom")
+
+        await worker._process(make_job(attempts=1, max_attempts=3))
+
+        job_updates = store.updates_for("workflow_jobs")
+        self.assertEqual(len(job_updates), 1)
+        self.assertEqual(job_updates[0][0]["attempts"], "eq.1")
+
+    async def test_lost_lease_on_last_attempt_does_not_block(self):
+        store = FakeStore(update_rows=False)
+        worker, commander = make_worker(store)
+        commander.process_job.side_effect = RuntimeError("boom")
+
+        await worker._process(make_job(attempts=3, max_attempts=3))
+
+        self.assertEqual(store.updates_for("ai_tasks"), [])
+        commander._block_workflow.assert_not_awaited()
+        commander.create_event.assert_not_awaited()
 
 
 if __name__ == "__main__":

@@ -65,7 +65,11 @@ class WorkflowWorker:
         return await self._claim(worker_id)
 
     async def _maybe_sweep(self, index: int) -> None:
-        """Fail abandoned jobs that ran out of attempts; one worker per process sweeps."""
+        """Fail abandoned jobs that ran out of attempts; one worker per process sweeps.
+
+        The SQL function blocks task, run and root task atomically; here we only
+        record a visible event for each returned job.
+        """
         if index != 0:
             return
         now = self._clock()
@@ -75,18 +79,27 @@ class WorkflowWorker:
         self._last_sweep = now
         try:
             rows = await self.store.rpc("fail_exhausted_workflow_jobs", {})
-            for job in rows or []:
-                error = job.get("last_error") or {}
-                await self._block_exhausted(
-                    job,
-                    {
-                        "type": error.get("type", "LeaseExpired"),
-                        "message": error.get("message", "Worker потерян, попытки исчерпаны"),
-                    },
-                    mark_job_failed=False,
-                )
         except Exception as error:
             logger.warning("Workflow lease sweep failed: %s", redact_error(error))
+            return
+        for job in rows or []:
+            logger.error("Workflow job %s abandoned with no attempts left", job["id"])
+            try:
+                task = await self.store.one(
+                    "ai_tasks",
+                    organization_id=job["organization_id"],
+                    row_id=job["task_id"],
+                )
+                await self.commander.create_event(
+                    task,
+                    "blocked",
+                    "Этап заблокирован: worker потерян, попытки исчерпаны.",
+                    metadata={"job_id": job["id"], "error_type": "LeaseExpired"},
+                )
+            except Exception as error:
+                logger.warning(
+                    "Failed to record blocked event for job %s: %s", job["id"], redact_error(error)
+                )
 
     async def _loop(self, index: int) -> None:
         worker_id = f"{self._worker_prefix}:{index}"
@@ -112,22 +125,24 @@ class WorkflowWorker:
                 self.commander.process_job(job),
                 timeout=max(30, int(job.get("timeout_seconds") or 900)),
             )
-            await self.store.update(
+            rows = await self.store.update(
                 "workflow_jobs",
                 organization_id=job["organization_id"],
-                filters={"id": f"eq.{job['id']}", "status": "eq.leased"},
+                filters=self._lease_filters(job),
                 payload={"status": "succeeded", "completed_at": datetime.now(timezone.utc).isoformat()},
             )
+            if not rows:
+                logger.warning("Workflow job %s lease was lost before completion was recorded", job["id"])
         except Exception as error:
             attempts = int(job.get("attempts") or 1)
             max_attempts = int(job.get("max_attempts") or 3)
             safe_error = {"type": type(error).__name__, "message": redact_error(error)}
             if attempts < max_attempts:
                 delay = min(2**attempts, 60)
-                await self.store.update(
+                rows = await self.store.update(
                     "workflow_jobs",
                     organization_id=job["organization_id"],
-                    filters={"id": f"eq.{job['id']}"},
+                    filters=self._lease_filters(job),
                     payload={
                         "status": "queued",
                         "available_at": (datetime.now(timezone.utc) + timedelta(seconds=delay)).isoformat(),
@@ -136,6 +151,9 @@ class WorkflowWorker:
                         "last_error": safe_error,
                     },
                 )
+                if not rows:
+                    logger.warning("Workflow job %s lease was lost; retry not scheduled", job["id"])
+                    return
                 logger.warning("Workflow job %s will retry: %s", job["id"], safe_error["message"])
                 return
 
@@ -143,7 +161,7 @@ class WorkflowWorker:
 
     async def _report_recovery(self, job: dict[str, Any]) -> None:
         error = job.get("last_error") or {}
-        if error.get("type") != "LeaseExpired":
+        if error.get("type") != "LeaseExpired" or error.get("attempt") != job.get("attempts"):
             return
         logger.warning(
             "Recovered stale workflow job %s from %s",
@@ -165,24 +183,20 @@ class WorkflowWorker:
         except Exception as event_error:
             logger.warning("Failed to record workflow recovery event: %s", redact_error(event_error))
 
-    async def _block_exhausted(
-        self,
-        job: dict[str, Any],
-        safe_error: dict[str, str],
-        *,
-        mark_job_failed: bool = True,
-    ) -> None:
-        if mark_job_failed:
-            await self.store.update(
-                "workflow_jobs",
-                organization_id=job["organization_id"],
-                filters={"id": f"eq.{job['id']}"},
-                payload={
-                    "status": "failed",
-                    "last_error": safe_error,
-                    "completed_at": datetime.now(timezone.utc).isoformat(),
-                },
-            )
+    async def _block_exhausted(self, job: dict[str, Any], safe_error: dict[str, str]) -> None:
+        rows = await self.store.update(
+            "workflow_jobs",
+            organization_id=job["organization_id"],
+            filters=self._lease_filters(job),
+            payload={
+                "status": "failed",
+                "last_error": safe_error,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        if not rows:
+            logger.warning("Workflow job %s lease was lost; not blocking the workflow", job["id"])
+            return
         task = await self.store.one(
             "ai_tasks",
             organization_id=job["organization_id"],
@@ -207,6 +221,15 @@ class WorkflowWorker:
         )
         await self.commander._block_workflow(run, task, safe_error["message"])
         logger.error("Workflow job %s exhausted retries: %s", job["id"], safe_error["message"])
+
+    @staticmethod
+    def _lease_filters(job: dict[str, Any]) -> dict[str, str]:
+        """Match the job only while this worker's lease (identified by attempt) is current."""
+        return {
+            "id": f"eq.{job['id']}",
+            "status": "eq.leased",
+            "attempts": f"eq.{job['attempts']}",
+        }
 
 
 workflow_worker = WorkflowWorker()
