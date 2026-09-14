@@ -1124,3 +1124,17 @@ Expected: `0, done`.
 - [ ] **Step 5:** Обновить в `TASKS.md` пункт smoke test `[x]`, commit и push (с подтверждением пользователя, как в Task 11).
 
 - [ ] **Step 6:** superpowers:verification-before-completion — пройти все «Критерии готовности» из spec, приложив фактические результаты команд. Затем предложить переход к подпроекту A (AI-чат).
+
+---
+
+## Изменения после code review (2026-09-14)
+
+Ревью `ecf7f0c5..c8580c94` нашло проблемы. Исправлено в `742b0a12`. **Актуальный код — в файлах репозитория**; блоки кода выше в Task 1, 2, 4 устарели в перечисленных местах.
+
+- **Fencing (I-1):** все записи worker'а в `workflow_jobs` (success / requeue / fail) фильтруют `id`, `status=eq.leased`, `attempts=eq.<attempts>` (`WorkflowWorker._lease_filters`). Пустой результат update = lease потерян → лог, без блокировки.
+- **Атомарная блокировка (I-2):** `fail_exhausted_workflow_jobs` в том же statement блокирует задачу job'а, run и root-задачу. Python-sweep только пишет событие `blocked` по каждому job'у (per-job try/except). `_block_exhausted` больше не имеет параметра `mark_job_failed`.
+- **Порядок на production (I-3):** **Task 6 (отмена застрявших задач) выполняется ДО Task 5 (миграция)**, иначе Render сразу пере-захватит старые job'ы.
+- **Attempt в LeaseExpired (M-1):** JSON содержит `attempt`; событие `recovered` пишется только при `last_error.attempt == job.attempts`; очистка `agent_runs` при claim — по `candidate.previous_status = 'leased'`.
+- **Grace 120с (M-3)** вместо 60с в обеих функциях. В Task 9 сдвиг `locked_at` на 20 мин по-прежнему достаточен.
+- **Тесты:** SQL-тест проверяет границу grace и блокировку task/run/root; Python — 13 тестов (fencing, lease lost, per-job sweep, attempt mismatch).
+- Вне scope, вынесено отдельной задачей: `coding_executor._run` не убивает subprocess при `CancelledError` (M-9).
