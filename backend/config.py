@@ -56,6 +56,10 @@ class Settings(BaseSettings):
         default=1.5,
         validation_alias="AI_WORKFLOW_POLL_INTERVAL_SECONDS",
     )
+    AI_WORKFLOW_SWEEP_INTERVAL_SECONDS: float = Field(
+        default=60.0,
+        validation_alias="AI_WORKFLOW_SWEEP_INTERVAL_SECONDS",
+    )
     AI_WORKFLOW_MAX_QA_REVISIONS: int = Field(
         default=2,
         validation_alias="AI_WORKFLOW_MAX_QA_REVISIONS",
