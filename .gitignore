@@ -53,3 +53,5 @@ openclaw-workspace/
 
 # Supabase CLI linked-project cache (contains machine-local metadata)
 supabase/.temp/
+.vercel
+.env*
