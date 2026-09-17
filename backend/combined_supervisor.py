@@ -3,6 +3,7 @@ from __future__ import annotations
 """Run FastAPI and an internal OpenClaw gateway in one Render container."""
 
 import asyncio
+from collections.abc import Mapping
 import json
 import logging
 import os
@@ -20,6 +21,24 @@ logger = logging.getLogger("orbit.combined")
 
 OPENCLAW_HEALTH_URL = "http://127.0.0.1:18789/healthz"
 
+# OpenClaw model refs are "<provider>/<model id>"; NVIDIA model ids carry their
+# own vendor prefix, hence the doubled "nvidia/". openai/gpt-oss-120b reached
+# end of life on NVIDIA in 2026-09, so the default is a model verified to answer.
+NVIDIA_DEFAULT_OPENCLAW_MODEL = "nvidia/nvidia/nemotron-3-ultra-550b-a55b"
+GROQ_DEFAULT_OPENCLAW_MODEL = "groq/llama-3.1-8b-instant"
+
+
+def default_openclaw_model(env: Mapping[str, str]) -> str:
+    """Pick OpenClaw's primary model: explicit setting, then NVIDIA, then Groq."""
+    explicit = env.get("OPENCLAW_DEFAULT_MODEL", "").strip()
+    if explicit:
+        return explicit
+    if env.get("NVIDIA_API_KEY", "").strip():
+        return NVIDIA_DEFAULT_OPENCLAW_MODEL
+    if env.get("GROQ_API_KEY", "").strip():
+        return GROQ_DEFAULT_OPENCLAW_MODEL
+    return ""
+
 
 def prepare_openclaw_config() -> None:
     config_path = Path(
@@ -36,9 +55,7 @@ def prepare_openclaw_config() -> None:
     shutil.copyfile("/app/orbit/openclaw.default.json", config_path)
     config_path.chmod(0o600)
 
-    default_model = os.getenv("OPENCLAW_DEFAULT_MODEL", "").strip()
-    if not default_model and os.getenv("GROQ_API_KEY", "").strip():
-        default_model = "groq/llama-3.1-8b-instant"
+    default_model = default_openclaw_model(os.environ)
     if default_model:
         config = json.loads(config_path.read_text(encoding="utf-8"))
         config.setdefault("agents", {}).setdefault("defaults", {})["model"] = {
