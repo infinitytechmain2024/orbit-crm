@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -15,6 +15,14 @@ from backend.services.supabase_client import supabase_service
 
 class OpenClawSecurityTests(unittest.TestCase):
     def setUp(self) -> None:
+        # CI has no .env: configure the tokens so rejections are 401, not 503.
+        for name, value in (
+            ("INTERNAL_API_TOKEN", "test-internal-token"),
+            ("OPENCLAW_WEBHOOK_TOKEN", "test-webhook-token"),
+        ):
+            patcher = patch.object(settings, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
         self.client = TestClient(app)
 
     def test_health_rejects_missing_server_auth(self) -> None:
@@ -93,10 +101,9 @@ class OpenClawSecurityTests(unittest.TestCase):
             "status": "completed",
             "result": {"summary": "done"},
         }
-        with (
-            patch.object(settings, "OPENCLAW_WEBHOOK_TOKEN", "test-webhook-token"),
-            patch.object(supabase_service.client, "rpc", rpc),
-        ):
+        database = MagicMock(rpc=rpc)
+        # Patch the property itself: reading supabase_service.client would build a real client.
+        with patch.object(type(supabase_service), "client", new_callable=PropertyMock, return_value=database):
             first = self.client.post(
                 "/api/openclaw/webhook",
                 headers={"Authorization": "Bearer test-webhook-token"},

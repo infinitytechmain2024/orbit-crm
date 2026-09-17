@@ -64,6 +64,10 @@ def isolate_side_effects(test: unittest.TestCase) -> dict[str, MagicMock]:
 class AnonymousAccessTests(unittest.TestCase):
     def setUp(self) -> None:
         self.mocks = isolate_side_effects(self)
+        # CI has no .env: with a configured token, missing credentials are 401, not 503.
+        patcher = patch.object(settings, "INTERNAL_API_TOKEN", "test-internal-token")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.client = TestClient(app)
 
     def test_endpoints_reject_missing_server_auth(self) -> None:
@@ -77,13 +81,12 @@ class AnonymousAccessTests(unittest.TestCase):
         self.mocks["transcribe"].assert_not_awaited()
 
     def test_endpoints_reject_missing_user_session(self) -> None:
-        with patch.object(settings, "INTERNAL_API_TOKEN", "test-internal-token"):
-            headers = {"Authorization": "Bearer test-internal-token"}
-            for method, path, kwargs in PROTECTED_ENDPOINTS:
-                with self.subTest(method=method, path=path):
-                    response = getattr(self.client, method)(path, headers=headers, **kwargs)
-                    self.assertEqual(response.status_code, 401, response.text)
-                    self.assertEqual(response.json()["detail"], "Missing authenticated user session")
+        headers = {"Authorization": "Bearer test-internal-token"}
+        for method, path, kwargs in PROTECTED_ENDPOINTS:
+            with self.subTest(method=method, path=path):
+                response = getattr(self.client, method)(path, headers=headers, **kwargs)
+                self.assertEqual(response.status_code, 401, response.text)
+                self.assertEqual(response.json()["detail"], "Missing authenticated user session")
         self.mocks["database"].client.table.assert_not_called()
 
     def test_public_health_stays_open(self) -> None:
