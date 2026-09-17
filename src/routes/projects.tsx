@@ -275,17 +275,17 @@ function ProjectsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right text-muted-foreground">
-                        {project.budgetPlanned === null
-                          ? "—"
-                          : (
-                            <span className="inline-flex items-center justify-end gap-2">
-                              <span>{project.budgetPlanned.toLocaleString("ru-RU")}</span>
-                              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/60 px-2 py-0.5 text-[11px] font-medium text-foreground">
-                                <span>{CURRENCY_FLAGS[project.currency] ?? "¤"}</span>
-                                <span>{project.currency}</span>
-                              </span>
+                        {project.budgetPlanned === null ? (
+                          "—"
+                        ) : (
+                          <span className="inline-flex items-center justify-end gap-2">
+                            <span>{project.budgetPlanned.toLocaleString("ru-RU")}</span>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/60 px-2 py-0.5 text-[11px] font-medium text-foreground">
+                              <span>{CURRENCY_FLAGS[project.currency] ?? "¤"}</span>
+                              <span>{project.currency}</span>
                             </span>
-                          )}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -503,7 +503,9 @@ function ProjectEditor({
   onUpdate: (id: string, patch: ProjectInput) => Promise<Project | null>;
   onArchive: (id: string) => Promise<Project | null>;
 }) {
-  const [draft, setDraft] = useState<ProjectDraft>(() => createDraft(project, members, defaultCurrency));
+  const [draft, setDraft] = useState<ProjectDraft>(() =>
+    createDraft(project, members, defaultCurrency),
+  );
   const [localError, setLocalError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -511,7 +513,9 @@ function ProjectEditor({
 
   useEffect(() => {
     if (project) return;
-    setDraft((current) => (current.currency === defaultCurrency ? current : { ...current, currency: defaultCurrency }));
+    setDraft((current) =>
+      current.currency === defaultCurrency ? current : { ...current, currency: defaultCurrency },
+    );
   }, [defaultCurrency, project]);
 
   const setOwner = (ownerId: string) => {

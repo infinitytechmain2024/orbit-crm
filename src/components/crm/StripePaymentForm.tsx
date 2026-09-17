@@ -7,7 +7,12 @@ import { useCrm } from "@/lib/crm-store";
 import { Button } from "@/components/ui/button";
 import { Loader2, CreditCard, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { convertDisplayToEur, formatMoney, type DisplayCurrency, useExchangeRates } from "@/lib/currency";
+import {
+  convertDisplayToEur,
+  formatMoney,
+  type DisplayCurrency,
+  useExchangeRates,
+} from "@/lib/currency";
 
 interface PaymentFormProps {
   amount: number;
@@ -50,17 +55,14 @@ export function StripePaymentForm({
         organization.id,
         amount,
         currency,
-        { description: description || "Оплата через Orbit CRM" }
+        { description: description || "Оплата через Orbit CRM" },
       );
 
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        client_secret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement)!,
-          },
-        }
-      );
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(client_secret, {
+        payment_method: {
+          card: elements.getElement(CardElement)!,
+        },
+      });
 
       if (stripeError) {
         setError(stripeError.message || "Ошибка оплаты");
@@ -84,9 +86,7 @@ export function StripePaymentForm({
         <CheckCircle className="size-12 text-acc-1 mx-auto mb-4" />
         <h3 className="text-lg font-semibold">Оплата прошла успешно!</h3>
         <p className="text-muted-foreground mt-1">{description}</p>
-        <p className="text-2xl font-display font-bold mt-2">
-          {formatMoney(amount, currency)}
-        </p>
+        <p className="text-2xl font-display font-bold mt-2">{formatMoney(amount, currency)}</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Эквивалент в EUR: {formatMoney(amountInEur, "EUR")}
         </p>
@@ -96,11 +96,7 @@ export function StripePaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="panel p-6 space-y-4" disabled={!stripe || !elements}>
-      {description && (
-        <div className="text-sm text-muted-foreground">
-          {description}
-        </div>
-      )}
+      {description && <div className="text-sm text-muted-foreground">{description}</div>}
 
       <div className="text-3xl font-display font-bold text-center">
         {formatMoney(amount, currency)}
@@ -124,7 +120,7 @@ export function StripePaymentForm({
           }}
           className={cn(
             "w-full rounded-lg border border-border bg-surface px-4 py-3",
-            "focus-within:ring-2 focus-within:ring-primary"
+            "focus-within:ring-2 focus-within:ring-primary",
           )}
         />
       </div>

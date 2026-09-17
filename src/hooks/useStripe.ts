@@ -24,9 +24,11 @@ export function useStripe() {
     stripePromise.then((loadedStripe) => {
       if (loadedStripe) {
         setStripe(loadedStripe);
-        setElements(loadedStripe.elements({
-          customer: stripeCustomer?.stripeCustomerId || undefined,
-        }));
+        setElements(
+          loadedStripe.elements({
+            customer: stripeCustomer?.stripeCustomerId || undefined,
+          }),
+        );
       }
     });
   }, [organization, stripeCustomer]);
@@ -53,7 +55,9 @@ export async function createPaymentIntent(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Failed to create payment intent" }));
+    const error = await response
+      .json()
+      .catch(() => ({ detail: "Failed to create payment intent" }));
     throw new Error(error.detail || "Failed to create payment intent");
   }
   return response.json();

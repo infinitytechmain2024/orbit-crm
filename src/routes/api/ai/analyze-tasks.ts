@@ -116,7 +116,10 @@ function getProviders(): ProviderConfig[] {
   return providers;
 }
 
-async function callProvider(provider: ProviderConfig, userText: string): Promise<ProviderAnalysisResult> {
+async function callProvider(
+  provider: ProviderConfig,
+  userText: string,
+): Promise<ProviderAnalysisResult> {
   const body = {
     model: provider.model,
     messages: [

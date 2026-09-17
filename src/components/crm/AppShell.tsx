@@ -32,7 +32,13 @@ import { OrbitLogoFull, OrbitLogoIcon } from "./OrbitLogo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CURRENCY_OPTIONS = ["EUR", "USD", "GBP", "CHF", "PLN", "TRY", "UAH"] as const;
 const CURRENCY_FLAGS: Record<(typeof CURRENCY_OPTIONS)[number], string> = {
@@ -311,7 +317,10 @@ export function AppShell({
               <span className="hidden text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:inline">
                 Валюта
               </span>
-              <Select value={currency} onValueChange={(value) => setCurrency(value as typeof currency)}>
+              <Select
+                value={currency}
+                onValueChange={(value) => setCurrency(value as typeof currency)}
+              >
                 <SelectTrigger className="h-8 w-[118px] rounded-full border-0 bg-transparent px-2 text-xs shadow-none">
                   <SelectValue placeholder="EUR" />
                 </SelectTrigger>

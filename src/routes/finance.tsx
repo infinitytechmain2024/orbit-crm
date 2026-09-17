@@ -86,8 +86,12 @@ function FinancePage() {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Прочее");
   const [paymentAmount, setPaymentAmount] = useState("100");
-  const { rates, status: ratesStatus, updatedAt: ratesUpdatedAt, reload: reloadRates } =
-    useExchangeRates();
+  const {
+    rates,
+    status: ratesStatus,
+    updatedAt: ratesUpdatedAt,
+    reload: reloadRates,
+  } = useExchangeRates();
   const [occurredOn, setOccurredOn] = useState(() => {
     const now = new Date();
     const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
@@ -259,14 +263,20 @@ function FinancePage() {
               Баланс: {formatMoney(displayedBalance, currency)}
             </div>
             <div className="rounded-full border border-border bg-surface-2/60 px-3 py-1 text-xs text-muted-foreground">
-              Курс: 1 EUR = {selectedRate.toLocaleString("ru-RU", { maximumFractionDigits: 4 })} {currency}
+              Курс: 1 EUR = {selectedRate.toLocaleString("ru-RU", { maximumFractionDigits: 4 })}{" "}
+              {currency}
             </div>
             {ratesUpdatedAt && (
               <div className="rounded-full border border-border bg-surface-2/60 px-3 py-1 text-xs text-muted-foreground">
                 Обновлено: {ratesUpdatedAt}
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => void reloadRates()} disabled={ratesStatus === "loading"}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void reloadRates()}
+              disabled={ratesStatus === "loading"}
+            >
               <RefreshCw className="mr-2 size-4" />
               {ratesStatus === "loading" ? "Обновляю курс..." : "Обновить курс"}
             </Button>
