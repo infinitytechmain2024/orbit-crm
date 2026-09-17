@@ -217,23 +217,10 @@ export function AIWorkflowIntegration({
           departments={departments}
           agents={agents}
           tasks={tasks}
-          projects={projects}
           approvals={approvals}
           selectedDepartmentId={selectedDepartmentId}
-          selectedProjectId={selectedProjectId}
           lastRealtimeAt={lastRealtimeAt}
           onDepartmentClick={handleDepartmentClick}
-          onAgentClick={(agent) => {
-            if (agent.department_id) {
-              setSelectedDepartmentId(agent.department_id);
-            }
-          }}
-          onApprove={(task) => {
-            void workflowControls.resumeTask(task);
-          }}
-          onReject={(task) => {
-            void workflowControls.cancelTask(task);
-          }}
         />
       )}
 

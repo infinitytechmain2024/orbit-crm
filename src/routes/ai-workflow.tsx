@@ -18,6 +18,7 @@ import {
 } from "@/features/ai-workflow/api";
 import { AgentProfileDialog, TaskDetailDialog } from "@/features/ai-workflow/DetailDialogs";
 import { RightRail } from "@/features/ai-workflow/RightRail";
+import { TeamDetailSheet, type TeamNode } from "@/features/ai-workflow/TeamDetailSheet";
 import { TeamMap } from "@/features/ai-workflow/TeamMap";
 import {
   CreateTaskDialog,
@@ -121,6 +122,7 @@ function AIWorkflowPage() {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<WorkflowAgent | null>(null);
+  const [teamStack, setTeamStack] = useState<TeamNode[]>([]);
   const [selectedTask, setSelectedTask] = useState<WorkflowTask | null>(null);
   const [rejectTask, setRejectTask] = useState<WorkflowTask | null>(null);
   const [mutationMessage, setMutationMessage] = useState<string | null>(null);
@@ -592,7 +594,8 @@ function AIWorkflowPage() {
   }
 
   function selectDepartment(department: WorkflowDepartment) {
-    setDepartmentId((current) => (current === department.id ? "" : department.id));
+    setTeamStack([]);
+    setDepartmentId(department.id);
     setTaskTab("all");
     window.setTimeout(
       () =>
@@ -828,15 +831,12 @@ function AIWorkflowPage() {
                 departments={overview.departments}
                 agents={overview.agents}
                 tasks={mapTasks}
-                projects={overview.projects}
                 approvals={overview.approval_requests}
                 selectedDepartmentId={departmentId}
-                selectedProjectId={projectId}
                 lastRealtimeAt={workflow.lastRealtimeAt}
-                onDepartmentClick={selectDepartment}
-                onAgentClick={setSelectedAgent}
-                onApprove={(task) => void handleApprove(task)}
-                onReject={setRejectTask}
+                onDepartmentClick={(department) =>
+                  setTeamStack([{ kind: "department", id: department.id }])
+                }
               />
               <TasksTable
                 tasks={overview.tasks}
@@ -970,6 +970,17 @@ function AIWorkflowPage() {
         task={rejectTask}
         onClose={() => setRejectTask(null)}
         onReject={handleReject}
+      />
+      <TeamDetailSheet
+        stack={teamStack}
+        departments={overview.departments}
+        agents={overview.agents}
+        tasks={mapTasks}
+        projects={overview.projects}
+        onStackChange={setTeamStack}
+        onTaskOpen={setSelectedTask}
+        onAgentProfile={setSelectedAgent}
+        onShowInTable={selectDepartment}
       />
       <AgentProfileDialog
         agent={selectedAgent}
