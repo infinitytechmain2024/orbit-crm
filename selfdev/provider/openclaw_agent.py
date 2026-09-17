@@ -10,26 +10,41 @@ from pathlib import Path
 import httpx
 
 
+EXCERPT_CHARS = 2500
+
+
 def repository_context(root: Path, limit: int = 16_000) -> str:
-    """Collect a bounded, non-secret source overview for the analysis agent."""
+    """Collect a bounded, non-secret source overview for the analysis agent.
+
+    Excerpts are marked as such: an unmarked cut reads to the model like a
+    truncated source file and produces false "incomplete module" findings.
+    """
     chunks: list[str] = []
     size = 0
+    omitted = 0
     allowed = {".py", ".ts", ".tsx", ".sql", ".md", ".json", ".yaml", ".yml"}
     for path in sorted(root.rglob("*")):
         if not path.is_file() or path.suffix not in allowed:
             continue
         if any(part in {"node_modules", ".git", ".venv", "venv", "dist"} for part in path.parts):
             continue
+        remaining = limit - size
+        if remaining <= 0:
+            omitted += 1
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
             continue
-        remaining = limit - size
-        if remaining <= 0:
-            break
-        excerpt = text[: min(2500, remaining)]
+        excerpt = text[: min(EXCERPT_CHARS, remaining)]
         chunks.append(f"\n--- {path.relative_to(root)} ---\n{excerpt}")
+        if len(excerpt) < len(text):
+            chunks.append(
+                f"\n[excerpt: first {len(excerpt)} of {len(text)} characters; the file continues]"
+            )
         size += len(excerpt)
+    if omitted:
+        chunks.append(f"\n\n[snapshot limit reached: {omitted} more source file(s) not shown]")
     return "".join(chunks)
 
 
@@ -132,7 +147,9 @@ def main() -> None:
         f"Run: {job.get('id')}\nBranch: {job.get('working_branch')}\n\n"
         "Inspect the supplied source snapshot. Return a concise engineering report with: "
         "root cause, exact files to change, acceptance criteria, tests, risks, and release recommendation. "
-        "Do not claim that code was changed or deployed.\n\nSOURCE SNAPSHOT:\n"
+        "Do not claim that code was changed or deployed. The snapshot holds excerpts: "
+        "a file marked [excerpt: ...] continues beyond what is shown, so never report it "
+        "as truncated or incomplete.\n\nSOURCE SNAPSHOT:\n"
         f"{repository_context(root)}"
     )
     print(run_analysis(prompt))

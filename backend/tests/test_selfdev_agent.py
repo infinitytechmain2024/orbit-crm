@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -77,6 +79,39 @@ class SelfDevAgentTests(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "NVIDIA_API_KEY nor GROQ_API_KEY"),
         ):
             openclaw_agent.run_analysis("Analyze self-development.")
+
+
+class RepositoryContextTests(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+
+    def test_marks_file_cut_at_excerpt_limit(self) -> None:
+        (self.root / "long.py").write_text("x" * 3000, encoding="utf-8")
+        context = openclaw_agent.repository_context(self.root)
+        self.assertIn("x" * 2500, context)
+        self.assertNotIn("x" * 2501, context)
+        self.assertIn("[excerpt: first 2500 of 3000 characters; the file continues]", context)
+
+    def test_leaves_complete_file_unmarked(self) -> None:
+        (self.root / "short.py").write_text("print('ok')\n", encoding="utf-8")
+        context = openclaw_agent.repository_context(self.root)
+        self.assertIn("print('ok')", context)
+        self.assertNotIn("[excerpt:", context)
+
+    def test_marks_file_cut_by_snapshot_budget(self) -> None:
+        (self.root / "a.py").write_text("a" * 2000, encoding="utf-8")
+        (self.root / "b.py").write_text("b" * 2000, encoding="utf-8")
+        context = openclaw_agent.repository_context(self.root, limit=3000)
+        self.assertIn("[excerpt: first 1000 of 2000 characters; the file continues]", context)
+
+    def test_reports_files_left_out_of_snapshot(self) -> None:
+        for name in ("a.py", "b.py", "c.py"):
+            (self.root / name).write_text("z" * 100, encoding="utf-8")
+        context = openclaw_agent.repository_context(self.root, limit=150)
+        self.assertNotIn("--- c.py ---", context)
+        self.assertIn("[snapshot limit reached: 1 more source file(s) not shown]", context)
 
 
 class DefaultOpenClawModelTests(unittest.TestCase):
