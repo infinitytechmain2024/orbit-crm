@@ -603,7 +603,7 @@ async def run_task(
 
     # Quick Supabase ping to verify connectivity
     try:
-        client = _store.client()
+        client = await _store.client()
         await client.get(
             f"{settings.SUPABASE_URL.rstrip('/')}/rest/v1/lead_clients",
             params={"select": "count", "organization_id": f"eq.{request.organization_id}"},
