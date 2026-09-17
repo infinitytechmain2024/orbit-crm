@@ -24,6 +24,22 @@ async def require_internal_token(authorization: str = Header(default="")):
         raise HTTPException(status_code=401, detail="Invalid or missing bearer token")
 
 
+async def require_telegram_webhook_secret(
+    x_telegram_bot_api_secret_token: str = Header(
+        default="",
+        alias="X-Telegram-Bot-Api-Secret-Token",
+    ),
+):
+    """Accept only webhook calls that carry the secret registered with Telegram."""
+
+    expected = settings.TELEGRAM_WEBHOOK_SECRET
+    if not expected:
+        raise HTTPException(status_code=503, detail="Telegram webhook secret is not configured")
+    supplied = x_telegram_bot_api_secret_token.encode("utf-8", "surrogatepass")
+    if not compare_digest(supplied, expected.encode("utf-8", "surrogatepass")):
+        raise HTTPException(status_code=401, detail="Invalid Telegram webhook secret")
+
+
 @dataclass(frozen=True)
 class WorkflowActor:
     user_id: str

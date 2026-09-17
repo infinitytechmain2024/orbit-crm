@@ -6,16 +6,21 @@ Provides task routing, model selection, and NVIDIA model registry
 """
 
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
 
+from backend.auth import WorkflowActor, require_workflow_actor, require_workflow_permission
 from backend.services.ai_router import ai_router, TaskType
 from backend.services.nvidia_model_registry import nvidia_model_registry
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/ai-router", tags=["AI Router"])
+router = APIRouter(
+    prefix="/api/ai-router",
+    tags=["AI Router"],
+    dependencies=[Depends(require_workflow_actor)],
+)
 
 
 class RouteTaskRequest(BaseModel):
@@ -68,15 +73,26 @@ async def get_available_models():
 
 
 @router.post("/models/{model_id}/unavailable")
-async def mark_model_unavailable(model_id: str):
+async def mark_model_unavailable(
+    model_id: str,
+    organization_id: str = Query(...),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Mark a model as unavailable (e.g., rate limited)"""
+    # Availability is global to this process, so only organization owners/admins may change it.
+    await require_workflow_permission(organization_id, actor, "ai_router.manage")
     ai_router.mark_model_unavailable(model_id)
     return {"status": "ok", "model_id": model_id, "available": False}
 
 
 @router.post("/models/{model_id}/available")
-async def mark_model_available(model_id: str):
+async def mark_model_available(
+    model_id: str,
+    organization_id: str = Query(...),
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Mark a model as available"""
+    await require_workflow_permission(organization_id, actor, "ai_router.manage")
     ai_router.mark_model_available(model_id)
     return {"status": "ok", "model_id": model_id, "available": True}
 

@@ -139,11 +139,13 @@ class VoiceProcessResponse(BaseModel):
 
 
 class IntentExecuteRequest(BaseModel):
-    user_id: str
+    # Deprecated: the authenticated session decides the acting user.
+    user_id: Optional[str] = None
     intent: dict
 
 
 class ClientCreateRequest(BaseModel):
+    organization_id: str
     name: str
     phone: str = ""
     email: str = ""
@@ -156,8 +158,9 @@ class ClientCreateRequest(BaseModel):
 
 
 class LeadSearchRequest(BaseModel):
-    user_id: str
-    organization_id: str = ""
+    # Deprecated: the authenticated session decides the acting user.
+    user_id: Optional[str] = None
+    organization_id: str
     city: str
     niche: str
     max_results: int = 20
@@ -223,10 +226,17 @@ async def health_check():
     return {"status": "ok", "service": "orbit-crm-backend", "version": settings.APP_VERSION}
 
 
+def _reject_foreign_user_id(requested_user_id: Optional[str], actor: WorkflowActor) -> None:
+    """A caller may not act for another user; the verified session is authoritative."""
+    if requested_user_id and requested_user_id != actor.user_id:
+        raise HTTPException(status_code=403, detail="user_id does not match the authenticated user")
+
+
 @app.post("/api/voice/stt")
 async def speech_to_text(
     audio: UploadFile = File(...),
     language: str = Form(default="ru"),
+    _actor: WorkflowActor = Depends(require_workflow_actor),
 ):
     """Transcribe audio file to text using Faster-Whisper."""
     try:
@@ -247,7 +257,10 @@ async def speech_to_text(
 
 
 @app.post("/api/voice/process", response_model=VoiceProcessResponse)
-async def process_voice(audio: UploadFile = File(...)):
+async def process_voice(
+    audio: UploadFile = File(...),
+    _actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Full voice pipeline: transcribe audio -> classify intent -> return suggestions."""
     try:
         content = await audio.read()
@@ -283,8 +296,12 @@ async def process_voice(audio: UploadFile = File(...)):
 
 
 @app.post("/api/voice/execute")
-async def execute_voice_intent(request: IntentExecuteRequest):
+async def execute_voice_intent(
+    request: IntentExecuteRequest,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Execute a classified intent (create task, project, estimate, etc.)."""
+    _reject_foreign_user_id(request.user_id, actor)
     try:
         from backend.services.ai_dispatcher import Intent
 
@@ -295,7 +312,7 @@ async def execute_voice_intent(request: IntentExecuteRequest):
             confidence=float(request.intent.get("confidence", 0.5)),
         )
 
-        result = await execute_intent(request.user_id, intent)
+        result = await execute_intent(actor.user_id, intent)
 
         return {
             "success": result.success,
@@ -310,15 +327,22 @@ async def execute_voice_intent(request: IntentExecuteRequest):
 
 @app.get("/api/clients")
 async def get_clients(
+    organization_id: str = Query(...),
     limit: int = Query(default=50, ge=1, le=200),
     status: Optional[str] = Query(default=None),
     source: Optional[str] = Query(default=None),
+    actor: WorkflowActor = Depends(require_workflow_actor),
 ):
-    """Get lead clients from Supabase."""
+    """Get lead clients of one organization from Supabase."""
+    await require_workflow_permission(organization_id, actor, "workflow.read")
     try:
         from backend.services.supabase_client import supabase_service
 
-        query = supabase_service.client.table("lead_clients").select("*")
+        query = (
+            supabase_service.client.table("lead_clients")
+            .select("*")
+            .eq("organization_id", organization_id)
+        )
 
         if status:
             query = query.eq("status", status)
@@ -333,13 +357,18 @@ async def get_clients(
 
 
 @app.post("/api/clients")
-async def create_client(request: ClientCreateRequest):
+async def create_client(
+    request: ClientCreateRequest,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Create a new lead client in Supabase."""
+    await require_workflow_permission(request.organization_id, actor, "workflow.create")
     try:
         from backend.services.supabase_client import supabase_service
 
         result = supabase_service.client.table("lead_clients").insert({
-            "user_id": "00000000-0000-0000-0000-000000000000",  # placeholder, should come from auth
+            "organization_id": request.organization_id,
+            "user_id": actor.user_id,
             "business_name": request.name,
             "category": request.category,
             "city_location": request.address,
@@ -364,13 +393,18 @@ async def create_client(request: ClientCreateRequest):
 
 
 @app.post("/api/leads/search", response_model=LeadSearchResponse)
-async def start_lead_search(request: LeadSearchRequest):
+async def start_lead_search(
+    request: LeadSearchRequest,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Start a lead search job using GMaps scraper + OpenManus."""
+    _reject_foreign_user_id(request.user_id, actor)
+    await require_workflow_permission(request.organization_id, actor, "workflow.create")
     try:
         from backend.services.supabase_client import supabase_service
 
         result = supabase_service.client.table("lead_search_jobs").insert({
-            "user_id": request.user_id,
+            "user_id": actor.user_id,
             "organization_id": request.organization_id,
             "city": request.city,
             "niche": request.niche,
@@ -386,7 +420,7 @@ async def start_lead_search(request: LeadSearchRequest):
             # Launch background search task
             asyncio.create_task(_execute_lead_search(
                 job_id=job_id,
-                user_id=request.user_id,
+                user_id=actor.user_id,
                 city=request.city,
                 niche=request.niche,
                 max_results=request.max_results,
@@ -404,7 +438,10 @@ async def start_lead_search(request: LeadSearchRequest):
 
 
 @app.post("/api/lead-search")
-async def unified_lead_search(request: UnifiedLeadSearchRequest):
+async def unified_lead_search(
+    request: UnifiedLeadSearchRequest,
+    _actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Unified lead search pipeline for the UI."""
     try:
         capped_limit = min(max(1, request.limit), 100)
@@ -625,19 +662,29 @@ async def _execute_lead_search(
 
 
 @app.get("/api/leads/search/{job_id}")
-async def get_lead_search_status(job_id: str):
+async def get_lead_search_status(
+    job_id: str,
+    actor: WorkflowActor = Depends(require_workflow_actor),
+):
     """Get status of a lead search job."""
     try:
         from backend.services.supabase_client import supabase_service
 
-        result = supabase_service.client.table("lead_search_jobs") \
-            .select("*") \
-            .eq("id", job_id) \
-            .single()
-
-        if result.data:
-            return result.data
-        raise HTTPException(status_code=404, detail="Job not found")
+        result = (
+            supabase_service.client.table("lead_search_jobs")
+            .select("*")
+            .eq("id", job_id)
+            .limit(1)
+            .execute()
+        )
+        job = (result.data or [None])[0]
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        if str(job.get("user_id")) != actor.user_id:
+            if not job.get("organization_id"):
+                raise HTTPException(status_code=404, detail="Job not found")
+            await require_workflow_permission(str(job["organization_id"]), actor, "workflow.read")
+        return job
     except HTTPException:
         raise
     except Exception as e:

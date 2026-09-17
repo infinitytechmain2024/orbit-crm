@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { fetchBackend, resolveBackendTargets } from "@/lib/server/backend-upstream";
+import { verifyProxyUser } from "@/lib/server/verify-proxy-user";
 
 const API_URL = import.meta.env["VITE_API_URL"] || "https://aura-crm-hn11.onrender.com";
 const LEAD_SEARCH_TIMEOUT_MS = 120_000;
@@ -13,8 +14,19 @@ export const Route = createFileRoute("/api/lead-search")({
 });
 
 async function proxyLeadSearch(request: Request): Promise<Response> {
+  const authenticationError = await verifyProxyUser(request);
+  if (authenticationError) return authenticationError;
+  const internalToken = process.env["INTERNAL_API_TOKEN"];
+  if (!internalToken) {
+    return Response.json(
+      { error: "Lead search server authentication is not configured", leads: [], total: 0 },
+      { status: 503 },
+    );
+  }
+
   try {
     const body = await request.json();
+    const userAuthorization = request.headers.get("authorization") || "";
     const headers = {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -25,7 +37,11 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
       {
         method: "POST",
         path: "/api/lead-search",
-        headers: new Headers(headers),
+        headers: new Headers({
+          ...headers,
+          authorization: `Bearer ${internalToken}`,
+          "x-supabase-authorization": userAuthorization,
+        }),
         body: JSON.stringify(body),
         timeoutMs: LEAD_SEARCH_TIMEOUT_MS,
         logLabel: "lead-search",
@@ -46,7 +62,7 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
       method: "POST",
       headers: {
         ...headers,
-        authorization: request.headers.get("authorization") || "",
+        authorization: userAuthorization,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(LEAD_SEARCH_TIMEOUT_MS),
