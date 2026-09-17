@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "backend",
-      "runtimeExecutable": "/Users/dmytrolishchyna/Desktop/ORBIT CRM/.venv/bin/uvicorn",
+      "runtimeExecutable": "/Users/dmytrolishchyna/Desktop/Infinity Technology/orbit-crm/.venv/bin/uvicorn",
       "runtimeArgs": ["backend.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"],
       "port": 8000
     },

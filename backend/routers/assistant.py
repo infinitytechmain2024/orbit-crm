@@ -3,14 +3,19 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from backend.auth import require_workflow_actor
 from backend.services.ai_providers import ai_provider_registry
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/assistant", tags=["Assistant"])
+router = APIRouter(
+    prefix="/api/assistant",
+    tags=["Assistant"],
+    dependencies=[Depends(require_workflow_actor)],
+)
 
 
 class AssistantMessage(BaseModel):

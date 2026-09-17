@@ -56,6 +56,10 @@ class Settings(BaseSettings):
         default=1.5,
         validation_alias="AI_WORKFLOW_POLL_INTERVAL_SECONDS",
     )
+    AI_WORKFLOW_SWEEP_INTERVAL_SECONDS: float = Field(
+        default=60.0,
+        validation_alias="AI_WORKFLOW_SWEEP_INTERVAL_SECONDS",
+    )
     AI_WORKFLOW_MAX_QA_REVISIONS: int = Field(
         default=2,
         validation_alias="AI_WORKFLOW_MAX_QA_REVISIONS",
@@ -91,6 +95,8 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = Field(default="", validation_alias="TELEGRAM_BOT_TOKEN")
     TELEGRAM_CHAT_ID: str = Field(default="", validation_alias="TELEGRAM_CHAT_ID")
     TELEGRAM_WEBHOOK_URL: str = Field(default="", validation_alias="TELEGRAM_WEBHOOK_URL")
+    # Telegram echoes this in X-Telegram-Bot-Api-Secret-Token on every webhook call.
+    TELEGRAM_WEBHOOK_SECRET: str = Field(default="", validation_alias="TELEGRAM_WEBHOOK_SECRET")
 
     # OpenManus / Playwright
     OPENMANUS_HEADLESS: bool = Field(default=True, validation_alias="OPENMANUS_HEADLESS")

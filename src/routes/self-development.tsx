@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Activity, BarChart3, CheckCircle2, GitBranch, Loader2, RefreshCw, Server, ShieldCheck, XCircle } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  CheckCircle2,
+  GitBranch,
+  Loader2,
+  RefreshCw,
+  Server,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
 import { authenticatedFetch } from "@/lib/api-client";
 import { useCrm } from "@/lib/crm-store";
@@ -147,8 +157,8 @@ function ControlledImprovementPage() {
             <div>
               <h2 className="font-semibold">Режим отображения</h2>
               <p className="mt-1 text-muted-foreground">
-                На рендере live-режим виден только если backend вернул provider/run данные.
-                Иначе это либо пустой runtime, либо отключённый backend.
+                На рендере live-режим виден только если backend вернул provider/run данные. Иначе
+                это либо пустой runtime, либо отключённый backend.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -200,20 +210,32 @@ function ControlledImprovementPage() {
               </h3>
               <div className="mt-3 space-y-2">
                 {providers.map((provider) => (
-                  <div key={provider.id} className="flex items-center justify-between gap-3 text-sm">
+                  <div
+                    key={provider.id}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
                     <div>
                       <p className="font-medium">{provider.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {provider.platform}/{provider.architecture} · {provider.active_runs}/{provider.max_concurrent_runs}
+                        {provider.platform}/{provider.architecture} · {provider.active_runs}/
+                        {provider.max_concurrent_runs}
                       </p>
                     </div>
-                    <span className={provider.status === "available" || provider.status === "busy" ? "text-emerald-600" : "text-destructive"}>
+                    <span
+                      className={
+                        provider.status === "available" || provider.status === "busy"
+                          ? "text-emerald-600"
+                          : "text-destructive"
+                      }
+                    >
                       {provider.status}
                     </span>
                   </div>
                 ))}
                 {!busy && providers.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Нет подключённого execution provider.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Нет подключённого execution provider.
+                  </p>
                 )}
               </div>
             </div>
@@ -228,7 +250,9 @@ function ControlledImprovementPage() {
                       <span className="truncate font-mono text-xs">{run.working_branch}</span>
                       <span>{run.status}</span>
                     </div>
-                    {run.result_summary && <p className="mt-1 text-xs text-muted-foreground">{run.result_summary}</p>}
+                    {run.result_summary && (
+                      <p className="mt-1 text-xs text-muted-foreground">{run.result_summary}</p>
+                    )}
                   </div>
                 ))}
                 {!busy && runs.length === 0 && (

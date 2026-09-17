@@ -61,7 +61,10 @@ class TelegramBot:
         if not webhook:
             logger.warning("No webhook URL configured")
             return False
-        result = await self._make_request("setWebhook", {"url": webhook})
+        params: dict[str, Any] = {"url": webhook}
+        if settings.TELEGRAM_WEBHOOK_SECRET:
+            params["secret_token"] = settings.TELEGRAM_WEBHOOK_SECRET
+        result = await self._make_request("setWebhook", params)
         logger.info(f"Webhook set: {result}")
         return True
 

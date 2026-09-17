@@ -110,6 +110,23 @@ services:
       - orbit-net
     restart: unless-stopped
 
+  # Stable public address for this machine when it serves as the fallback backend.
+  # NGROK_DOMAIN is the free static domain from the ngrok dashboard, so the URL
+  # survives restarts. Start with: docker compose --profile tunnel up -d
+  ngrok:
+    image: ngrok/ngrok:3.39.11-alpine
+    container_name: orbit-ngrok
+    command: ["http", "--url=${NGROK_DOMAIN:-}", "orbit-backend:8000"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    depends_on:
+      - orbit-backend
+    networks:
+      - orbit-net
+    restart: unless-stopped
+    profiles:
+      - tunnel
+
   gmaps-scraper:
     image: ghcr.io/nicholasgasior/gmaps-scraper:latest
     container_name: orbit-gmaps

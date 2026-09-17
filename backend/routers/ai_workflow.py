@@ -331,7 +331,7 @@ async def get_overview(
         },
 }
 @router.get("/system-status", include_in_schema=False)
-async def get_system_status():
+async def get_system_status(_actor: WorkflowActor = Depends(require_workflow_actor)):
     """Return detailed system status for AI Workflow diagnostics.
 
     Never returns secret values. Only returns variable names in "missing"

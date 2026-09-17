@@ -53,10 +53,13 @@ function buildAssistantReply(text: string) {
 
 export function WorkflowChatPanel({
   onCreateTask,
+  open,
+  onOpenChange,
 }: {
   onCreateTask: (title: string, description: string) => Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<ChatThread[]>(() => loadThreads());
   const [activeThreadId, setActiveThreadId] = useState<string | null>(threads[0]?.id ?? null);
   const [draft, setDraft] = useState("");
@@ -155,7 +158,7 @@ export function WorkflowChatPanel({
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
         <Button
           variant="outline"
@@ -168,7 +171,7 @@ export function WorkflowChatPanel({
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="w-[100vw] border-border bg-background p-0 sm:w-[min(94vw,50rem)] lg:w-[min(96vw,68rem)]"
+        className="h-[100dvh] w-[100vw] max-w-none border-border bg-background p-0 sm:w-[min(98vw,72rem)] lg:w-[min(98vw,88rem)]"
       >
         <div className="flex h-full min-h-0 flex-col animate-in fade-in-0 slide-in-from-right-3 duration-300">
           <SheetHeader className="border-b border-border bg-background/95 px-5 py-4 backdrop-blur">

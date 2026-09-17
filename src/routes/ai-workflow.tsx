@@ -119,6 +119,7 @@ function AIWorkflowPage() {
   const [departmentId, setDepartmentId] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<WorkflowAgent | null>(null);
   const [selectedTask, setSelectedTask] = useState<WorkflowTask | null>(null);
   const [rejectTask, setRejectTask] = useState<WorkflowTask | null>(null);
@@ -614,28 +615,7 @@ function AIWorkflowPage() {
       onSearchChange={setSearch}
       onCreate={() => setCreateOpen(true)}
       onVoice={() => setVoiceOpen(true)}
-    />
-  );
-
-  const hiddenChat = (
-    <WorkflowChatPanel
-      onCreateTask={async (title, description) => {
-        await handleCreate({
-          organization_id: organizationId ?? "",
-          project_id: initialProjectId,
-          title,
-          description,
-          priority: "medium",
-          due_at: null,
-          attachments: [],
-          links: [],
-          department_id: null,
-          agent_id: null,
-          auto_assign: true,
-          source: "manual",
-          original_request: description,
-        });
-      }}
+      onChat={() => setChatOpen(true)}
     />
   );
 
@@ -643,12 +623,7 @@ function AIWorkflowPage() {
     <AppShell
       title="AI Workflow"
       subtitle="Единый канал работы AI-команды"
-      headerActions={
-        <div className="flex items-center gap-2">
-          {hiddenChat}
-          {toolbar}
-        </div>
-      }
+      headerActions={toolbar}
       hideAssistant
       mainClassName="ai-workflow-page !px-3 !py-4 sm:!px-5 sm:!py-5"
     >
@@ -906,9 +881,32 @@ function AIWorkflowPage() {
 
                 {/* CEO Dashboard */}
                 <div className="rounded-xl border border-border/50 bg-card/50 p-3">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Crown className="size-4 text-primary" />
-                    <h3 className="text-xs font-medium">CEO Dashboard</h3>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Crown className="size-4 text-primary" />
+                      <h3 className="text-xs font-medium">CEO Dashboard</h3>
+                    </div>
+                    <WorkflowChatPanel
+                      open={chatOpen}
+                      onOpenChange={setChatOpen}
+                      onCreateTask={async (title, description) => {
+                        await handleCreate({
+                          organization_id: organizationId ?? "",
+                          project_id: initialProjectId,
+                          title,
+                          description,
+                          priority: "medium",
+                          due_at: null,
+                          attachments: [],
+                          links: [],
+                          department_id: null,
+                          agent_id: null,
+                          auto_assign: true,
+                          source: "manual",
+                          original_request: description,
+                        });
+                      }}
+                    />
                   </div>
                   <CeoDashboard onRefresh={() => void workflow.refresh(true)} />
                 </div>
