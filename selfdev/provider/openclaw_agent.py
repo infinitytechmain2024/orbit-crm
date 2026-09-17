@@ -72,31 +72,51 @@ def _run_openclaw(prompt: str) -> str:
     return _message_content(response.json())
 
 
-def _run_groq_fallback(prompt: str) -> str:
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError("OpenClaw failed and GROQ_API_KEY is not configured")
-    model = os.getenv("SELFDEV_GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
-    base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+NVIDIA_FALLBACK_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+
+
+def _fallback_provider() -> tuple[str, str, str, str]:
+    """Return (name, base_url, api_key, model), preferring NVIDIA over Groq."""
+    nvidia_key = os.getenv("NVIDIA_API_KEY", "").strip()
+    if nvidia_key:
+        return (
+            "nvidia",
+            os.getenv("NVIDIA_BASE_URL", "").strip() or "https://integrate.api.nvidia.com/v1",
+            nvidia_key,
+            os.getenv("SELFDEV_NVIDIA_MODEL", "").strip() or NVIDIA_FALLBACK_MODEL,
+        )
+    groq_key = os.getenv("GROQ_API_KEY", "").strip()
+    if groq_key:
+        return (
+            "groq",
+            os.getenv("GROQ_BASE_URL", "").strip() or "https://api.groq.com/openai/v1",
+            groq_key,
+            os.getenv("SELFDEV_GROQ_MODEL", "").strip() or "llama-3.1-8b-instant",
+        )
+    raise RuntimeError("OpenClaw failed and neither NVIDIA_API_KEY nor GROQ_API_KEY is configured")
+
+
+def _run_model_fallback(prompt: str) -> str:
+    name, base_url, api_key, model = _fallback_provider()
     response = httpx.post(
-        f"{base_url}/chat/completions",
+        f"{base_url.rstrip('/')}/chat/completions",
         headers={
             "authorization": f"Bearer {api_key}",
             "content-type": "application/json",
         },
         json=_chat_payload(prompt, model=model),
-        timeout=float(os.getenv("SELFDEV_GROQ_TIMEOUT_SECONDS") or "60"),
+        timeout=float(os.getenv("SELFDEV_FALLBACK_TIMEOUT_SECONDS") or os.getenv("SELFDEV_GROQ_TIMEOUT_SECONDS") or "120"),
     )
     response.raise_for_status()
     content = _message_content(response.json())
-    return "[fallback:groq]\n" + (content or "Groq completed without textual output.")
+    return f"[fallback:{name}]\n" + (content or f"{name} completed without textual output.")
 
 
 def run_analysis(prompt: str) -> str:
     try:
         return _run_openclaw(prompt)
     except (httpx.HTTPError, RuntimeError) as exc:
-        fallback = _run_groq_fallback(prompt)
+        fallback = _run_model_fallback(prompt)
         return f"{fallback}\n\n[openclaw_error]\n{type(exc).__name__}: {str(exc)[:500]}"
 
 
