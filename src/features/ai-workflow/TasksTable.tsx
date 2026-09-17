@@ -31,7 +31,7 @@ import type {
 
 export type TaskTab = "all" | "queued" | "in_progress" | "approval_required" | "done";
 
-const STATUS_LABEL: Record<WorkflowTaskStatus, string> = {
+export const STATUS_LABEL: Record<WorkflowTaskStatus, string> = {
   planning: "Планируется",
   queued: "Ожидает старта",
   in_progress: "В работе",
@@ -51,7 +51,7 @@ const PRIORITY_LABEL = {
   critical: "Критичный",
 };
 
-const STATUS_SORT_ORDER: Record<WorkflowTaskStatus, number> = {
+export const STATUS_SORT_ORDER: Record<WorkflowTaskStatus, number> = {
   approval_required: 0,
   in_progress: 1,
   queued: 2,
@@ -64,7 +64,7 @@ const STATUS_SORT_ORDER: Record<WorkflowTaskStatus, number> = {
   done: 9,
 };
 
-function statusClass(status: WorkflowTaskStatus) {
+export function statusClass(status: WorkflowTaskStatus) {
   if (status === "done") return "text-badge-green";
   if (status === "in_progress" || status === "planning") return "text-badge-blue";
   if (status === "review") return "text-badge-purple";
