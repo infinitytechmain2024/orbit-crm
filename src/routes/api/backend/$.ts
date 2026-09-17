@@ -1,4 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  fetchBackend,
+  resolveBackendTargets,
+  toProxyResponse,
+} from "@/lib/server/backend-upstream";
 import { verifyProxyUser } from "@/lib/server/verify-proxy-user";
 
 export const Route = createFileRoute("/api/backend/$")({
@@ -20,12 +25,8 @@ async function proxyRequest(
 ): Promise<Response> {
   const authenticationError = await verifyProxyUser(request);
   if (authenticationError) return authenticationError;
-  const base =
-    process.env.RENDER_BACKEND_URL ||
-    process.env.BACKEND_URL ||
-    process.env.AI_WORKFLOW_BACKEND_URL ||
-    (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
-  if (!base) {
+  const targets = resolveBackendTargets();
+  if (targets.length === 0) {
     return Response.json({ error: "Backend URL is not configured on the server" }, { status: 503 });
   }
 
@@ -38,8 +39,6 @@ async function proxyRequest(
   }
 
   const url = new URL(request.url);
-  const target = `${base.replace(/\/$/, "")}${path ? `/${path}` : ""}${url.search}`;
-
   const headers = new Headers(request.headers);
   const userAuthorization = headers.get("authorization");
   headers.delete("host");
@@ -53,72 +52,31 @@ async function proxyRequest(
   const isAiWorkflow = path?.includes("ai-workflow");
   const timeoutMs = isAiWorkflow ? 90_000 : isTranscribe ? 120_000 : 30_000;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const result = await fetchBackend(targets, {
+    method,
+    path: `${path ? `/${path}` : ""}${url.search}`,
+    headers,
+    body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
+    timeoutMs,
+    logLabel: "backend proxy",
+  });
 
-  let attempt = 0;
-  const maxAttempts = 2;
-
-  while (attempt < maxAttempts) {
-    attempt++;
-    try {
-      const upstream = await fetch(target, {
-        method,
-        headers,
-        body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
-        redirect: "manual",
-        signal: controller.signal,
-      });
-
-      clearTimeout(timer);
-
-      const responseHeaders = new Headers(upstream.headers);
-      responseHeaders.delete("content-length");
-      responseHeaders.delete("content-encoding");
-      responseHeaders.set("cache-control", "no-store");
-
-      // Retry on 502/503 if not last attempt
-      if ((upstream.status === 502 || upstream.status === 503) && attempt < maxAttempts) {
-        clearTimeout(timer);
-        await new Promise((r) => setTimeout(r, 2000));
-        continue;
-      }
-
-      return new Response(upstream.body, {
-        status: upstream.status,
-        statusText: upstream.statusText,
-        headers: responseHeaders,
-      });
-    } catch (error) {
-      clearTimeout(timer);
-      const reason = error instanceof Error ? error.message : "Unknown upstream error";
-      const isTimeout = error instanceof DOMException && error.name === "AbortError";
-
-      if (
-        attempt < maxAttempts &&
-        (isTimeout || reason.includes("ECONNREFUSED") || reason.includes("ETIMEDOUT"))
-      ) {
-        attempt++;
-        console.warn(
-          `[backend proxy] retry attempt ${attempt}/${maxAttempts} after error: ${reason}`,
-        );
-        await new Promise((r) => setTimeout(r, 2000));
-        continue;
-      }
-
-      console.error("[backend proxy] upstream request failed", {
-        method,
-        path: path ?? "",
-        reason,
-        isTimeout,
-      });
-      return Response.json(
-        { error: isTimeout ? "Backend is waking up, please try again" : "Backend is unavailable" },
-        { status: 502 },
-      );
-    }
+  if (!result.ok) {
+    console.error("[backend proxy] upstream request failed", {
+      method,
+      path: path ?? "",
+      reason: result.reason,
+      isTimeout: result.timedOut,
+    });
+    return Response.json(
+      {
+        error: result.timedOut
+          ? "Backend is waking up, please try again"
+          : "Backend is unavailable",
+      },
+      { status: 502 },
+    );
   }
 
-  // Final attempt failed
-  return Response.json({ error: "Backend is unavailable after retries" }, { status: 502 });
+  return toProxyResponse(result);
 }

@@ -1,4 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  type BackendTarget,
+  fetchBackend,
+  resolveBackendTargets,
+  toProxyResponse,
+} from "@/lib/server/backend-upstream";
 
 const GROQ_TRANSCRIPTION_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
 const DEFAULT_MODEL = "whisper-large-v3-turbo";
@@ -27,14 +33,10 @@ export const Route = createFileRoute("/api/speech/transcribe")({
   },
 });
 
-function localBackendConfig(): { base: string; token: string } | null {
-  const base =
-    process.env["RENDER_BACKEND_URL"] ||
-    process.env["BACKEND_URL"] ||
-    process.env["AI_WORKFLOW_BACKEND_URL"] ||
-    (process.env["NODE_ENV"] === "development" ? "http://127.0.0.1:8000" : "");
+function localBackendConfig(): { targets: BackendTarget[]; token: string } | null {
+  const targets = resolveBackendTargets();
   const token = process.env["INTERNAL_API_TOKEN"] || "";
-  return base && token ? { base: base.replace(/\/$/, ""), token } : null;
+  return targets.length > 0 && token ? { targets, token } : null;
 }
 
 function isTranscriptionConfigured(): boolean {
@@ -180,40 +182,31 @@ async function transcribe(request: Request): Promise<Response> {
 async function transcribeWithLocalBackend(
   audio: Blob,
   fileName: string,
-  config: { base: string; token: string },
+  config: { targets: BackendTarget[]; token: string },
 ): Promise<Response> {
   const form = new FormData();
   form.append("audio", audio, fileName);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), LOCAL_TRANSCRIPTION_TIMEOUT_MS);
 
-  try {
-    const upstream = await fetch(`${config.base}/api/speech/transcribe`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${config.token}` },
-      body: form,
-      signal: controller.signal,
-    });
-    const headers = new Headers(upstream.headers);
-    headers.delete("content-length");
-    headers.delete("content-encoding");
-    headers.set("cache-control", "no-store");
-    return new Response(upstream.body, {
-      status: upstream.status,
-      statusText: upstream.statusText,
-      headers,
-    });
-  } catch (error) {
-    const timedOut = error instanceof DOMException && error.name === "AbortError";
+  const result = await fetchBackend(config.targets, {
+    method: "POST",
+    path: "/api/speech/transcribe",
+    headers: new Headers({ authorization: `Bearer ${config.token}` }),
+    body: form,
+    timeoutMs: LOCAL_TRANSCRIPTION_TIMEOUT_MS,
+    logLabel: "speech",
+  });
+  if (!result.ok) {
     console.error("[speech] local transcription backend unavailable", {
-      timedOut,
-      reason: error instanceof Error ? error.message : "Unknown error",
+      timedOut: result.timedOut,
+      reason: result.reason,
     });
     return Response.json(
-      { error: timedOut ? "Speech transcription timed out" : "Speech backend is unavailable" },
-      { status: timedOut ? 504 : 502, headers: { "cache-control": "no-store" } },
+      {
+        error: result.timedOut ? "Speech transcription timed out" : "Speech backend is unavailable",
+      },
+      { status: result.timedOut ? 504 : 502, headers: { "cache-control": "no-store" } },
     );
-  } finally {
-    clearTimeout(timer);
   }
+
+  return toProxyResponse(result);
 }

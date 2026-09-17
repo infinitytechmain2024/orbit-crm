@@ -19,6 +19,7 @@ import {
   Star,
 } from "lucide-react";
 import { AppShell } from "@/components/crm/AppShell";
+import { authenticatedFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { SkyscannerSearchPanel } from "@/components/search/SkyscannerSearchPanel";
 import type { SearchFilters } from "@/types/search";
@@ -232,7 +233,7 @@ function LeadSearchPage() {
 
       setCurrentStage(SEARCH_STAGES[SEARCH_STAGES.length - 1] ?? null);
 
-      const res = await fetch("/api/lead-search", {
+      const res = await authenticatedFetch("/api/lead-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

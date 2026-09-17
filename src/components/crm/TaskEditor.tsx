@@ -683,7 +683,9 @@ export function TaskEditor({
             />
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-surface-2/60 px-2 py-1 text-[11px] font-medium text-muted-foreground">
               <span>{CURRENCY_FLAGS[draft.currency.trim().toUpperCase()] ?? "¤"}</span>
-              <span className="hidden sm:inline">{draft.currency.trim().toUpperCase() || "EUR"}</span>
+              <span className="hidden sm:inline">
+                {draft.currency.trim().toUpperCase() || "EUR"}
+              </span>
             </span>
           </div>
         </Field>

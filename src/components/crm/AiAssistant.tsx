@@ -4,7 +4,12 @@ import { useCrm } from "@/lib/crm-store";
 import { cn } from "@/lib/utils";
 import { transcribeAudio } from "@/agents/whisper";
 import { authenticatedFetch } from "@/lib/api-client";
-import { convertCurrency, formatMoney, useExchangeRates, type DisplayCurrency } from "@/lib/currency";
+import {
+  convertCurrency,
+  formatMoney,
+  useExchangeRates,
+  type DisplayCurrency,
+} from "@/lib/currency";
 
 type Msg = { id: string; role: "user" | "ai"; text: string };
 

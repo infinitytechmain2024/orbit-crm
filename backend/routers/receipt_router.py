@@ -5,9 +5,10 @@ import json
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import JSONResponse
 
+from backend.auth import require_telegram_webhook_secret
 from backend.config import settings
 from backend.services.receipt_ocr import receipt_ocr_service, ReceiptOCRResult
 from backend.services.supabase_client import supabase_service
@@ -94,7 +95,7 @@ def _save_receipt_to_db(
 
 # ---- Telegram Webhook Endpoints ----
 
-@router.post("/webhook")
+@router.post("/webhook", dependencies=[Depends(require_telegram_webhook_secret)])
 async def telegram_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
