@@ -169,6 +169,59 @@ class Settings(BaseSettings):
     # per-provider choice in coding_executor.TOOL_CAPABLE_MODELS.
     CODING_EXECUTOR_MODEL: str = Field(default="", validation_alias="CODING_EXECUTOR_MODEL")
 
+    # Autopilot self-verification. The self review reads the real `git diff`
+    # after the executor finishes; it costs one extra model call per run and can
+    # be switched off independently of the browser test.
+    AUTOPILOT_SELF_REVIEW_ENABLED: bool = Field(
+        default=True,
+        validation_alias="AUTOPILOT_SELF_REVIEW_ENABLED",
+    )
+    # Browser self test (Playwright). Off by default: it needs a *local* test
+    # account, and silently running against a real tenant would be worse than
+    # not running at all. Credentials live in an un-committed `.env.e2e.local`
+    # (already covered by the `.env.*` rule in .gitignore) and are passed to the
+    # test process only through its environment — never argv, never a file.
+    AUTOPILOT_E2E_ENABLED: bool = Field(default=False, validation_alias="AUTOPILOT_E2E_ENABLED")
+    AUTOPILOT_E2E_EMAIL: str = Field(default="", validation_alias="AUTOPILOT_E2E_EMAIL")
+    AUTOPILOT_E2E_PASSWORD: str = Field(default="", validation_alias="AUTOPILOT_E2E_PASSWORD")
+    # Deliberately NOT the 8080 of `npm run dev`: the verification run must boot
+    # the freshly cloned working copy, and reusing a developer's own dev server
+    # would silently verify the wrong code.
+    AUTOPILOT_E2E_BASE_URL: str = Field(
+        default="http://localhost:8099",
+        validation_alias="AUTOPILOT_E2E_BASE_URL",
+    )
+    # Anon/publishable key the E2E frontend build uses. Deliberately separate
+    # from SUPABASE_SERVICE_ROLE_KEY, which must never reach a browser.
+    AUTOPILOT_E2E_SUPABASE_ANON_KEY: str = Field(
+        default="",
+        validation_alias="AUTOPILOT_E2E_SUPABASE_ANON_KEY",
+    )
+    # Persistent npm/Playwright caches shared across runs. Every run works in a
+    # throwaway clone, so without this each one re-downloads the dependency tree
+    # and a browser — the dominant cost of the verification phase. Lives under
+    # the already-git-ignored `.selfdev/`.
+    AUTOPILOT_CACHE_DIR: str = Field(
+        default=str(PROJECT_ROOT / ".selfdev" / "cache"),
+        validation_alias="AUTOPILOT_CACHE_DIR",
+    )
+    # Long-lived worktrees reused across runs. Each keeps its own node_modules,
+    # which is what makes the browser self test affordable. One slot per
+    # concurrent run; a run that finds them all busy falls back to a throwaway
+    # clone rather than queueing and burning its own time budget.
+    AUTOPILOT_WORKSPACE_SLOTS: int = Field(
+        default=2,
+        validation_alias="AUTOPILOT_WORKSPACE_SLOTS",
+    )
+    # What an unrepaired blocking finding does to the pull request. Until now the
+    # run reported success regardless, and the finding only surfaced in the PR
+    # body — easy to merge straight past. "draft" opens the PR as a draft so it
+    # cannot be merged by accident; "warn" keeps the old behaviour.
+    AUTOPILOT_BLOCKER_POLICY: str = Field(
+        default="draft",
+        validation_alias="AUTOPILOT_BLOCKER_POLICY",
+    )
+
     @model_validator(mode="after")
     def validate_supabase_project(self) -> "Settings":
         expected = self.EXPECTED_SUPABASE_PROJECT_REF.strip()
@@ -182,7 +235,9 @@ class Settings(BaseSettings):
         return self
 
     class Config:
-        env_file = (PROJECT_ROOT / ".env", BACKEND_ENV_FILE)
+        # `.env.e2e.local` is read last so the operator's local browser-test
+        # credentials override anything else; it is git-ignored by design.
+        env_file = (PROJECT_ROOT / ".env", BACKEND_ENV_FILE, PROJECT_ROOT / ".env.e2e.local")
         env_file_encoding = "utf-8"
         case_sensitive = True
         extra = "ignore"

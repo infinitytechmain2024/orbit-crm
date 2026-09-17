@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AutopilotRunPanel } from "./AutopilotRunPanel";
 import type {
   WorkflowAgent,
   WorkflowArtifact,
@@ -332,6 +333,7 @@ export function TaskDetailDialog({
                 </pre>
               </section>
             )}
+            {task.result && <AutopilotRunPanel result={task.result} />}
             {task.result && (
               <section className="rounded-xl border border-primary/20 bg-primary/[0.035] p-3">
                 <h3 className="flex items-center gap-2 text-xs font-semibold">

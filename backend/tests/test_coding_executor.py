@@ -146,3 +146,365 @@ class FileEditingSafetyTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlanTrackingTests(unittest.TestCase):
+    """Step tracking is the contract the report depends on: a status change must
+    hit the plan file on disk immediately, so a run killed mid-flight still tells
+    the truth about how far it got."""
+
+    def setUp(self) -> None:
+        from backend.services.autopilot_plan import AutopilotPlan, PlanStep
+
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workdir = Path(self._tmp.name)
+        self.plan = AutopilotPlan(
+            task_id="task-1",
+            task_title="Экспорт клиентов",
+            steps=[PlanStep(id="1", title="Ручка"), PlanStep(id="2", title="Кнопка")],
+        )
+        self.plan.write(self.workdir)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _plan_file(self) -> str:
+        return (self.workdir / self.plan.relative_path).read_text(encoding="utf-8")
+
+    def test_complete_step_is_flushed_to_disk_immediately(self):
+        out = coding_executor._dispatch_plan_tool(
+            self.plan, self.workdir, "complete_step", {"step_id": "1", "note": "добавил /export"}
+        )
+        self.assertIn("выполненным", out)
+        self.assertIn("- [x] 1. Ручка", self._plan_file())
+        self.assertIn("добавил /export", self._plan_file())
+
+    def test_block_step_records_reason_and_keeps_the_run_going(self):
+        out = coding_executor._dispatch_plan_tool(
+            self.plan, self.workdir, "block_step", {"step_id": "2", "reason": "нет макета"}
+        )
+        self.assertIn("Продолжай остальные шаги", out)
+        self.assertIn("- [!] 2. Кнопка", self._plan_file())
+        self.assertIn("нет макета", self._plan_file())
+
+    def test_block_step_requires_a_reason(self):
+        out = coding_executor._dispatch_plan_tool(self.plan, self.workdir, "block_step", {"step_id": "2"})
+        self.assertIn("reason обязателен", out)
+        self.assertIn("- [ ] 2. Кнопка", self._plan_file())
+
+    def test_unknown_step_id_lists_the_real_ones(self):
+        out = coding_executor._dispatch_plan_tool(self.plan, self.workdir, "complete_step", {"step_id": "9"})
+        self.assertIn("Ошибка", out)
+        self.assertIn("1, 2", out)
+
+    def test_non_plan_tools_fall_through(self):
+        self.assertIsNone(coding_executor._dispatch_plan_tool(self.plan, self.workdir, "read_file", {"path": "x"}))
+
+    def test_show_plan_reports_current_statuses(self):
+        coding_executor._dispatch_plan_tool(self.plan, self.workdir, "complete_step", {"step_id": "1"})
+        out = coding_executor._dispatch_plan_tool(self.plan, self.workdir, "show_plan", {})
+        self.assertIn("[done] 1. Ручка", out)
+        self.assertIn("[pending] 2. Кнопка", out)
+
+
+class PlanToolExposureTests(unittest.TestCase):
+    def test_plan_tools_are_offered_to_the_model(self):
+        names = {tool["function"]["name"] for tool in coding_executor.TOOLS}
+        self.assertTrue({"show_plan", "complete_step", "block_step"}.issubset(names))
+
+    def test_result_carries_the_lifecycle_artifacts(self):
+        result = coding_executor.CodingExecutionResult(success=False, error="x")
+        self.assertEqual(result.plan, {})
+        self.assertEqual(result.review_findings, [])
+        self.assertEqual(result.verification, {})
+
+
+class ProtectedPathTests(unittest.TestCase):
+    """The plan file is the run's own progress record. If the model could edit it
+    directly it could mark steps done without doing them — the exact failure the
+    plan exists to catch — so the block is in code, not in the prompt."""
+
+    def test_plan_directory_is_not_writable_by_the_model(self):
+        for relative in ("docs/autopilot/plans/task-1.md", "repo/docs/autopilot/plans/x.md"):
+            with self.subTest(relative=relative):
+                self.assertTrue(coding_executor._is_protected(Path("/tmp/wd") / relative))
+
+    def test_git_and_env_stay_protected(self):
+        for relative in (".git/config", ".env", ".env.local", "backend/.env"):
+            with self.subTest(relative=relative):
+                self.assertTrue(coding_executor._is_protected(Path("/tmp/wd") / relative))
+
+    def test_ordinary_paths_and_nearby_docs_remain_writable(self):
+        for relative in ("src/app.tsx", "docs/autopilot/README.md", "docs/plans/x.md", "backend/main.py"):
+            with self.subTest(relative=relative):
+                self.assertFalse(coding_executor._is_protected(Path("/tmp/wd") / relative))
+
+    def test_write_file_refuses_the_plan_path(self):
+        async def scenario():
+            with tempfile.TemporaryDirectory() as tmp:
+                return await coding_executor._dispatch_tool(
+                    Path(tmp),
+                    "write_file",
+                    {"path": "docs/autopilot/plans/task-1.md", "content": "- [x] 1. Всё сделано"},
+                )
+
+        import asyncio
+
+        self.assertIn("запрещена", asyncio.run(scenario()))
+
+
+class TimeBudgetTests(unittest.TestCase):
+    """The feature shipped with budgets that did not reconcile with the caller:
+    the queue killed a job at 900s while a run with verification needs far more,
+    so the browser self test could never finish."""
+
+    def test_run_budget_covers_every_phase_it_is_made_of(self):
+        self.assertEqual(
+            coding_executor.RUN_TIMEOUT_SECONDS,
+            coding_executor.EXECUTION_BUDGET_SECONDS + coding_executor.VERIFICATION_BUDGET_SECONDS,
+        )
+        total = coding_executor.total_run_budget_seconds()
+        self.assertGreaterEqual(
+            total,
+            coding_executor.CLONE_TIMEOUT_SECONDS + coding_executor.RUN_TIMEOUT_SECONDS,
+        )
+
+    def test_verification_budget_fits_the_verifier_it_calls(self):
+        from backend.services import autopilot_verifier
+
+        # The executor hands the verifier whatever is left; that slice has to be
+        # able to cover a real install + browser + run, or phase 4 is decorative.
+        self.assertGreaterEqual(
+            coding_executor.VERIFICATION_BUDGET_SECONDS,
+            autopilot_verifier.MIN_BUDGET_SECONDS,
+        )
+
+    def test_total_budget_exceeds_the_queue_default_that_used_to_kill_runs(self):
+        self.assertGreater(coding_executor.total_run_budget_seconds(), 900)
+
+
+class BranchRetryTests(unittest.TestCase):
+    """A retry after a partially delivered run must not collide with itself."""
+
+    def test_first_attempt_keeps_the_plain_name(self):
+        self.assertEqual(
+            coding_executor._branch_name("task-1", "Экспорт", 1),
+            coding_executor._branch_name("task-1", "Экспорт"),
+        )
+
+    def test_later_attempts_get_distinct_branches(self):
+        names = {coding_executor._branch_name("task-1", "Экспорт", attempt) for attempt in (1, 2, 3)}
+        self.assertEqual(len(names), 3)
+        for name in names:
+            self.assertTrue(name.startswith("autopilot/task-1-"))
+            self.assertNotIn(name, ("main", "master"))
+
+
+class DeliveryFailureTests(unittest.IsolatedAsyncioTestCase):
+    """A push/PR failure used to escape as an unhandled exception: the worker
+    retried the whole job from a fresh clone while the finished commit died with
+    the temporary directory."""
+
+    @patch("backend.services.coding_executor._find_open_pull_request", new_callable=AsyncMock)
+    async def test_existing_pull_request_is_reused_instead_of_recreated(self, find_mock):
+        find_mock.return_value = "https://github.com/acme/repo/pull/9"
+        url = await coding_executor._open_pull_request(
+            "acme/repo", "token", "autopilot/task-1-x", "main", "title", "body"
+        )
+        self.assertEqual(url, "https://github.com/acme/repo/pull/9")
+        find_mock.assert_awaited()
+
+    async def test_pull_request_lookup_survives_a_broken_listing(self):
+        import httpx
+
+        class BrokenClient:
+            async def get(self, *_args, **_kwargs):
+                raise httpx.ConnectError("no route to host")
+
+        # A failed lookup must degrade to "no existing PR", not blow up the run.
+        self.assertEqual(
+            await coding_executor._find_open_pull_request(BrokenClient(), "acme/repo", "autopilot/x"),
+            "",
+        )
+
+
+class ChangedFileCheckTests(unittest.IsolatedAsyncioTestCase):
+    """The repository carries pre-existing failures (141 tsc diagnostics and 3
+    failing tests at the time of writing). Handing the model that wall of noise
+    makes "did I break something?" unanswerable, so a check reports the delta."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workdir = Path(self._tmp.name)
+        (self.workdir / "node_modules").mkdir()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    async def test_unknown_check_is_rejected_with_the_valid_names(self):
+        out = await coding_executor._run_check(self.workdir, "vibes")
+        self.assertIn("неизвестная проверка", out)
+        self.assertIn("typescript", out)
+
+    async def test_missing_node_modules_explains_itself(self):
+        import shutil
+
+        shutil.rmtree(self.workdir / "node_modules")
+        out = await coding_executor._run_check(self.workdir, "typescript")
+        self.assertIn("node_modules", out)
+
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_nothing_changed_means_nothing_to_check(self, changed):
+        changed.return_value = set()
+        self.assertIn("не изменил", await coding_executor._run_check(self.workdir, "typescript"))
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_only_diagnostics_in_changed_files_are_reported(self, changed, run_mock):
+        changed.return_value = {"src/mine.tsx"}
+        run_mock.return_value = (
+            1,
+            "src/mine.tsx(10,5): error TS2532: Object is possibly 'undefined'.\n"
+            "src/theirs.tsx(1,1): error TS4111: pre-existing\n"
+            "src/also-theirs.tsx(2,2): error TS2322: pre-existing\n",
+            "",
+        )
+        out = await coding_executor._run_check(self.workdir, "typescript")
+
+        self.assertIn("src/mine.tsx(10,5)", out)
+        self.assertNotIn("src/theirs.tsx", out)
+        self.assertNotIn("src/also-theirs.tsx", out)
+        # The ambient total is still stated, so the number is not mysterious.
+        self.assertIn("1 замечани", out)
+        self.assertIn("3", out)
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_clean_delta_says_so_even_when_the_project_is_dirty(self, changed, run_mock):
+        changed.return_value = {"src/mine.tsx"}
+        run_mock.return_value = (1, "src/theirs.tsx(1,1): error TS4111: pre-existing\n", "")
+        out = await coding_executor._run_check(self.workdir, "typescript")
+        self.assertIn("чисто", out)
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._changed_files", new_callable=AsyncMock)
+    async def test_absolute_paths_in_output_still_match_changed_files(self, changed, run_mock):
+        changed.return_value = {"src/mine.tsx"}
+        run_mock.return_value = (1, f"{self.workdir}/src/mine.tsx(4,1): error TS2532: mine\n", "")
+        self.assertIn("mine", await coding_executor._run_check(self.workdir, "typescript"))
+        self.assertIn("1 замечани", await coding_executor._run_check(self.workdir, "typescript"))
+
+
+class CheckToolExposureTests(unittest.TestCase):
+    def test_e2e_and_lint_commands_are_runnable_by_the_executor(self):
+        for prefix in ("npx playwright test", "npx eslint", "npm run test:e2e"):
+            self.assertIn(prefix, coding_executor.ALLOWED_COMMAND_PREFIXES)
+
+    def test_check_changes_is_offered_to_the_model(self):
+        names = {tool["function"]["name"] for tool in coding_executor.TOOLS}
+        self.assertIn("check_changes", names)
+
+
+class PersistentWorkspaceTests(unittest.IsolatedAsyncioTestCase):
+    """A persistent worktree keeps refs between runs, so names that were unique
+    by construction with a throwaway clone no longer are."""
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    async def test_free_branch_name_returns_the_first_unused_name(self, run_mock):
+        # show-ref exits non-zero when the ref does not exist.
+        run_mock.return_value = (1, "", "")
+        name = await coding_executor._free_branch_name(Path("/tmp/wd"), "autopilot/task-1-x")
+        self.assertEqual(name, "autopilot/task-1-x")
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    async def test_free_branch_name_steps_past_names_a_previous_attempt_left(self, run_mock):
+        run_mock.side_effect = [(0, "", ""), (0, "", ""), (1, "", "")]
+        name = await coding_executor._free_branch_name(Path("/tmp/wd"), "autopilot/task-1-x")
+        self.assertEqual(name, "autopilot/task-1-x-2")
+        self.assertTrue(name.startswith("autopilot/"))
+
+    @patch("backend.services.coding_executor._open_pull_request", new_callable=AsyncMock)
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.autopilot_workspace.pending_delivery", new_callable=AsyncMock)
+    async def test_a_pending_commit_is_redelivered_without_redoing_the_work(
+        self, pending, run_mock, open_pr
+    ):
+        pending.return_value = ("autopilot/task-9-demo", "5531e07c" * 5)
+        run_mock.return_value = (0, "", "")
+        open_pr.return_value = "https://github.com/acme/repo/pull/3"
+
+        result = await coding_executor._resume_delivery(
+            Path("/tmp/mirror.git"), "acme/repo", "tok", {"id": "task-9", "title": "T"}, "main", {}
+        )
+
+        self.assertIsNotNone(result)
+        self.assertTrue(result.success)
+        self.assertEqual(result.pr_url, "https://github.com/acme/repo/pull/3")
+        self.assertIn("не выполнялась заново", result.summary)
+        # The token must not appear in the push argv.
+        for call in run_mock.call_args_list:
+            self.assertNotIn("tok", " ".join(call.args[0]))
+
+    @patch("backend.services.autopilot_workspace.pending_delivery", new_callable=AsyncMock)
+    async def test_nothing_pending_means_a_normal_run(self, pending):
+        pending.return_value = ("", "")
+        self.assertIsNone(
+            await coding_executor._resume_delivery(
+                Path("/tmp/mirror.git"), "acme/repo", "tok", {"id": "task-9", "title": "T"}, "main", {}
+            )
+        )
+
+    @patch("backend.services.coding_executor._run", new_callable=AsyncMock)
+    @patch("backend.services.autopilot_workspace.pending_delivery", new_callable=AsyncMock)
+    async def test_a_failed_resume_falls_through_instead_of_failing_the_run(self, pending, run_mock):
+        pending.return_value = ("autopilot/task-9-demo", "abc123")
+        run_mock.return_value = (1, "", "remote hung up")
+        self.assertIsNone(
+            await coding_executor._resume_delivery(
+                Path("/tmp/mirror.git"), "acme/repo", "tok", {"id": "task-9", "title": "T"}, "main", {}
+            )
+        )
+
+
+class BlockerPolicyTests(unittest.IsolatedAsyncioTestCase):
+    """An unrepaired blocker used to leave a PR that looked ready to merge — the
+    finding lived only in the body, where it is easy to scroll past."""
+
+    @patch("backend.services.coding_executor._find_open_pull_request", new_callable=AsyncMock)
+    async def test_pull_request_carries_the_draft_flag_through(self, find_mock):
+        import httpx
+
+        find_mock.return_value = ""
+        captured: dict = {}
+
+        class Response:
+            status_code = 201
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"html_url": "https://github.com/acme/repo/pull/1"}
+
+        class Client:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def post(self, _path, json):
+                captured.update(json)
+                return Response()
+
+        with patch.object(httpx, "AsyncClient", lambda **_kwargs: Client()):
+            await coding_executor._open_pull_request(
+                "acme/repo", "tok", "autopilot/x", "main", "t", "b", draft=True
+            )
+        self.assertTrue(captured["draft"])
+
+    def test_the_policy_is_configurable(self):
+        from backend.config import settings
+
+        # "draft" is the default: an unrepaired blocker must not look mergeable.
+        self.assertIn(settings.AUTOPILOT_BLOCKER_POLICY, ("draft", "warn"))

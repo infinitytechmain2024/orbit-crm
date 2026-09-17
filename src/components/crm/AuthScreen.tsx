@@ -30,7 +30,10 @@ export function AuthScreen() {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-background px-5 py-10">
+    <main
+      data-testid="auth-screen"
+      className="grid min-h-screen place-items-center bg-background px-5 py-10"
+    >
       <div className="pointer-events-none fixed inset-0 opacity-70 [background:radial-gradient(60rem_40rem_at_15%_-10%,color-mix(in_oklab,var(--acc-1)_16%,transparent),transparent),radial-gradient(50rem_40rem_at_95%_10%,color-mix(in_oklab,var(--acc-2)_14%,transparent),transparent)]" />
 
       <section className="panel relative w-full max-w-md p-6 shadow-2xl">
@@ -92,6 +95,7 @@ export function AuthScreen() {
             <label className="block">
               <span className="mb-1 block text-xs text-muted-foreground">Email</span>
               <input
+                data-testid="auth-email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 type="email"
@@ -104,6 +108,7 @@ export function AuthScreen() {
             <label className="block">
               <span className="mb-1 block text-xs text-muted-foreground">Пароль</span>
               <input
+                data-testid="auth-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 type="password"
@@ -128,6 +133,7 @@ export function AuthScreen() {
             )}
 
             <button
+              data-testid="auth-submit"
               type="submit"
               disabled={busy}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-70"

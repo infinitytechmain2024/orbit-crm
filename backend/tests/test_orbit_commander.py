@@ -420,3 +420,64 @@ class OrbitCommanderStepApprovalTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExecuteJobTimeoutTests(unittest.IsolatedAsyncioTestCase):
+    """The queue kills a job at `workflow_jobs.timeout_seconds`. With the old
+    900s default, an execute job routed to the coding executor was killed
+    mid-verification every time — the browser self test could never finish."""
+
+    class _Store:
+        def __init__(self, agent_role: str | None):
+            self.agent_role = agent_role
+            self.inserted: list[dict] = []
+
+        async def one(self, table, **kwargs):
+            if table == "ai_agents":
+                if self.agent_role is None:
+                    raise RuntimeError("agent lookup failed")
+                return {"id": "agent-1", "role": self.agent_role}
+            raise AssertionError(table)
+
+        async def insert(self, table, payload, **kwargs):
+            self.inserted.append(payload)
+            return [{"id": "job-1", **payload}]
+
+    def _commander(self, agent_role: str | None):
+        store = self._Store(agent_role)
+        commander = OrbitCommander.__new__(OrbitCommander)
+        commander.store = store
+        return commander, store
+
+    async def _enqueue(self, agent_role: str | None, job_type: str, timeout_seconds=None):
+        commander, store = self._commander(agent_role)
+        task = {
+            "id": "task-1",
+            "organization_id": "org-1",
+            "agent_id": "agent-1",
+            "attempt_count": 0,
+            "timeout_seconds": timeout_seconds,
+        }
+        with patch.object(OrbitCommander, "create_event", new_callable=AsyncMock):
+            await commander.enqueue_job({"id": "run-1"}, task, job_type)
+        return store.inserted[0]["timeout_seconds"]
+
+    async def test_coding_executor_execute_job_gets_the_full_run_budget(self):
+        from backend.services import coding_executor
+
+        timeout = await self._enqueue("Backend Engineer", "execute")
+        self.assertGreaterEqual(timeout, coding_executor.total_run_budget_seconds())
+        self.assertGreater(timeout, 900)
+
+    async def test_other_phases_keep_the_short_timeout(self):
+        self.assertEqual(await self._enqueue("Backend Engineer", "qa"), 900)
+
+    async def test_non_coding_roles_keep_the_short_timeout(self):
+        # A hung OpenClaw job must still be declared dead on the old schedule.
+        self.assertEqual(await self._enqueue("Research Analyst", "execute"), 900)
+
+    async def test_an_explicitly_longer_task_timeout_is_never_shortened(self):
+        self.assertEqual(await self._enqueue("Research Analyst", "execute", timeout_seconds=5000), 5000)
+
+    async def test_a_failed_agent_lookup_falls_back_instead_of_blocking_enqueue(self):
+        self.assertEqual(await self._enqueue(None, "execute"), 900)

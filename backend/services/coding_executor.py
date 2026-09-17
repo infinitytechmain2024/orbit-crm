@@ -8,6 +8,21 @@ allow-listed command) scoped to a fresh shallow clone of `settings.GITHUB_REPO`.
 On completion it commits, pushes a NEW branch, and opens a pull request via the
 GitHub REST API.
 
+The run is a five-phase lifecycle, not a single shot:
+
+  1. **Plan** — the task is decomposed into atomic steps and written to
+     `docs/autopilot/plans/…` inside the working copy, so the plan ships in the
+     same PR as the code (`autopilot_plan`).
+  2. **Execute** — the tool loop, with plan tools that force every step to end
+     with an explicit status. A blocked step is recorded and the run continues
+     on the steps that do not depend on it.
+  3. **Self review** — the model is shown the real `git diff` and must report
+     defects; blocking findings get one bounded repair round (`autopilot_verifier`).
+  4. **Browser self test** — Playwright logs into the app with a *local* test
+     account and walks the flow. Credentials never touch argv, a file, or a log.
+  5. **Report** — plan statuses, findings and the test outcome become the PR
+     body and the structured result handed back to the commander.
+
 Safety invariants enforced in code, not by prompt:
   * Every branch is prefixed `autopilot/` — it can never collide with `main`/
     `master`, and pushing to the repository's default branch is never
@@ -21,6 +36,7 @@ Safety invariants enforced in code, not by prompt:
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -35,20 +51,56 @@ from typing import Any
 import httpx
 
 from backend.config import settings
+from backend.services import autopilot_plan, autopilot_verifier, autopilot_workspace
 from backend.services.ai_providers import ai_provider_registry
+from backend.services.autopilot_plan import STATUS_BLOCKED, STATUS_DONE, AutopilotPlan
+from backend.services.autopilot_verifier import ReviewFinding, VerificationResult
 
 logger = logging.getLogger(__name__)
 
 # Observed: a documentation edit spent ~20 steps on reads and searches before
 # it was ready to finish, so a 20-step ceiling cut off otherwise-healthy runs.
-MAX_STEPS = 45
+# Step tracking (complete_step/block_step) spends turns on bookkeeping that used
+# to go to edits, so the ceiling grew alongside the plan phase.
+MAX_STEPS = 55
 STEP_TIMEOUT_SECONDS = 90
 # A --depth 1 clone of this repository checks out ~23k files (~465 MB) and takes
 # about two minutes on a warm connection, so the ceiling has to sit well clear of
 # that — a marginal limit here fails the whole run before any work starts.
 CLONE_TIMEOUT_SECONDS = 420
 COMMAND_TIMEOUT_SECONDS = 120
-RUN_TIMEOUT_SECONDS = 900
+
+# ── Time budgets ─────────────────────────────────────────────────────
+# These are derived, not guessed, and they have to reconcile with the caller:
+# the queue worker kills a job at `workflow_jobs.timeout_seconds`, so a run whose
+# phases can legitimately outlast that value simply never finishes. Anything that
+# changes a phase budget must therefore flow through `total_run_budget_seconds()`
+# into the job's timeout — which is why the numbers live in one place.
+#
+# Planning + the tool loops + self review + one repair round.
+EXECUTION_BUDGET_SECONDS = 1200
+# Dependency install + browser install + the Playwright run. Generous because a
+# cold `npm install` in a fresh clone genuinely takes minutes; the verifier
+# subdivides whatever slice of this is actually left.
+VERIFICATION_BUDGET_SECONDS = 1500
+# Everything after the clone. The run enforces this itself rather than trusting
+# the job timeout, so the executor is self-limiting even if it is called from
+# somewhere that sizes the job wrong.
+RUN_TIMEOUT_SECONDS = EXECUTION_BUDGET_SECONDS + VERIFICATION_BUDGET_SECONDS
+# Slack for commit/push/PR round-trips and store writes on either side of a run.
+JOB_TIMEOUT_MARGIN_SECONDS = 240
+# Extra tool steps granted after the self review finds blocking defects.
+REPAIR_STEPS = 12
+
+
+def total_run_budget_seconds() -> int:
+    """Wall-clock ceiling for one autopilot run, clone included.
+
+    The caller must size `workflow_jobs.timeout_seconds` from this. With the
+    queue's old 900s default, a run that reached the browser self test was killed
+    mid-verification every time — the phase could never complete.
+    """
+    return CLONE_TIMEOUT_SECONDS + RUN_TIMEOUT_SECONDS + JOB_TIMEOUT_MARGIN_SECONDS
 MAX_FILE_BYTES = 200_000
 GITHUB_API = "https://api.github.com"
 
@@ -57,12 +109,38 @@ ALLOWED_COMMAND_PREFIXES = (
     "npm run lint",
     "npm run test",
     "npx tsc --noEmit",
+    "npx eslint",
+    "npx playwright test",
+    "npm run test:e2e",
     "pytest",
     "python -m pytest",
     "python3 -m pytest",
     "git status",
     "git diff",
 )
+
+# Checks `check_changes` can run, and how to read their output. `path_group`
+# names the regex group holding the file a diagnostic belongs to.
+CHECKS: dict[str, dict[str, Any]] = {
+    "typescript": {
+        "command": ["npx", "tsc", "--noEmit"],
+        # src/routes/tasks.tsx(160,36): error TS2532: ...
+        "diagnostic": re.compile(r"^(?P<path>[^\s(]+)\((?P<line>\d+),\d+\):"),
+        "needs": "node_modules",
+    },
+    "lint": {
+        "command": ["npx", "eslint", "."],
+        # eslint prints the file on its own line, then indented messages.
+        "diagnostic": re.compile(r"^(?P<path>[^\s]+\.(?:ts|tsx|js|jsx|mjs|cjs))$"),
+        "needs": "node_modules",
+    },
+    "tests": {
+        "command": ["python3", "-m", "pytest", "-q", "backend/tests"],
+        "diagnostic": None,
+        "needs": None,
+    },
+}
+MAX_CHECK_LINES = 40
 
 TOOLS: list[dict[str, Any]] = [
     {
@@ -167,6 +245,72 @@ TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "check_changes",
+            "description": (
+                "Прогнать проверку и показать ТОЛЬКО те замечания, которые относятся к изменённым "
+                "тобой файлам. В проекте есть накопленные чужие ошибки — эта команда отделяет твою "
+                "дельту от фона. Запускай перед finish, чтобы убедиться, что ты ничего не сломал."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "check": {
+                        "type": "string",
+                        "enum": ["typescript", "lint", "tests"],
+                        "description": "typescript — tsc --noEmit; lint — eslint; tests — pytest.",
+                    }
+                },
+                "required": ["check"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "show_plan",
+            "description": "Показать текущий план работ со статусом каждого шага.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "complete_step",
+            "description": (
+                "Отметить шаг плана выполненным. Вызывай сразу после того, как реально внёс "
+                "изменения для этого шага, а не в конце работы пачкой."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "step_id": {"type": "string", "description": "Идентификатор шага из плана, например \"2\"."},
+                    "note": {"type": "string", "description": "Коротко: что именно сделано и в каких файлах."},
+                },
+                "required": ["step_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "block_step",
+            "description": (
+                "Отметить шаг плана заблокированным с причиной. Это НЕ останавливает работу — "
+                "переходи к остальным шагам, которые от него не зависят."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "step_id": {"type": "string", "description": "Идентификатор шага из плана."},
+                    "reason": {"type": "string", "description": "Почему шаг нельзя выполнить."},
+                },
+                "required": ["step_id", "reason"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "finish",
             "description": (
                 "Call this once — and only once — when the task is complete and ready to commit, "
@@ -198,16 +342,47 @@ class CodingExecutionResult:
     summary: str = ""
     steps: list[dict[str, Any]] = field(default_factory=list)
     error: str | None = None
+    # Lifecycle artifacts. Present even on failure, so a run that dies halfway
+    # still reports which steps it had completed before it stopped.
+    plan: dict[str, Any] = field(default_factory=dict)
+    review_findings: list[dict[str, Any]] = field(default_factory=list)
+    verification: dict[str, Any] = field(default_factory=dict)
+    report: str = ""
+    # Per-phase wall clock, in seconds. The budgets can only be calibrated
+    # against real numbers, and until now a run reported none.
+    timings: dict[str, float] = field(default_factory=dict)
+    # "worktree" (persistent, node_modules reused) or "clone" (throwaway).
+    workspace: str = "clone"
 
 
-def _branch_name(task_id: str, title: str) -> str:
+def _branch_name(task_id: str, title: str, attempt: int = 1) -> str:
+    """`autopilot/<task>-<slug>`, with an attempt suffix from the second try on.
+
+    The name used to be a pure function of the task, which broke retries: if a
+    run pushed its branch and then failed to open the PR, the next attempt hit a
+    non-fast-forward on push and a 422 on the pull request. Distinct attempts get
+    distinct branches, so a retry is always able to complete.
+    """
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:40] or "task"
-    return f"autopilot/{task_id}-{slug}"
+    suffix = f"-a{attempt}" if attempt > 1 else ""
+    return f"autopilot/{task_id}-{slug}{suffix}"
 
 
 def _is_protected(path: Path) -> bool:
-    """Paths the model must never write to, whatever the task says."""
-    return ".git" in path.parts or path.name.startswith(".env")
+    """Paths the model must never write to, whatever the task says.
+
+    The plan directory is in here for the same reason `.git` is: the plan file is
+    the run's own progress record, written by `_dispatch_plan_tool` after every
+    status change. A model that edits it directly could report steps as done
+    without doing them, which is exactly what the plan exists to prevent — so it
+    is blocked in code, not merely discouraged in the system prompt.
+    """
+    parts = path.parts
+    if ".git" in parts or path.name.startswith(".env"):
+        return True
+    return tuple(autopilot_plan.PLAN_DIR.split("/")) in tuple(
+        parts[index : index + 3] for index in range(len(parts))
+    )
 
 
 def _safe_path(workdir: Path, relative: str) -> Path:
@@ -218,36 +393,12 @@ def _safe_path(workdir: Path, relative: str) -> Path:
     return candidate
 
 
-async def _run(
-    cmd: list[str], cwd: Path, timeout: float, env: dict[str, str] | None = None
-) -> tuple[int, str, str]:
-    """Run a subprocess. `cmd` must never itself contain a secret value — pass
-    secrets via `env` instead, so they can never leak into a logged/raised
-    command line, a process listing, or a subprocess exception message."""
-    process = await asyncio.create_subprocess_exec(
-        *cmd,
-        cwd=str(cwd),
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        env=env,
-    )
-    try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-    except asyncio.TimeoutError:
-        process.kill()
-        await process.wait()
-        raise TimeoutError(f"Команда не уложилась в {timeout}с: {' '.join(cmd)}")
-    return process.returncode or 0, stdout.decode("utf-8", "replace"), stderr.decode("utf-8", "replace")
-
-
-def _git_credential_env(token: str) -> dict[str, str]:
-    """Environment for a git subprocess that authenticates as x-access-token
-    without ever placing the token in argv (command line / process list /
-    any exception message that echoes `cmd`)."""
-    return {**os.environ, "GIT_TERMINAL_PROMPT": "0", "ORBIT_GIT_TOKEN": token}
-
-
-CREDENTIAL_HELPER = "!f() { echo username=x-access-token; echo password=$ORBIT_GIT_TOKEN; }; f"
+# Git primitives live in `autopilot_workspace` so that module can manage mirrors
+# and worktrees without importing this one. They are re-exported here because
+# this module's own helpers (and their tests) address them by these names.
+_run = autopilot_workspace.run_git
+_git_credential_env = autopilot_workspace.git_credential_env
+CREDENTIAL_HELPER = autopilot_workspace.CREDENTIAL_HELPER
 
 
 async def _clone_repo(repo: str, workdir: Path, token: str) -> str:
@@ -359,6 +510,25 @@ async def _dispatch_tool(workdir: Path, name: str, arguments: dict[str, Any]) ->
         return f"Ошибка: {exc}"
 
 
+async def _free_branch_name(workdir: Path, branch: str) -> str:
+    """A branch name that does not already exist locally.
+
+    With a throwaway clone this was moot. A persistent worktree keeps refs
+    between runs, so `git checkout -b` on a name a previous attempt left behind
+    would fail — and force-creating it would destroy a commit the resume path
+    may still need to deliver.
+    """
+    candidate = branch
+    for suffix in range(1, 20):
+        code, _out, _err = await _run(
+            ["git", "show-ref", "--verify", "--quiet", f"refs/heads/{candidate}"], cwd=workdir, timeout=15
+        )
+        if code != 0:
+            return candidate
+        candidate = f"{branch}-{suffix}"
+    return f"{branch}-{int(time.monotonic())}"
+
+
 async def _create_branch_and_commit(workdir: Path, branch: str, commit_message: str) -> str:
     assert branch not in ("main", "master"), "coding_executor must never target the default branch"
     await _run(["git", "checkout", "-b", branch], cwd=workdir, timeout=15)
@@ -399,8 +569,28 @@ async def _push_branch(workdir: Path, branch: str, token: str) -> None:
         raise RuntimeError(f"git push failed: {err[-2000:]}")
 
 
+async def _find_open_pull_request(client: httpx.AsyncClient, repo: str, branch: str) -> str:
+    """URL of an already-open PR for `branch`, or "" if there is none.
+
+    Makes PR creation idempotent: a run that pushed successfully and then failed
+    while opening the PR (or while reporting it) must be able to finish on a
+    retry instead of dying on GitHub's "a pull request already exists" 422.
+    """
+    owner = repo.split("/", 1)[0]
+    try:
+        response = await client.get(f"/repos/{repo}/pulls", params={"head": f"{owner}:{branch}", "state": "open"})
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        logger.info("coding_executor: could not look up an existing PR for %s: %s", branch, exc)
+        return ""
+    payload = response.json()
+    if isinstance(payload, list) and payload:
+        return str(payload[0].get("html_url") or "")
+    return ""
+
+
 async def _open_pull_request(
-    repo: str, token: str, branch: str, base_branch: str, title: str, body: str
+    repo: str, token: str, branch: str, base_branch: str, title: str, body: str, draft: bool = False
 ) -> str:
     async with httpx.AsyncClient(
         base_url=GITHUB_API,
@@ -411,10 +601,25 @@ async def _open_pull_request(
         },
         timeout=30.0,
     ) as client:
+        existing = await _find_open_pull_request(client, repo, branch)
+        if existing:
+            logger.info("coding_executor: reusing the pull request already open for %s", branch)
+            return existing
         response = await client.post(
             f"/repos/{repo}/pulls",
-            json={"title": title[:250], "head": branch, "base": base_branch, "body": body[:60000]},
+            json={
+                "title": title[:250],
+                "head": branch,
+                "base": base_branch,
+                "body": body[:60000],
+                "draft": draft,
+            },
         )
+        if response.status_code == 422:
+            # Lost a race, or the branch already had a PR the listing missed.
+            recovered = await _find_open_pull_request(client, repo, branch)
+            if recovered:
+                return recovered
         response.raise_for_status()
         return str(response.json().get("html_url") or "")
 
@@ -434,17 +639,27 @@ TOOL_CAPABLE_MODELS = {
 PROVIDER_ATTEMPTS = 4
 
 
-async def _complete_with_retry(provider: Any, model: str, messages: list[dict[str, Any]]) -> Any | None:
+async def _complete_with_retry(
+    provider: Any,
+    model: str,
+    messages: list[dict[str, Any]],
+    *,
+    tools: list[dict[str, Any]] | None = None,
+) -> Any | None:
     """One agent step, retried past transient provider hiccups.
 
     The NVIDIA endpoint intermittently answers with no choices at all (and
     occasionally just stalls) for a model that served a request seconds earlier,
     so a single bad response must not end an otherwise healthy run.
+
+    `tools` is explicit because the planning and review phases must call the
+    model *without* a toolset — handing them TOOLS would invite the model to
+    start editing files during a phase that is only supposed to think.
     """
     for attempt in range(1, PROVIDER_ATTEMPTS + 1):
         try:
             return await asyncio.wait_for(
-                provider.complete(model, messages, temperature=0.1, max_tokens=4096, tools=TOOLS),
+                provider.complete(model, messages, temperature=0.1, max_tokens=4096, tools=tools),
                 timeout=STEP_TIMEOUT_SECONDS,
             )
         except Exception as exc:
@@ -464,6 +679,292 @@ def _resolve_provider() -> tuple[str, str]:
     raise CodingExecutorUnavailable("Ни один AI-провайдер с поддержкой function calling не настроен")
 
 
+def _plan_status_block(plan: AutopilotPlan) -> str:
+    lines = [f"- [{step.status}] {step.id}. {step.title}" + (f" — {step.detail}" if step.detail else "")
+             for step in plan.steps]
+    return "\n".join(lines)
+
+
+def _dispatch_plan_tool(
+    plan: AutopilotPlan, workdir: Path, name: str, arguments: dict[str, Any]
+) -> str | None:
+    """Handle the plan-tracking tools. Returns None when `name` is not one of them.
+
+    Every mutation is flushed to the plan file immediately: a run that is killed
+    mid-flight must still leave an accurate record of how far it got, and the
+    file is what a human reads in the PR.
+    """
+    if name == "show_plan":
+        return _plan_status_block(plan)
+
+    if name in ("complete_step", "block_step"):
+        step_id = str(arguments.get("step_id") or "").strip()
+        step = plan.find(step_id)
+        if step is None:
+            known = ", ".join(item.id for item in plan.steps)
+            return f"Ошибка: шага {step_id!r} нет в плане. Существующие шаги: {known}"
+        if name == "complete_step":
+            plan.mark(step_id, STATUS_DONE, str(arguments.get("note") or ""))
+            outcome = f"Шаг {step_id} отмечен выполненным"
+        else:
+            reason = str(arguments.get("reason") or "").strip()
+            if not reason:
+                return "Ошибка: reason обязателен — нужно зафиксировать, почему шаг заблокирован"
+            plan.mark(step_id, STATUS_BLOCKED, reason)
+            outcome = f"Шаг {step_id} отмечен заблокированным. Продолжай остальные шаги."
+        plan.write(workdir)
+        counts = plan.counts()
+        return f"{outcome}. Прогресс: {counts['done']}/{counts['total']}, осталось {counts['pending']}."
+
+    return None
+
+
+async def _changed_files(workdir: Path) -> set[str]:
+    """Repository-relative paths the run has touched so far."""
+    await _run(["git", "add", "-A", "-N"], cwd=workdir, timeout=30)
+    _code, out, _err = await _run(["git", "diff", "--name-only"], cwd=workdir, timeout=30)
+    return {line.strip() for line in out.splitlines() if line.strip()}
+
+
+def _belongs_to_changed(raw_path: str, workdir: Path, changed: set[str]) -> bool:
+    candidate = raw_path.strip()
+    if not candidate:
+        return False
+    try:
+        relative = str(Path(candidate).resolve().relative_to(workdir.resolve()))
+    except (ValueError, OSError):
+        relative = candidate.lstrip("./")
+    return relative in changed
+
+
+async def _run_check(workdir: Path, check_name: str) -> str:
+    """Run a project check and report the delta, not the absolute.
+
+    The repository carries pre-existing failures (at the time of writing, 141
+    `tsc` diagnostics and 3 failing tests). Handing the model that wall of noise
+    makes any "did I break something?" question unanswerable, so the output is
+    filtered down to files this run actually touched.
+    """
+    spec = CHECKS.get(check_name)
+    if spec is None:
+        return f"Ошибка: неизвестная проверка {check_name!r}. Доступны: {', '.join(CHECKS)}"
+
+    if spec["needs"] == "node_modules" and not (workdir / "node_modules").is_dir():
+        return (
+            "Проверка недоступна: в рабочей копии нет node_modules — зависимости ставятся "
+            "только на этапе браузерной верификации, после коммита. Опирайся на чтение кода; "
+            "эта проверка всё равно будет прогнана позже."
+        )
+
+    changed = await _changed_files(workdir)
+    if not changed:
+        return "Ты пока не изменил ни одного файла — проверять нечего."
+
+    try:
+        code, out, err = await _run(spec["command"], cwd=workdir, timeout=COMMAND_TIMEOUT_SECONDS)
+    except TimeoutError as exc:
+        return f"Ошибка: {exc}"
+    output = f"{out}\n{err}"
+
+    pattern = spec["diagnostic"]
+    if pattern is None:
+        tail = output.strip()[-3000:]
+        return f"exit={code}\n{tail}"
+
+    all_lines = [line for line in output.splitlines() if pattern.match(line.strip())]
+    mine = [
+        line
+        for line in all_lines
+        if _belongs_to_changed(pattern.match(line.strip()).group("path"), workdir, changed)
+    ]
+    header = (
+        f"Проверка «{check_name}»: {len(mine)} замечани(й) в изменённых тобой файлах "
+        f"(всего в проекте — {len(all_lines)}, остальное существовало до тебя)."
+    )
+    if not mine:
+        return f"{header}\nВ твоих файлах чисто."
+    return header + "\n" + "\n".join(mine[:MAX_CHECK_LINES])
+
+
+async def _working_diff(workdir: Path) -> str:
+    """The real diff of the working copy, including files created this run.
+
+    `-N` (intent-to-add) is what makes new files show up in `git diff` without
+    actually staging anything, so the review sees exactly what the commit will.
+    """
+    await _run(["git", "add", "-A", "-N"], cwd=workdir, timeout=30)
+    _code, out, _err = await _run(["git", "diff"], cwd=workdir, timeout=60)
+    return out
+
+
+def _findings_message(findings: list[ReviewFinding]) -> str:
+    lines = [finding.as_line() for finding in findings]
+    return (
+        "Ревизия твоего собственного диффа нашла дефекты. Почини блокирующие из них "
+        "инструментами edit_file/write_file, затем снова вызови finish. "
+        "Если дефект — ложное срабатывание, всё равно вызови finish и объясни это в summary.\n\n"
+        + "\n".join(f"- {line}" for line in lines)
+    )
+
+
+async def _tool_loop(
+    provider: Any,
+    model_name: str,
+    messages: list[dict[str, Any]],
+    workdir: Path,
+    plan: AutopilotPlan,
+    steps: list[dict[str, Any]],
+    max_steps: int,
+    deadline: float,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Drive the tool-calling loop until `finish`.
+
+    Returns `(finish_payload, error)`; exactly one of the two is set.
+    """
+    nudged_about_pending = False
+
+    for _ in range(max_steps):
+        if time.monotonic() > deadline:
+            return None, "Превышен общий лимит времени выполнения"
+
+        result = await _complete_with_retry(provider, model_name, messages, tools=TOOLS)
+        if result is None:
+            return None, f"Провайдер {provider.name} не ответил после {PROVIDER_ATTEMPTS} попыток"
+
+        if not result.tool_calls:
+            messages.append({"role": "assistant", "content": result.content})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Используй один из инструментов read_file/edit_file/write_file/search/list_dir/"
+                        "run_command/check_changes/show_plan/complete_step/block_step, либо finish."
+                    ),
+                }
+            )
+            continue
+
+        messages.append(
+            {
+                "role": "assistant",
+                "content": result.content or None,
+                "tool_calls": [
+                    {
+                        "id": call["id"],
+                        "type": "function",
+                        "function": {"name": call["name"], "arguments": call["arguments"]},
+                    }
+                    for call in result.tool_calls
+                ],
+            }
+        )
+
+        finish_payload: dict[str, Any] | None = None
+        for call in result.tool_calls:
+            try:
+                arguments = json.loads(call["arguments"] or "{}")
+            except json.JSONDecodeError:
+                arguments = {}
+            tool_name = call["name"]
+
+            if tool_name == "finish":
+                pending = plan.pending
+                if pending and not nudged_about_pending:
+                    # Every step must end with an explicit status — silently
+                    # leaving steps unaddressed is how a run reports success for
+                    # work it never did.
+                    nudged_about_pending = True
+                    tool_output = (
+                        "Ещё не у всех шагов плана есть статус: "
+                        + ", ".join(f"{step.id}. {step.title}" for step in pending)
+                        + ". Для каждого вызови complete_step (если сделан) или block_step "
+                        "(если сделать нельзя), затем finish снова."
+                    )
+                else:
+                    finish_payload = arguments
+                    tool_output = "ok"
+            elif tool_name == "check_changes":
+                tool_output = await _run_check(workdir, str(arguments.get("check") or ""))
+            else:
+                plan_output = _dispatch_plan_tool(plan, workdir, tool_name, arguments)
+                tool_output = (
+                    plan_output
+                    if plan_output is not None
+                    else await _dispatch_tool(workdir, tool_name, arguments)
+                )
+
+            steps.append({"tool": tool_name, "arguments": arguments})
+            messages.append({"role": "tool", "tool_call_id": call["id"], "content": tool_output[:4000]})
+
+        if finish_payload is not None:
+            return finish_payload, None
+
+    return None, f"Достигнут лимит шагов ({max_steps}) без вызова finish"
+
+
+async def _resume_delivery(
+    mirror: Path,
+    repo: str,
+    token: str,
+    task: dict[str, Any],
+    default_branch: str,
+    timings: dict[str, float],
+) -> CodingExecutionResult | None:
+    """Re-deliver a commit a previous attempt made but could not push.
+
+    Returns None when there is nothing to resume. Any failure here is swallowed:
+    falling through to a normal run is always correct, just slower.
+    """
+    try:
+        branch, commit_sha = await autopilot_workspace.pending_delivery(mirror, str(task["id"]))
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("autopilot: could not check for a pending delivery: %s", exc)
+        return None
+    if not branch:
+        return None
+
+    logger.info("autopilot: resuming delivery of %s from a previous attempt", branch)
+    started = time.monotonic()
+    try:
+        code, _out, err = await _run(
+            ["git", "--git-dir", str(mirror), "push", "-u", "origin", branch],
+            cwd=mirror.parent,
+            timeout=120,
+            env=_git_credential_env(token),
+        )
+        if code != 0:
+            raise RuntimeError(f"git push failed: {err[-2000:]}")
+        pr_url = await _open_pull_request(
+            repo,
+            token,
+            branch,
+            default_branch,
+            title=f"[Autopilot] {task['title']}",
+            body=(
+                f"Изменения были готовы в предыдущей попытке, но не доставлены в GitHub "
+                f"(сетевой сбой). Эта попытка только досылает уже сделанный коммит "
+                f"`{commit_sha[:8]}` — работа заново не выполнялась.\n\n---\n"
+                f"Создано автопилотом Orbit CRM по задаче `{task['id']}`."
+            ),
+        )
+    except (RuntimeError, httpx.HTTPError) as exc:
+        logger.warning("autopilot: resuming delivery of %s failed again: %s", branch, exc)
+        return None
+
+    timings["resume_delivery"] = round(time.monotonic() - started, 1)
+    return CodingExecutionResult(
+        success=True,
+        branch=branch,
+        commit_sha=commit_sha,
+        pr_url=pr_url,
+        summary="Досланы изменения предыдущей попытки — работа не выполнялась заново.",
+        plan={},
+        report=f"Доставлен коммит `{commit_sha[:8]}` из предыдущей попытки: {pr_url}",
+        timings=dict(timings),
+        workspace="worktree",
+    )
+
+
 async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionResult:
     repo = str(settings.GITHUB_REPO or "").strip()
     token = str(settings.GITHUB_TOKEN or "").strip()
@@ -473,111 +974,193 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
     provider_name, model_name = _resolve_provider()
     provider = ai_provider_registry.get(provider_name)
 
-    with tempfile.TemporaryDirectory(prefix="orbit-autopilot-") as base:
-        workdir = Path(base) / "repo"
-        default_branch = await _clone_repo(repo, workdir, token)
-        branch = _branch_name(str(task["id"]), task["title"])
+    async def complete_without_tools(messages: list[dict[str, Any]]) -> Any | None:
+        return await _complete_with_retry(provider, model_name, messages, tools=None)
 
+    async with contextlib.AsyncExitStack() as stack:
+        timings: dict[str, float] = {}
+        clone_started = time.monotonic()
+        space = await stack.enter_async_context(
+            autopilot_workspace.acquire(
+                repo, token, settings.AUTOPILOT_CACHE_DIR, settings.AUTOPILOT_WORKSPACE_SLOTS
+            )
+        )
+        if space.persistent:
+            workdir = space.path
+            default_branch = space.default_branch
+        else:
+            base = stack.enter_context(tempfile.TemporaryDirectory(prefix="orbit-autopilot-"))
+            workdir = Path(base) / "repo"
+            default_branch = await _clone_repo(repo, workdir, token)
+        timings["clone"] = round(time.monotonic() - clone_started, 1)
+
+        # A previous attempt may have committed and then failed to deliver. With
+        # a persistent workspace that commit still exists, so re-push it instead
+        # of spending a whole run reproducing work that is already done.
+        if space.persistent and space.git_dir is not None:
+            resumed = await _resume_delivery(space.git_dir, repo, token, task, default_branch, timings)
+            if resumed is not None:
+                return resumed
+
+        branch = _branch_name(str(task["id"]), task["title"], int(task.get("attempt_count") or 1))
+        if space.persistent:
+            branch = await _free_branch_name(workdir, branch)
+        # Two deadlines, not one: the execution loops must leave the verification
+        # phase its share of the run, and the run as a whole must stay inside the
+        # budget the job timeout was sized from.
+        run_started = time.monotonic()
+        run_deadline = run_started + RUN_TIMEOUT_SECONDS
+        deadline = run_started + EXECUTION_BUDGET_SECONDS
+        steps: list[dict[str, Any]] = []
+
+        # ── Phase 1: plan ────────────────────────────────────────────
+        phase_started = time.monotonic()
+        plan = await autopilot_plan.generate(complete_without_tools, task)
+        plan.write(workdir)
+        timings["plan"] = round(time.monotonic() - phase_started, 1)
+        logger.info("autopilot: plan for task %s has %s steps", task["id"], len(plan.steps))
+
+        def failure(error: str, summary: str = "") -> CodingExecutionResult:
+            """A failed run still reports the plan it got through."""
+            return CodingExecutionResult(
+                success=False,
+                steps=steps,
+                summary=summary,
+                error=error,
+                plan=plan.to_dict(),
+                timings=dict(timings),
+                workspace=space.kind,
+            )
+
+        # ── Phase 2: execute, tracking every step ────────────────────
         system_prompt = (
             "Ты — автономный инженер Orbit Autopilot с доступом к рабочей копии репозитория "
             f"{repo} через инструменты read_file/edit_file/write_file/search/list_dir/run_command. "
+            "Работай строго по плану ниже. Как только шаг реально сделан — вызывай complete_step; "
+            "если шаг выполнить нельзя — block_step с причиной и продолжай остальные шаги. "
+            "Перед finish прогони check_changes — в проекте есть накопленные чужие ошибки, и эта "
+            "команда покажет только те замечания, которые относятся к изменённым тобой файлам. "
+            f"Файл плана `{plan.relative_path}` веду я сам, не редактируй его инструментами файлов. "
             "Вноси только изменения, необходимые для задачи. Никогда не читай и не пиши в .git "
-            "или файлы .env*. Когда закончишь — вызови finish с summary и commit_message. "
+            "или файлы .env*. Когда все шаги закрыты — вызови finish с summary и commit_message. "
             "Если задачу нельзя выполнить — вызови finish, объяснив почему, и не меняй файлы."
         )
         user_prompt = (
             f"Задача: {task['title']}\n"
             f"Описание: {task.get('description') or ''}\n"
-            f"Критерии приёмки: {json.dumps(task.get('acceptance_criteria') or [], ensure_ascii=False)}"
+            f"Критерии приёмки: {json.dumps(task.get('acceptance_criteria') or [], ensure_ascii=False)}\n\n"
+            f"План работ:\n{_plan_status_block(plan)}"
         )
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
-        steps: list[dict[str, Any]] = []
-        finish_payload: dict[str, Any] | None = None
-        deadline = time.monotonic() + RUN_TIMEOUT_SECONDS
-
-        for _ in range(MAX_STEPS):
-            if time.monotonic() > deadline:
-                return CodingExecutionResult(success=False, steps=steps, error="Превышен общий лимит времени выполнения")
-
-            result = await _complete_with_retry(provider, model_name, messages)
-            if result is None:
-                return CodingExecutionResult(
-                    success=False,
-                    steps=steps,
-                    error=f"Провайдер {provider.name} не ответил после {PROVIDER_ATTEMPTS} попыток",
-                )
-
-            if not result.tool_calls:
-                messages.append({"role": "assistant", "content": result.content})
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": "Используй один из инструментов read_file/edit_file/write_file/search/list_dir/run_command, либо finish.",
-                    }
-                )
-                continue
-
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": result.content or None,
-                    "tool_calls": [
-                        {
-                            "id": call["id"],
-                            "type": "function",
-                            "function": {"name": call["name"], "arguments": call["arguments"]},
-                        }
-                        for call in result.tool_calls
-                    ],
-                }
-            )
-
-            stop = False
-            for call in result.tool_calls:
-                try:
-                    arguments = json.loads(call["arguments"] or "{}")
-                except json.JSONDecodeError:
-                    arguments = {}
-                tool_name = call["name"]
-                if tool_name == "finish":
-                    finish_payload = arguments
-                    stop = True
-                    tool_output = "ok"
-                else:
-                    tool_output = await _dispatch_tool(workdir, tool_name, arguments)
-                steps.append({"tool": tool_name, "arguments": arguments})
-                messages.append({"role": "tool", "tool_call_id": call["id"], "content": tool_output[:4000]})
-            if stop:
-                break
-        else:
-            return CodingExecutionResult(
-                success=False, steps=steps, error=f"Достигнут лимит шагов ({MAX_STEPS}) без вызова finish"
-            )
-
+        phase_started = time.monotonic()
+        finish_payload, error = await _tool_loop(
+            provider, model_name, messages, workdir, plan, steps, MAX_STEPS, deadline
+        )
+        timings["execute"] = round(time.monotonic() - phase_started, 1)
         if finish_payload is None:
-            return CodingExecutionResult(success=False, steps=steps, error="Модель не вызвала finish")
+            return failure(error or "Модель не вызвала finish")
 
         summary = str(finish_payload.get("summary") or "")[:2000]
         commit_message = str(finish_payload.get("commit_message") or task["title"])[:200]
 
+        # ── Phase 3: self review over the real diff, one repair round ─
+        phase_started = time.monotonic()
+        findings: list[ReviewFinding] = []
+        if settings.AUTOPILOT_SELF_REVIEW_ENABLED:
+            diff = await _working_diff(workdir)
+            findings = await autopilot_verifier.review_diff(complete_without_tools, task, diff, plan)
+            blocking = [finding for finding in findings if finding.blocking]
+            if blocking and time.monotonic() < deadline:
+                logger.info("autopilot: self review found %s blocking findings, repairing", len(blocking))
+                messages.append({"role": "user", "content": _findings_message(blocking)})
+                repair_payload, repair_error = await _tool_loop(
+                    provider, model_name, messages, workdir, plan, steps, REPAIR_STEPS, deadline
+                )
+                if repair_payload is not None:
+                    summary = str(repair_payload.get("summary") or summary)[:2000]
+                    commit_message = str(repair_payload.get("commit_message") or commit_message)[:200]
+                else:
+                    logger.info("autopilot: repair round did not finish cleanly (%s)", repair_error)
+                # Re-review once so the report reflects the repaired diff, not
+                # the findings the model was asked to fix.
+                findings = await autopilot_verifier.review_diff(
+                    complete_without_tools, task, await _working_diff(workdir), plan
+                )
+        timings["review"] = round(time.monotonic() - phase_started, 1)
+
+        # ── Commit (before verification, so npm artefacts stay out) ───
         try:
             commit_sha = await _create_branch_and_commit(workdir, branch, commit_message)
         except RuntimeError as exc:
-            return CodingExecutionResult(success=False, steps=steps, summary=summary, error=str(exc))
+            return failure(str(exc), summary=summary)
 
-        await _push_branch(workdir, branch, token)
-        pr_url = await _open_pull_request(
-            repo,
-            token,
-            branch,
-            default_branch,
-            title=f"[Autopilot] {task['title']}",
-            body=f"{summary}\n\n---\nСоздано автопилотом Orbit CRM по задаче `{task['id']}`.",
-        )
+        # ── Phase 4: browser self test ───────────────────────────────
+        phase_started = time.monotonic()
+        verification = VerificationResult(status="skipped", reason="Верификация не запускалась")
+        try:
+            spec = autopilot_verifier.select_spec(workdir, task, sorted(await _changed_files(workdir)))
+            if spec != autopilot_verifier.SMOKE_SPEC:
+                logger.info("autopilot: verifying task %s with %s", task["id"], spec)
+            verification = await autopilot_verifier.run_browser_self_test(
+                workdir, spec=spec, budget_seconds=run_deadline - time.monotonic()
+            )
+        except Exception as exc:  # pragma: no cover - a broken test rig must not lose the PR
+            logger.exception("autopilot: browser self test crashed")
+            verification = VerificationResult(
+                status="error", reason=f"Браузерный самотест упал: {autopilot_verifier.scrub(str(exc))}"
+            )
+        timings["verify"] = round(time.monotonic() - phase_started, 1)
+
+        # ── Phase 5: report, push, PR ────────────────────────────────
+        report = autopilot_verifier.render_report(task, plan, summary, findings, verification)
+        phase_started = time.monotonic()
+        try:
+            await _push_branch(workdir, branch, token)
+            # An unrepaired blocker (or a failed browser test) should not produce
+            # a PR that looks ready to merge — the finding used to live only in
+            # the body, where it is easy to scroll past.
+            unresolved = [finding for finding in findings if finding.blocking]
+            as_draft = settings.AUTOPILOT_BLOCKER_POLICY == "draft" and (
+                bool(unresolved) or verification.status == "failed"
+            )
+            title_prefix = "[Autopilot][требует внимания] " if as_draft else "[Autopilot] "
+            pr_url = await _open_pull_request(
+                repo,
+                token,
+                branch,
+                default_branch,
+                title=f"{title_prefix}{task['title']}",
+                body=f"{report}\n\n---\nСоздано автопилотом Orbit CRM по задаче `{task['id']}`.",
+                draft=as_draft,
+            )
+        except (RuntimeError, httpx.HTTPError) as exc:
+            # Delivery failed, the work did not. Returning a result instead of
+            # raising keeps this out of the worker's generic retry path, which
+            # would re-clone and re-run the whole model loop from scratch while
+            # the finished commit died with the temporary directory.
+            timings["deliver"] = round(time.monotonic() - phase_started, 1)
+            logger.warning("coding_executor: could not deliver branch %s: %s", branch, exc)
+            return CodingExecutionResult(
+                success=False,
+                branch=branch,
+                commit_sha=commit_sha,
+                summary=summary,
+                steps=steps,
+                error=f"Изменения закоммичены, но не доставлены в GitHub: {autopilot_verifier.scrub(str(exc))}",
+                plan=plan.to_dict(),
+                review_findings=[finding.to_dict() for finding in findings],
+                verification=verification.to_dict(),
+                report=report,
+                timings=dict(timings),
+                workspace=space.kind,
+            )
+        timings["deliver"] = round(time.monotonic() - phase_started, 1)
+        timings["total"] = round(time.monotonic() - clone_started, 1)
+        logger.info("autopilot: task %s finished, phase timings %s", task["id"], timings)
 
         return CodingExecutionResult(
             success=True,
@@ -586,4 +1169,10 @@ async def run(task: dict[str, Any], agent: dict[str, Any]) -> CodingExecutionRes
             pr_url=pr_url,
             summary=summary,
             steps=steps,
+            plan=plan.to_dict(),
+            review_findings=[finding.to_dict() for finding in findings],
+            verification=verification.to_dict(),
+            report=autopilot_verifier.render_report(task, plan, summary, findings, verification, pr_url),
+            timings=dict(timings),
+            workspace=space.kind,
         )

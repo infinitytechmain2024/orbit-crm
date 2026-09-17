@@ -174,8 +174,12 @@ function ProtectedApp() {
 
   return (
     <CrmProvider>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {/* `data-testid` is the autopilot's browser self-test signal that authentication
+          actually succeeded — it must not be renamed without updating e2e/. */}
+      <div data-testid="app-shell" className="contents">
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </div>
     </CrmProvider>
   );
 }
