@@ -1,4 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  fetchBackend,
+  resolveBackendTargets,
+  toProxyResponse,
+} from "@/lib/server/backend-upstream";
+
+// The backend waits up to OPENCLAW_REQUEST_TIMEOUT (120 s) for the gateway.
+const OPENCLAW_TIMEOUT_MS = 130_000;
 
 export const Route = createFileRoute("/api/openclaw/$")({
   server: {
@@ -15,18 +23,15 @@ async function proxyOpenClawRequest(
   path: string | undefined,
   method: string,
 ): Promise<Response> {
-  const base =
-    process.env["AI_WORKFLOW_BACKEND_URL"] ??
-    process.env["RENDER_BACKEND_URL"] ??
-    process.env["BACKEND_URL"] ??
-    (process.env["NODE_ENV"] === "development" ? "http://127.0.0.1:8000" : "");
+  const targets = resolveBackendTargets({
+    legacyUrlKeys: ["AI_WORKFLOW_BACKEND_URL", "RENDER_BACKEND_URL", "BACKEND_URL"],
+  });
   const internalToken = process.env["INTERNAL_API_TOKEN"];
-  if (!base || !internalToken) {
+  if (targets.length === 0 || !internalToken) {
     return Response.json({ error: "OpenClaw backend is not configured" }, { status: 503 });
   }
 
   const incomingUrl = new URL(request.url);
-  const target = `${base.replace(/\/$/, "")}/api/openclaw${path ? `/${path}` : ""}${incomingUrl.search}`;
   const headers = new Headers(request.headers);
   const userAuthorization = headers.get("authorization");
   headers.delete("host");
@@ -35,23 +40,21 @@ async function proxyOpenClawRequest(
   if (userAuthorization) headers.set("x-supabase-authorization", userAuthorization);
   headers.set("authorization", `Bearer ${internalToken}`);
 
-  try {
-    const upstream = await fetch(target, {
-      method,
-      headers,
-      body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
-      redirect: "manual",
-    });
-    const responseHeaders = new Headers(upstream.headers);
-    responseHeaders.delete("content-length");
-    responseHeaders.delete("content-encoding");
-    responseHeaders.set("cache-control", "no-store");
-    return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
-  } catch (error) {
+  const result = await fetchBackend(targets, {
+    method,
+    path: `/api/openclaw${path ? `/${path}` : ""}${incomingUrl.search}`,
+    headers,
+    body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
+    timeoutMs: OPENCLAW_TIMEOUT_MS,
+    logLabel: "openclaw proxy",
+  });
+  if (!result.ok) {
     console.error("[openclaw proxy] upstream request failed", {
       path: path ?? "",
-      reason: error instanceof Error ? error.message : "Unknown upstream error",
+      reason: result.reason,
     });
     return Response.json({ error: "OpenClaw backend is unavailable" }, { status: 502 });
   }
+
+  return toProxyResponse(result);
 }

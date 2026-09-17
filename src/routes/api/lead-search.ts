@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchBackend, resolveBackendTargets } from "@/lib/server/backend-upstream";
 
 const API_URL = import.meta.env["VITE_API_URL"] || "https://aura-crm-hn11.onrender.com";
+const LEAD_SEARCH_TIMEOUT_MS = 120_000;
 
 export const Route = createFileRoute("/api/lead-search")({
   server: {
@@ -18,14 +20,24 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
       Accept: "application/json",
     };
 
-    const direct = await fetch(`${API_URL.replace(/\/$/, "")}/api/lead-search`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(120000),
-    });
+    const direct = await fetchBackend(
+      resolveBackendTargets({ legacyUrlKeys: [], defaultPrimary: API_URL }),
+      {
+        method: "POST",
+        path: "/api/lead-search",
+        headers: new Headers(headers),
+        body: JSON.stringify(body),
+        timeoutMs: LEAD_SEARCH_TIMEOUT_MS,
+        logLabel: "lead-search",
+      },
+    );
 
-    const directResult = await readLeadSearchResponse(direct);
+    const directResult = direct.ok
+      ? await readLeadSearchResponse(direct.response)
+      : ({
+          ok: false,
+          error: { status: 502, contentType: null, detail: direct.reason },
+        } as const);
     if (directResult.ok) {
       return directResult.response;
     }
@@ -37,7 +49,7 @@ async function proxyLeadSearch(request: Request): Promise<Response> {
         authorization: request.headers.get("authorization") || "",
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(120000),
+      signal: AbortSignal.timeout(LEAD_SEARCH_TIMEOUT_MS),
     });
 
     const fallbackResult = await readLeadSearchResponse(fallback);
